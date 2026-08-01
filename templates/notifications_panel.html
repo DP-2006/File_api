@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>نوتیفیکیشن‌های هوش مصنوعی</title>
+    <style>
+        body {
+            font-family: Tahoma, sans-serif;
+            background: #f4f4f4;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .notification-item {
+            background: white;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-right: 4px solid #3498db;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        .notification-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        .notification-item.critical {
+            border-right-color: #e74c3c;
+            background: #fef2f2;
+        }
+        .notification-item.warning {
+            border-right-color: #f39c12;
+            background: #fffbeb;
+        }
+        .notification-item.info {
+            border-right-color: #3498db;
+        }
+        .notification-item.unread {
+            background: #f0f7ff;
+        }
+        .notification-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        .notification-message {
+            color: #555;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .notification-meta {
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: #888;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+        .badge-critical { background: #e74c3c; color: white; }
+        .badge-warning { background: #f39c12; color: white; }
+        .badge-info { background: #3498db; color: white; }
+        .badge-unread { background: #2ecc71; color: white; }
+        .badge-read { background: #95a5a6; color: white; }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            text-decoration: none;
+            transition: 0.3s;
+            display: inline-block;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-blue { background: #3498db; }
+        .btn-green { background: #2ecc71; }
+        .btn-gray { background: #95a5a6; }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .pagination a {
+            padding: 8px 15px;
+            background: white;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        .pagination a.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            background: white;
+            border-radius: 10px;
+            color: #888;
+        }
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>🔔 نوتیفیکیشن‌های هوش مصنوعی</h2>
+        <div>
+            <span style="margin-left: 15px;">
+                <span class="badge badge-unread">{{ unread_count }}</span> خوانده نشده
+            </span>
+            <a href="/dashboard/" class="btn btn-blue">بازگشت</a>
+        </div>
+    </div>
+    
+    {% if page_obj %}
+        {% for notification in page_obj %}
+        <div class="notification-item {{ notification.severity }} {% if notification.status == 'unread' %}unread{% endif %}" 
+             onclick="markAsRead({{ notification.id }})">
+            <div class="notification-title">
+                <span class="badge badge-{{ notification.severity }}">
+                    {% if notification.severity == 'critical' %}🔴 بحرانی
+                    {% elif notification.severity == 'warning' %}🟡 هشدار
+                    {% else %}🔵 اطلاعات{% endif %}
+                </span>
+                {{ notification.title }}
+            </div>
+            <div class="notification-message">{{ notification.message|linebreaks }}</div>
+            <div class="notification-meta">
+                <span>📅 {{ notification.created_at|date:"Y-m-d H:i" }}</span>
+                {% if notification.file %}
+                    <span>📄 <a href="{% url 'file_analysis_detail' notification.file.id %}" style="color: #3498db;">{{ notification.file.file.name }}</a></span>
+                {% endif %}
+                {% if notification.user %}
+                    <span>👤 {{ notification.user.username }}</span>
+                {% endif %}
+                <span>
+                    {% if notification.status == 'unread' %}
+                        <span class="badge badge-unread">جدید</span>
+                    {% else %}
+                        <span class="badge badge-read">خوانده شده</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+        
+        
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">اول</a>
+                <a href="?page={{ page_obj.previous_page_number }}"></a>
+            {% endif %}
+            
+            <span class="active">{{ page_obj.number }}</span>
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">بعدی</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">آخر</a>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="icon">📭</div>
+            <h3>هیچ نوتیفیکیشنی وجود ندارد</h3>
+            <p>هنگامی که فایل‌ها توسط AI تحلیل شوند، نوتیفیکیشن‌ها در اینجا نمایش داده می‌شوند.</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function markAsRead(notificationId) {
+    fetch(`/api/notifications/${notificationId}/read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // به‌روزرسانی ظاهر
+            const item = document.querySelector(`.notification-item[onclick*="${notificationId}"]`);
+            if (item) {
+                item.classList.remove('unread');
+                // به‌روزرسانی تعداد
+                const unreadBadge = document.querySelector('.badge-unread');
+                if (unreadBadge) {
+                    const current = parseInt(unreadBadge.textContent);
+                    unreadBadge.textContent = current - 1;
+                }
+            }
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+</script>
+</body>
+</html>

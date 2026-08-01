@@ -1,0 +1,6 @@
+#!/home/danial/Downloads/File_api-main/venv/bin/python3.12
+import sys
+from patoolib.cli import main_cli
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(main_cli())

@@ -1,0 +1,243 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>هشدارهای امنیتی</title>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            background: #0f2027;
+            color: #ecf0f1;
+            padding: 20px;
+            direction: rtl;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .header h1 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+        }
+        .header h1 i { color: #ef4444; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #f59e0b;
+        }
+        .stat-card .label {
+            font-size: 0.85em;
+            color: #94a3b8;
+        }
+        .stat-card.critical .number { color: #ef4444; }
+        .stat-card.high .number { color: #f59e0b; }
+        
+        .alert-item {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            border-right: 4px solid #94a3b8;
+        }
+        .alert-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .alert-item.critical { border-right-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .alert-item.high { border-right-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        .alert-item.medium { border-right-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+        .alert-item.low { border-right-color: #10b981; }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .alert-title {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .alert-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+        .alert-badge.critical { background: #ef4444; color: white; }
+        .alert-badge.high { background: #f59e0b; color: #1a1a2e; }
+        .alert-badge.medium { background: #3b82f6; color: white; }
+        .alert-badge.low { background: #10b981; color: white; }
+        
+        .alert-body {
+            color: #e2e8f0;
+            line-height: 1.8;
+        }
+        .alert-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: #94a3b8;
+        }
+        .alert-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary { background: #3b82f6; }
+        .btn-success { background: #10b981; }
+        .btn-danger { background: #ef4444; }
+        .btn-warning { background: #f59e0b; color: #1a1a2e; }
+        .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-outline:hover { background: rgba(255,255,255,0.1); }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+        .empty-state i { font-size: 4em; margin-bottom: 15px; display: block; }
+        
+        .btn-back {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #e2e8f0;
+            padding: 8px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.3s;
+        }
+        .btn-back:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .alert-header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1><i class="ph ph-shield-warning"></i> هشدارهای امنیتی</h1>
+        <a href="/dashboard/" class="btn-back"><i class="ph ph-arrow-right"></i> بازگشت</a>
+    </div>
+    
+    <!-- آمار -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="number">{{ stats.total|default:0 }}</div>
+            <div class="label">کل هشدارها</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">{{ stats.pending|default:0 }}</div>
+            <div class="label">در انتظار بررسی</div>
+        </div>
+        <div class="stat-card critical">
+            <div class="number">{{ stats.critical|default:0 }}</div>
+            <div class="label">بحرانی</div>
+        </div>
+        <div class="stat-card high">
+            <div class="number">{{ stats.high|default:0 }}</div>
+            <div class="label">بالا</div>
+        </div>
+    </div>
+    
+    <!-- لیست هشدارها -->
+    {% if alerts %}
+        {% for alert in alerts %}
+        <div class="alert-item {{ alert.severity }}">
+            <div class="alert-header">
+                <span class="alert-title">
+                    <i class="ph ph-file"></i> {{ alert.file.file.name|truncatechars:50 }}
+                </span>
+                <span class="alert-badge {{ alert.severity }}">
+                    {{ alert.get_severity_display }}
+                </span>
+            </div>
+            <div class="alert-body">
+                <p><strong>نوع تهدید:</strong> {{ alert.get_threat_type_display }}</p>
+                <p><strong>توضیحات:</strong> {{ alert.description|truncatechars:200 }}</p>
+                <div class="alert-meta">
+                    <span><i class="ph ph-user"></i> {{ alert.file.uploaded_by.username }}</span>
+                    <span><i class="ph ph-calendar"></i> {{ alert.created_at|date:"Y-m-d H:i" }}</span>
+                    <span><i class="ph ph-clock"></i> {{ alert.status }}</span>
+                </div>
+                <div class="alert-actions">
+                    <a href="{% url 'resolve_alert' alert.id %}" class="btn btn-primary">
+                        <i class="ph ph-eye"></i> بررسی
+                    </a>
+                    <a href="{% url 'file_analysis_detail' alert.file.id %}" class="btn btn-outline">
+                        <i class="ph ph-robot"></i> تحلیل AI
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <i class="ph ph-shield-check"></i>
+            <h3>هیچ هشدار امنیتی وجود ندارد</h3>
+            <p>همه فایل‌ها سالم هستند. سیستم امنیتی فعال است.</p>
+        </div>
+    {% endif %}
+</div>
+</body>
+</html>

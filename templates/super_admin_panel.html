@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>پنل مدیریت هوشمند - iOS 27</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* ============================================================
+           RESET & BASE STYLES
+           ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f2f5fa;
+            color: #1a1a2e;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ============================================================
+           iOS-STYLE SCROLLBAR
+           ============================================================ */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 20px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* ============================================================
+           GLASSMORPHISM UTILITY
+           ============================================================ */
+        .glass {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .glass-dark {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px) saturate(200%);
+            -webkit-backdrop-filter: blur(20px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        /* ============================================================
+           ANIMATIONS
+           ============================================================ */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.96) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.05); opacity: 0.3; }
+            100% { transform: scale(0.95); opacity: 0.7; }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-slide-up {
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-spin {
+            animation: spin 0.9s linear infinite;
+        }
+        .animate-pulse-ring {
+            animation: pulse-ring 2s ease-in-out infinite;
+        }
+
+        /* ============================================================
+           REACT ROOT
+           ============================================================ */
+        #root {
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ============================================================
+           RESPONSIVE OVERRIDES
+           ============================================================ */
+        @media (max-width: 1024px) {
+            body { overflow-y: auto; height: auto; }
+            #root { height: auto; flex-direction: column; overflow: visible; }
+        }
+        @media (max-width: 640px) {
+            .glass { backdrop-filter: blur(8px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <!-- ============================================================
+    REACT APP - JSX
+    ============================================================ -->
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useMemo, createContext, useContext, useRef } = React;
+
+        // ============================================================
+        // ICON COMPONENTS (inline SVG)
+        // ============================================================
+        const Icons = {
+            Crown: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>,
+            Users: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            User: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            Search: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+            Lock: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+            Edit: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+            Trash2: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+            Robot: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><line x1="9" y1="12" x2="9.01" y2="12"/><line x1="15" y1="12" x2="15.01" y2="12"/></svg>,
+            Shield: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>,
+            Key: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>,
+            Layers: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+            ArrowRight: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
+            X: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            CheckCircle: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            Save: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
+            Plus: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+            Copy: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+            UserCheck: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>,
+            ChevronRight: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+            ChevronLeft: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+            FileText: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+            Menu: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+        };
+
+        // ============================================================
+        // HELPER: TOAST NOTIFICATION
+        // ============================================================
+        function showToast(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            Object.assign(toast.style, {
+                position: 'fixed',
+                bottom: '24px',
+                right: '24px',
+                backgroundColor: isError ? '#ef4444' : '#10b981',
+                color: 'white',
+                padding: '12px 24px',
+                borderRadius: '16px',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                zIndex: '99999',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+                fontFamily: 'Inter, sans-serif',
+                animation: 'slideUp 0.3s cubic-bezier(0.16,1,0.3,1) forwards',
+                maxWidth: '90vw',
+                direction: 'rtl',
+            });
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        // ============================================================
+        // COMPONENTS
+        // ============================================================
+
+        // ----- iOS Button -----
+        const iOSButton = ({ children, variant = 'primary', className = '', onClick, disabled = false, icon: Icon }) => {
+            const variants = {
+                primary: 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/25',
+                success: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25',
+                danger: 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25',
+                outline: 'bg-white/80 border border-gray-200/80 hover:bg-gray-50 text-gray-700',
+                ghost: 'bg-transparent hover:bg-gray-100 text-gray-600',
+            };
+            return (
+                <button
+                    className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-medium text-sm transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${className}`}
+                    onClick={onClick}
+                    disabled={disabled}
+                >
+                    {Icon && <Icon className="w-4 h-4" />}
+                    {children}
+                </button>
+            );
+        };
+
+        // ----- iOS Card -----
+        const GlassCard = ({ children, className = '' }) => (
+            <div className={`glass rounded-3xl shadow-lg shadow-black/5 ${className}`}>
+                {children}
+            </div>
+        );
+
+        // ----- iOS Input -----
+        const iOSInput = ({ icon: Icon, ...props }) => (
+            <div className="relative">
+                {Icon && <Icon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />}
+                <input
+                    {...props}
+                    className="w-full px-4 py-3.5 pr-12 bg-white/90 border border-gray-200/80 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all placeholder:text-gray-400"
+                    dir="rtl"
+                />
+            </div>
+        );
+
+        // ----- iOS Modal -----
+        const iOSModal = ({ isOpen, onClose, title, subtitle, children }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+                    <div className="glass-dark rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl shadow-black/20 animate-slide-up">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/60">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                                {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+                            </div>
+                            <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center">
+                                <Icons.X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
+                            {children}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ----- User Card -----
+        const UserCard = ({ user, isSelf, onAnalyze, onToggleBlock, onEdit, onDelete }) => {
+            return (
+                <GlassCard className="p-4 mb-3 hover:shadow-lg transition-all duration-200">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center flex-shrink-0">
+                                <Icons.User className="w-5 h-5 text-blue-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-semibold text-gray-900 truncate text-sm">
+                                        {user.full_name || user.username}
+                                    </span>
+                                    {isSelf && (
+                                        <span className="text-[10px] font-medium px-2.5 py-0.5 bg-blue-100 text-blue-600 rounded-full">شما</span>
+                                    )}
+                                    <span className={`text-[10px] font-medium px-2.5 py-0.5 rounded-full ${user.is_active ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                        {user.is_active ? 'فعال' : 'مسدود'}
+                                    </span>
+                                </div>
+                                <div className="text-xs text-gray-500 truncate">@{user.username}</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                            <button onClick={() => onAnalyze(user.id, user.username)} className="w-9 h-9 rounded-xl hover:bg-purple-50 text-purple-500 transition-colors flex items-center justify-center" title="تحلیل با AI">
+                                <Icons.Robot className="w-4 h-4" />
+                            </button>
+                            {!isSelf && (
+                                <>
+                                    <button onClick={() => onToggleBlock(user.id)} className={`w-9 h-9 rounded-xl hover:bg-orange-50 transition-colors flex items-center justify-center ${user.is_active ? 'text-orange-500' : 'text-emerald-500'}`} title={user.is_active ? 'مسدود کردن' : 'فعال کردن'}>
+                                        {user.is_active ? <Icons.Lock className="w-4 h-4" /> : <Icons.UserCheck className="w-4 h-4" />}
+                                    </button>
+                                    <button onClick={() => onEdit(user.id)} className="w-9 h-9 rounded-xl hover:bg-blue-50 text-blue-500 transition-colors flex items-center justify-center" title="ویرایش">
+                                        <Icons.Edit className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => onDelete(user.id)} className="w-9 h-9 rounded-xl hover:bg-red-50 text-red-500 transition-colors flex items-center justify-center" title="حذف">
+                                        <Icons.Trash2 className="w-4 h-4" />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </GlassCard>
+            );
+        };
+
+        // ----- Pagination -----
+        const Pagination = ({ current, total, onChange }) => {
+            if (total <= 1) return null;
+            const pages = [];
+            const show = 5;
+            let start = Math.max(1, current - Math.floor(show / 2));
+            let end = Math.min(total, start + show - 1);
+            if (end - start < show - 1) start = Math.max(1, end - show + 1);
+            for (let i = start; i <= end; i++) pages.push(i);
+
+            return (
+                <div className="flex items-center justify-center gap-1 mt-5">
+                    <button onClick={() => onChange(current - 1)} disabled={current === 1} className="w-9 h-9 rounded-xl hover:bg-gray-100 disabled:opacity-30 transition-colors flex items-center justify-center">
+                        <Icons.ChevronRight className="w-4 h-4" />
+                    </button>
+                    {pages.map(p => (
+                        <button key={p} onClick={() => onChange(p)} className={`w-9 h-9 rounded-xl text-sm font-medium transition-all ${p === current ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : 'hover:bg-gray-100 text-gray-600'}`}>
+                            {p}
+                        </button>
+                    ))}
+                    <button onClick={() => onChange(current + 1)} disabled={current === total} className="w-9 h-9 rounded-xl hover:bg-gray-100 disabled:opacity-30 transition-colors flex items-center justify-center">
+                        <Icons.ChevronLeft className="w-4 h-4" />
+                    </button>
+                </div>
+            );
+        };
+
+        // ============================================================
+        // MAIN APP
+        // ============================================================
+        const App = () => {
+            // ----- State -----
+            const [users, setUsers] = useState([]);
+            const [roles, setRoles] = useState([]);
+            const [permissions, setPermissions] = useState([]);
+            const [rolePerms, setRolePerms] = useState([]);
+            const [selectedRole, setSelectedRole] = useState(null);
+            const [page, setPage] = useState(1);
+            const [search, setSearch] = useState('');
+            const [minLen, setMinLen] = useState('8');
+            const [newRoleName, setNewRoleName] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [modalOpen, setModalOpen] = useState(false);
+            const [analysis, setAnalysis] = useState({ text: '', stats: null });
+            const [analyzing, setAnalyzing] = useState(false);
+            const [currentUserId] = useState(1); // فرضی
+
+            const pageSize = 10;
+
+            // ----- Fetch Data -----
+            const fetchData = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const [u, r, p] = await Promise.all([
+                        fetch('/api/users-list/').then(res => res.ok ? res.json() : []),
+                        fetch('/api/roles/').then(res => res.ok ? res.json() : []),
+                        fetch('/api/all-permissions/').then(res => res.ok ? res.json() : []),
+                    ]);
+                    setUsers(u);
+                    setRoles(r);
+                    setPermissions(p);
+                } catch (e) {
+                    console.error('Fetch error:', e);
+                    showToast('خطا در دریافت اطلاعات', true);
+                }
+                setLoading(false);
+            }, []);
+
+            useEffect(() => { fetchData(); }, [fetchData]);
+
+            // ----- Fetch Role Permissions -----
+            useEffect(() => {
+                if (!selectedRole) { setRolePerms([]); return; }
+                fetch(`/api/role-permissions/${selectedRole}/`)
+                    .then(r => r.ok ? r.json() : [])
+                    .then(d => setRolePerms(d))
+                    .catch(() => setRolePerms([]));
+            }, [selectedRole]);
+
+            // ----- Filter & Paginate -----
+            const filtered = useMemo(() => {
+                const term = search.trim().toLowerCase();
+                return users.filter(u =>
+                    !term ||
+                    (u.full_name || '').toLowerCase().includes(term) ||
+                    (u.username || '').toLowerCase().includes(term)
+                );
+            }, [users, search]);
+
+            const totalPages = Math.ceil(filtered.length / pageSize);
+            const pageUsers = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+            // ----- Handlers -----
+            const handleSavePolicy = async () => {
+                try {
+                    const res = await fetch('/api/set-password-policy/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ min_length: parseInt(minLen) })
+                    });
+                    const data = await res.json();
+                    showToast(data.msg || 'سیاست ذخیره شد');
+                } catch { showToast('خطا', true); }
+            };
+
+            const handleCreateRole = async () => {
+                if (!newRoleName.trim()) return showToast('نام نقش را وارد کنید', true);
+                try {
+                    const res = await fetch('/api/create-role/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: newRoleName })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast('نقش ایجاد شد');
+                        setNewRoleName('');
+                        fetchData();
+                    } else {
+                        showToast(data.msg || 'خطا', true);
+                    }
+                } catch { showToast('خطا در ارتباط', true); }
+            };
+
+            const handleSavePerms = async () => {
+                if (!selectedRole) return showToast('نقشی انتخاب نشده', true);
+                try {
+                    const res = await fetch('/api/save-role-permissions/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ role_id: selectedRole, permissions: rolePerms })
+                    });
+                    const data = await res.json();
+                    showToast(data.msg || 'دسترسی‌ها ذخیره شد');
+                } catch { showToast('خطا', true); }
+            };
+
+            const togglePerm = (id) => {
+                setRolePerms(prev =>
+                    prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+                );
+            };
+
+            const handleToggleBlock = async (userId) => {
+                if (userId === currentUserId) return showToast('نمی‌توانید خود را مسدود کنید', true);
+                try {
+                    const res = await fetch(`/api/toggle-block/${userId}/`, { method: 'POST' });
+                    const data = await res.json();
+                    showToast(data.msg || 'عملیات انجام شد');
+                    if (data.success) fetchData();
+                } catch { showToast('خطا', true); }
+            };
+
+            const handleEdit = (id) => {
+                if (id === currentUserId) return showToast('به بخش پروفایل مراجعه کنید', true);
+                window.open(`/admin/auth/user/${id}/change/`, '_blank');
+            };
+
+            const handleDelete = async (id) => {
+                if (id === currentUserId) return showToast('نمی‌توانید خود را حذف کنید', true);
+                if (!confirm('آیا کاربر حذف شود؟')) return;
+                try {
+                    const res = await fetch(`/api/delete-user/${id}/`, { method: 'POST' });
+                    const data = await res.json();
+                    showToast(data.msg || 'عملیات انجام شد');
+                    if (data.success) fetchData();
+                } catch { showToast('خطا', true); }
+            };
+
+            const handleAnalyze = async (userId, username) => {
+                setModalOpen(true);
+                setAnalyzing(true);
+                setAnalysis({ text: '', stats: null });
+                try {
+                    const res = await fetch(`/api/analyze-user-personality/${userId}/`);
+                    const data = await res.json();
+                    if (data.success) {
+                        setAnalysis({ text: data.analysis || 'تحلیلی موجود نیست', stats: data.stats || null });
+                    } else {
+                        setAnalysis({ text: `❌ خطا: ${data.error || 'تحلیل نشد'}`, stats: null });
+                    }
+                } catch (e) {
+                    setAnalysis({ text: `❌ خطا: ${e.message}`, stats: null });
+                }
+                setAnalyzing(false);
+            };
+
+            const copyAnalysis = () => {
+                if (analysis.text) {
+                    navigator.clipboard.writeText(analysis.text);
+                    showToast('✅ متن کپی شد');
+                }
+            };
+
+            // ============================================================
+            // RENDER
+            // ============================================================
+            return (
+                <div className="flex w-full h-full bg-gradient-to-br from-gray-50 via-white to-gray-100/50 font-sans overflow-hidden">
+
+                    {/* ===== SIDEBAR ===== */}
+                    <div className="w-72 flex-shrink-0 glass border-l border-white/30 p-5 overflow-y-auto hidden lg:block">
+                        <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-200/50">
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                                <Icons.Crown className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <span className="font-bold text-base bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">پنل مدیریت</span>
+                                <span className="block text-[10px] text-gray-400">iOS 27 Style</span>
+                            </div>
+                        </div>
+
+                        <GlassCard className="p-4 mb-4">
+                            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                                <Icons.Key className="w-4 h-4 text-blue-500" />
+                                <span>سیاست رمز عبور</span>
+                            </div>
+                            <iOSInput type="number" value={minLen} onChange={(e) => setMinLen(e.target.value)} placeholder="حداقل طول رمز" className="mb-3" />
+                            <iOSButton variant="primary" className="w-full" onClick={handleSavePolicy} icon={Icons.Save}>ذخیره سیاست</iOSButton>
+                        </GlassCard>
+
+                        <GlassCard className="p-4 mb-4">
+                            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                                <Icons.Layers className="w-4 h-4 text-emerald-500" />
+                                <span>ایجاد نقش جدید</span>
+                            </div>
+                            <iOSInput value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="نام نقش" className="mb-3" />
+                            <iOSButton variant="success" className="w-full" onClick={handleCreateRole} icon={Icons.Plus}>ایجاد نقش</iOSButton>
+                        </GlassCard>
+
+                        <button onClick={() => window.location.href = '/admin-panel/'} className="w-full mt-auto flex items-center justify-center gap-2 px-4 py-3 bg-white/80 border border-gray-200/60 rounded-2xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                            <Icons.ArrowRight className="w-4 h-4" /> بازگشت
+                        </button>
+                    </div>
+
+                    {/* ===== MAIN CONTENT ===== */}
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {/* Header */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                                        <Icons.Users className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-xl font-semibold text-gray-900">کاربران سامانه</h1>
+                                        <p className="text-xs text-gray-500">مدیریت و کنترل کاربران</p>
+                                    </div>
+                                </div>
+                                <div className="relative flex-1 max-w-sm">
+                                    <Icons.Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                    <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="جستجوی کاربران..." className="w-full px-4 py-3 pr-12 bg-white/90 border border-gray-200/80 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all" dir="rtl" />
+                                </div>
+                            </div>
+
+                            {/* User List */}
+                            {loading ? (
+                                <div className="flex items-center justify-center h-64">
+                                    <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="space-y-2">
+                                        {pageUsers.map(u => (
+                                            <UserCard key={u.id} user={u} isSelf={u.id === currentUserId} onAnalyze={handleAnalyze} onToggleBlock={handleToggleBlock} onEdit={handleEdit} onDelete={handleDelete} />
+                                        ))}
+                                        {pageUsers.length === 0 && (
+                                            <div className="text-center py-16">
+                                                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                                                    <Icons.Users className="w-7 h-7 text-gray-400" />
+                                                </div>
+                                                <p className="text-gray-500 text-sm">کاربری یافت نشد</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Pagination current={page} total={totalPages} onChange={setPage} />
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ===== PERMISSIONS PANEL ===== */}
+                    <div className="w-80 flex-shrink-0 glass border-r border-white/30 p-5 overflow-y-auto hidden lg:block">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-4 pb-3 border-b border-gray-200/50">
+                            <Icons.Shield className="w-4 h-4 text-indigo-500" />
+                            <span>دسترسی‌های نقش</span>
+                        </div>
+
+                        <select value={selectedRole || ''} onChange={(e) => setSelectedRole(e.target.value ? parseInt(e.target.value) : null)} className="w-full px-4 py-3 bg-white/90 border border-gray-200/80 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 appearance-none mb-4" dir="rtl">
+                            <option value="">انتخاب نقش...</option>
+                            {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+
+                        <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-1">
+                            {permissions.slice(0, 50).map(p => {
+                                const checked = rolePerms.includes(p.id);
+                                return (
+                                    <div key={p.id} onClick={() => togglePerm(p.id)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ${checked ? 'bg-blue-50/80 border border-blue-200/60' : 'hover:bg-gray-50'}`}>
+                                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${checked ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}>
+                                            {checked && <Icons.CheckCircle className="w-3.5 h-3.5 text-white" />}
+                                        </div>
+                                        <span className="text-sm text-gray-700 truncate">{p.name}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <iOSButton variant="primary" className="w-full mt-4" onClick={handleSavePerms} disabled={!selectedRole} icon={Icons.Save}>ذخیره دسترسی‌ها</iOSButton>
+                    </div>
+
+                    {/* ===== AI MODAL ===== */}
+                    <iOSModal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="تحلیل هوش مصنوعی" subtitle="تحلیل عمیق شخصیت و رفتار کاربر">
+                        <div className="space-y-4">
+                            {analyzing ? (
+                                <div className="flex flex-col items-center justify-center py-12">
+                                    <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+                                    <p className="mt-4 text-sm text-gray-500">در حال تحلیل عمیق شخصیت کاربر...</p>
+                                    <p className="text-xs text-gray-400">این فرآیند ممکن است ۳۰-۶۰ ثانیه طول بکشد</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {analysis.stats && (
+                                        <div className="bg-blue-50/80 rounded-2xl p-4 border border-blue-200/60">
+                                            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                                <Icons.FileText className="w-4 h-4 text-blue-500" />
+                                                <span>آمار فایل‌های کاربر</span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-3 text-center">
+                                                <div className="bg-white/80 rounded-xl p-3">
+                                                    <div className="text-lg font-semibold text-gray-900">{analysis.stats.total_files}</div>
+                                                    <div className="text-[10px] text-gray-500">تعداد کل</div>
+                                                </div>
+                                                <div className="bg-white/80 rounded-xl p-3">
+                                                    <div className="text-lg font-semibold text-gray-900">{Object.keys(analysis.stats.file_types || {}).length}</div>
+                                                    <div className="text-[10px] text-gray-500">تنوع فایل‌ها</div>
+                                                </div>
+                                                <div className="bg-white/80 rounded-xl p-3">
+                                                    <div className="text-lg font-semibold text-gray-900">{analysis.stats.suspicious_files?.length || 0}</div>
+                                                    <div className="text-[10px] text-gray-500">فایل‌های مشکوک</div>
+                                                </div>
+                                            </div>
+                                            {analysis.stats.suspicious_files?.length > 0 && (
+                                                <div className="mt-2 text-xs text-red-500 bg-red-50 rounded-xl p-2">⚠️ {analysis.stats.suspicious_files.join('، ')}</div>
+                                            )}
+                                        </div>
+                                    )}
+                                    <div className="bg-gray-50/80 rounded-2xl p-5 border border-gray-200/60 whitespace-pre-wrap text-sm text-gray-700 leading-relaxed font-sans max-h-[300px] overflow-y-auto">
+                                        {analysis.text || 'تحلیلی موجود نیست'}
+                                    </div>
+                                    <div className="flex gap-2 pt-2">
+                                        <iOSButton variant="primary" onClick={copyAnalysis} icon={Icons.Copy}>کپی متن</iOSButton>
+                                        <iOSButton variant="outline" onClick={() => setModalOpen(false)}>بستن</iOSButton>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </iOSModal>
+
+                    {/* ===== MOBILE MENU TOGGLE (visible on small screens) ===== */}
+                    <div className="lg:hidden fixed bottom-6 right-6 z-40">
+                        <button className="w-14 h-14 rounded-2xl bg-blue-500 text-white shadow-xl shadow-blue-500/40 flex items-center justify-center text-xl active:scale-95 transition-all" onClick={() => {
+                            const sidebar = document.querySelector('.sidebar-mobile');
+                            if (sidebar) {
+                                sidebar.classList.toggle('hidden');
+                            }
+                        }}>
+                            <Icons.Menu className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    {/* Mobile Sidebar (hidden by default) */}
+                    <div className="sidebar-mobile hidden lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            e.currentTarget.classList.add('hidden');
+                        }
+                    }}>
+                        <div className="w-80 h-full glass-dark p-5 overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                                        <Icons.Crown className="w-5 h-5 text-white" />
+                                    </div>
+                                    <span className="font-bold text-base">پنل مدیریت</span>
+                                </div>
+                                <button onClick={(e) => { e.target.closest('.sidebar-mobile').classList.add('hidden'); }} className="w-10 h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center">
+                                    <Icons.X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <GlassCard className="p-4 mb-4">
+                                <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                                    <Icons.Key className="w-4 h-4 text-blue-500" />
+                                    <span>سیاست رمز عبور</span>
+                                </div>
+                                <iOSInput type="number" value={minLen} onChange={(e) => setMinLen(e.target.value)} placeholder="حداقل طول رمز" className="mb-3" />
+                                <iOSButton variant="primary" className="w-full" onClick={handleSavePolicy} icon={Icons.Save}>ذخیره سیاست</iOSButton>
+                            </GlassCard>
+                            <GlassCard className="p-4 mb-4">
+                                <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                                    <Icons.Layers className="w-4 h-4 text-emerald-500" />
+                                    <span>ایجاد نقش جدید</span>
+                                </div>
+                                <iOSInput value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="نام نقش" className="mb-3" />
+                                <iOSButton variant="success" className="w-full" onClick={handleCreateRole} icon={Icons.Plus}>ایجاد نقش</iOSButton>
+                            </GlassCard>
+                            <button onClick={() => window.location.href = '/admin-panel/'} className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-white/80 border border-gray-200/60 rounded-2xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                                <Icons.ArrowRight className="w-4 h-4" /> بازگشت
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            );
+        };
+
+        // ============================================================
+        // RENDER TO DOM
+        // ============================================================
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+
+</body>
+</html>
