@@ -432,7 +432,6 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--bg-card); border-radius: 10px; }
 
-  /* Log Viewer Styles */
   .log-container {
     background: var(--bg-secondary);
     border-radius: var(--radius-lg);
@@ -501,7 +500,6 @@
     border-radius: var(--radius);
   }
 
-  /* User Management Styles */
   .user-grid-admin {
     display: flex;
     flex-direction: column;
@@ -804,1050 +802,6 @@
       return null;
     }
   }
-
-  // ============================================
-  // COMPONENT: Edit Role Modal
-  // ============================================
-  const EditRoleModal = ({ 
-    role, 
-    allPermissions, 
-    isOpen, 
-    onClose, 
-    onSave, 
-    loading 
-  }) => {
-    const [form, setForm] = useState({
-      name: role?.name || '',
-      permissions: role?.permissions?.map(p => p.id) || []
-    });
-    const toast = useToast();
-
-    useEffect(() => {
-      if (role) {
-        setForm({
-          name: role.name || '',
-          permissions: role.permissions?.map(p => p.id) || []
-        });
-      }
-    }, [role]);
-
-    const handleSubmit = async () => {
-      if (!form.name.trim()) {
-        toast('نام نقش الزامی است', 'error');
-        return;
-      }
-      await onSave(role.id, form);
-      onClose();
-    };
-
-    if (!isOpen) return null;
-
-    return React.createElement('div', { className: 'modal-overlay open' },
-      React.createElement('div', { className: 'modal-box' },
-        React.createElement('h3', null, '✏️ ویرایش نقش: ', role?.name),
-        
-        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
-          React.createElement('label', null, 'نام نقش'),
-          React.createElement('input', {
-            type: 'text',
-            value: form.name,
-            onChange: (e) => setForm({...form, name: e.target.value}),
-            placeholder: 'نام نقش را وارد کنید'
-          })
-        ),
-        
-        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
-          React.createElement('label', null, 'دسترسی‌ها'),
-          React.createElement('div', { className: 'checkbox-grid' },
-            allPermissions.map(p =>
-              React.createElement('label', { key: p.id },
-                React.createElement('input', {
-                  type: 'checkbox',
-                  checked: form.permissions.includes(p.id),
-                  onChange: (e) => {
-                    if (e.target.checked) {
-                      setForm({
-                        ...form,
-                        permissions: [...form.permissions, p.id]
-                      });
-                    } else {
-                      setForm({
-                        ...form,
-                        permissions: form.permissions.filter(id => id !== p.id)
-                      });
-                    }
-                  }
-                }),
-                p.name
-              )
-            )
-          )
-        ),
-        
-        React.createElement('div', { className: 'modal-actions' },
-          React.createElement('button', {
-            className: 'btn btn-secondary btn-sm',
-            onClick: onClose,
-            disabled: loading
-          }, 'لغو'),
-          React.createElement('button', {
-            className: 'btn btn-primary btn-sm',
-            onClick: handleSubmit,
-            disabled: loading
-          }, loading ? 'در حال ذخیره...' : '💾 ذخیره تغییرات')
-        )
-      )
-    );
-  };
-
-  // ============================================
-  // COMPONENT: User Management (Full)
-  // ============================================
-  const UserManagement = ({ users, roles, loading, onRefresh, permissions: allPermissions }) => {
-    const [usersList, setUsersList] = useState(users || []);
-    const [rolesList, setRolesList] = useState(roles || []);
-    const [permissionsList, setPermissionsList] = useState(allPermissions || []);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState(null);
-    const [activeTab, setActiveTab] = useState('users');
-    
-    // State for Create Role
-    const [newRoleName, setNewRoleName] = useState('');
-    const [newRolePerms, setNewRolePerms] = useState([]);
-    const [newRolePolicy, setNewRolePolicy] = useState({
-      min_length: 8,
-      require_uppercase: true,
-      require_digit: true,
-      require_special_char: false,
-      require_lowercase: true,
-      expiry_days: 90,
-      max_attempts: 5
-    });
-    const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
-    
-    // State for Edit Role
-    const [editRole, setEditRole] = useState(null);
-    const [showEditRoleModal, setShowEditRoleModal] = useState(false);
-    const [editLoading, setEditLoading] = useState(false);
-    
-    // State for Bulk Assign
-    const [selectedRoleId, setSelectedRoleId] = useState('');
-    const [selectedUserIds, setSelectedUserIds] = useState([]);
-    const [bulkBlockUsers, setBulkBlockUsers] = useState([]);
-    const [bulkPassword, setBulkPassword] = useState('');
-    
-    // State for Multiple Roles
-    const [multiRoleUserId, setMultiRoleUserId] = useState(null);
-    const [multiRoleIds, setMultiRoleIds] = useState([]);
-    const [showMultiRoleModal, setShowMultiRoleModal] = useState(false);
-
-    const toast = useToast();
-
-    useEffect(() => {
-      setUsersList(users || []);
-    }, [users]);
-
-    useEffect(() => {
-      setRolesList(roles || []);
-    }, [roles]);
-
-    useEffect(() => {
-      setPermissionsList(allPermissions || []);
-    }, [allPermissions]);
-
-    // ========== User Operations ==========
-    const handleCreateUser = async (username, password, roleId) => {
-      if (!username || !password) {
-        toast('نام کاربری و رمز عبور الزامی است', 'error');
-        return false;
-      }
-      try {
-        const response = await fetchWithAuth('/api/admin-action/', {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'create_user',
-            username: username,
-            password: password,
-            groups: roleId ? [parseInt(roleId)] : []
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast('کاربر با موفقیت ایجاد شد', 'success');
-          onRefresh();
-          return true;
-        } else {
-          toast(data.msg || 'خطا در ایجاد کاربر', 'error');
-          return false;
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-        return false;
-      }
-    };
-
-    const handleDeleteUser = async (userId) => {
-      try {
-        const response = await fetchWithAuth('/api/admin-action/', {
-          method: 'POST',
-          body: JSON.stringify({ action: 'delete_user', user_id: userId })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast('کاربر با موفقیت حذف شد', 'success');
-          setShowDeleteModal(false);
-          onRefresh();
-        } else {
-          toast(data.msg || 'خطا در حذف کاربر', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
-    };
-
-    const handleToggleBlock = async (userId, currentStatus) => {
-      try {
-        const response = await fetchWithAuth('/api/admin-action/', {
-          method: 'POST',
-          body: JSON.stringify({
-            action: currentStatus ? 'block_user' : 'unblock_user',
-            user_id: userId
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast(currentStatus ? 'کاربر مسدود شد' : 'کاربر فعال شد', 'success');
-          onRefresh();
-        } else {
-          toast(data.msg || 'خطا در تغییر وضعیت', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
-    };
-
-    const handleChangePassword = async (userId) => {
-      const newPass = prompt('رمز عبور جدید را وارد کنید:');
-      if (!newPass) return;
-      try {
-        const response = await fetchWithAuth('/api/admin-action/', {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'change_password',
-            user_id: userId,
-            new_password: newPass
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast('رمز عبور با موفقیت تغییر کرد', 'success');
-        } else {
-          toast(data.msg || 'خطا در تغییر رمز', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
-    };
-
-    // ========== Unassign Role ==========
-    const handleUnassignRole = async (userId, roleId) => {
-      if (!confirm('آیا از حذف این نقش از کاربر اطمینان دارید؟')) return;
-      try {
-        const response = await fetchWithAuth('/api/users/remove-role/', {
-          method: 'POST',
-          body: JSON.stringify({
-            user_id: userId,
-            role_id: roleId
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast(data.msg, 'success');
-          onRefresh();
-        } else {
-          toast(data.msg || 'خطا در حذف نقش', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
-    };
-
-    // ========== Edit Role ==========
-    const handleEditRole = async (roleId, formData) => {
-      setEditLoading(true);
-      try {
-        const response = await fetchWithAuth(`/api/roles/${roleId}/update/`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            name: formData.name,
-            permissions: formData.permissions
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast(data.msg, 'success');
-          // رفرش کامل برای به‌روزرسانی نقش‌ها و کاربران
-          await onRefresh();
-          setShowEditRoleModal(false);
-          setEditRole(null);
-        } else {
-          toast(data.msg || 'خطا در ویرایش نقش', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      } finally {
-        setEditLoading(false);
-      }
-    };
-
-    // ========== Role Operations ==========
-    const handleCreateRole = async () => {
-      if (!newRoleName.trim()) {
-        toast('نام نقش الزامی است', 'error');
-        return;
-      }
-      try {
-        const response = await fetchWithAuth('/api/roles/create-advanced/', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: newRoleName,
-            permissions: newRolePerms,
-            password_policy: newRolePolicy
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast('نقش با موفقیت ایجاد شد', 'success');
-          setShowCreateRoleModal(false);
-          setNewRoleName('');
-          setNewRolePerms([]);
-          onRefresh();
-        } else {
-          toast(data.msg || 'خطا در ایجاد نقش', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
-    };
-
-    const handleDeleteRole = async (roleId, roleName) => {
-      if (!confirm(`آیا از حذف نقش "${roleName}" اطمینان دارید؟`)) return;
-      try {
-        const response = await fetchWithAuth(`/api/delete-role/${roleId}/`, {
-          method: 'POST'
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast('نقش با موفقیت حذف شد', 'success');
-          onRefresh();
-        } else {
-          toast(data.msg || 'خطا در حذف نقش', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
-    };
-
-    // ========== Bulk Operations ==========
-    const handleBulkAssignRole = async () => {
-      if (!selectedRoleId || selectedUserIds.length === 0) {
-        toast('نقش و کاربران را انتخاب کنید', 'error');
-        return;
-      }
-      try {
-        const response = await fetchWithAuth('/api/roles/assign-bulk/', {
-          method: 'POST',
-          body: JSON.stringify({
-            role_id: parseInt(selectedRoleId),
-            user_ids: selectedUserIds
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast(data.msg, 'success');
-          setSelectedUserIds([]);
-          onRefresh();
-        } else {
-          toast(data.msg || 'خطا در اختصاص نقش', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
-    };
-
-    const handleBulkBlock = async (block) => {
-      if (bulkBlockUsers.length === 0) {
-        toast('کاربران را انتخاب کنید', 'error');
-        return;
-      }
-      try {
-        const response = await fetchWithAuth('/api/users/bulk-block/', {
-          method: 'POST',
-          body: JSON.stringify({
-            user_ids: bulkBlockUsers,
-            block: block
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast(data.msg, 'success');
-          setBulkBlockUsers([]);
-          onRefresh();
-        } else {
-          toast(data.msg || 'خطا در عملیات', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
-    };
-
-    const handleBulkChangePassword = async () => {
-      if (bulkBlockUsers.length === 0 || !bulkPassword) {
-        toast('کاربران و رمز عبور جدید را وارد کنید', 'error');
-        return;
-      }
-      if (bulkPassword.length < 8) {
-        toast('رمز عبور باید حداقل ۸ کاراکتر باشد', 'error');
-        return;
-      }
-      try {
-        const response = await fetchWithAuth('/api/users/bulk-change-password/', {
-          method: 'POST',
-          body: JSON.stringify({
-            user_ids: bulkBlockUsers,
-            new_password: bulkPassword
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast(data.msg, 'success');
-          setBulkBlockUsers([]);
-          setBulkPassword('');
-          onRefresh();
-        } else {
-          toast(data.msg || 'خطا در تغییر رمز', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
-    };
-
-    // ========== Multiple Roles ==========
-    const handleAssignMultipleRoles = async () => {
-      if (!multiRoleUserId || multiRoleIds.length === 0) {
-        toast('کاربر و نقش‌ها را انتخاب کنید', 'error');
-        return;
-      }
-      try {
-        const response = await fetchWithAuth('/api/users/assign-multiple-roles/', {
-          method: 'POST',
-          body: JSON.stringify({
-            user_id: multiRoleUserId,
-            role_ids: multiRoleIds
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast(data.msg, 'success');
-          setShowMultiRoleModal(false);
-          setMultiRoleUserId(null);
-          setMultiRoleIds([]);
-          onRefresh();
-        } else {
-          toast(data.msg || 'خطا در اختصاص نقش‌ها', 'error');
-        }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
-    };
-
-    const filteredUsers = usersList.filter(u =>
-      u.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const stats = {
-      total: usersList.length,
-      admins: usersList.filter(u => u.is_staff).length,
-      super: usersList.filter(u => u.is_superuser).length,
-      blocked: usersList.filter(u => !u.is_active).length,
-      roles: rolesList.length
-    };
-
-    // ========== Render ==========
-    if (loading) {
-      return React.createElement('div', { className: 'panel active' },
-        React.createElement('div', { className: 'panel-header' },
-          React.createElement('div', { className: 'panel-title' }, '👥 مدیریت کاربران'),
-          React.createElement('div', { className: 'panel-sub' }, 'در حال بارگذاری...')
-        ),
-        React.createElement('div', { className: 'form-card' },
-          React.createElement('div', { style: { textAlign: 'center', padding: '40px' } },
-            React.createElement('span', { className: 'loading-spinner' })
-          )
-        )
-      );
-    }
-
-    // ========== Create Role Modal ==========
-    const CreateRoleModal = React.createElement('div', { className: 'modal-overlay' + (showCreateRoleModal ? ' open' : '') },
-      React.createElement('div', { className: 'modal-box' },
-        React.createElement('h3', null, '➕ ایجاد نقش جدید'),
-        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
-          React.createElement('label', null, 'نام نقش'),
-          React.createElement('input', {
-            type: 'text',
-            value: newRoleName,
-            onChange: (e) => setNewRoleName(e.target.value),
-            placeholder: 'نام نقش را وارد کنید'
-          })
-        ),
-        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
-          React.createElement('label', null, 'دسترسی‌ها'),
-          React.createElement('div', { className: 'checkbox-grid' },
-            permissionsList.map(p =>
-              React.createElement('label', { key: p.id },
-                React.createElement('input', {
-                  type: 'checkbox',
-                  checked: newRolePerms.includes(p.id),
-                  onChange: (e) => {
-                    if (e.target.checked) {
-                      setNewRolePerms([...newRolePerms, p.id]);
-                    } else {
-                      setNewRolePerms(newRolePerms.filter(id => id !== p.id));
-                    }
-                  }
-                }),
-                p.name
-              )
-            )
-          )
-        ),
-        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
-          React.createElement('label', null, 'سیاست رمز عبور'),
-          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } },
-            React.createElement('div', null,
-              React.createElement('label', { style: { fontSize: '12px' } }, 'حداقل طول'),
-              React.createElement('input', {
-                type: 'number',
-                value: newRolePolicy.min_length,
-                onChange: (e) => setNewRolePolicy({...newRolePolicy, min_length: parseInt(e.target.value) || 8})
-              })
-            ),
-            React.createElement('div', null,
-              React.createElement('label', { style: { fontSize: '12px' } }, 'انقضا (روز)'),
-              React.createElement('input', {
-                type: 'number',
-                value: newRolePolicy.expiry_days,
-                onChange: (e) => setNewRolePolicy({...newRolePolicy, expiry_days: parseInt(e.target.value) || 90})
-              })
-            )
-          ),
-          React.createElement('div', { style: { display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' } },
-            React.createElement('label', { style: { fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' } },
-              React.createElement('input', {
-                type: 'checkbox',
-                checked: newRolePolicy.require_uppercase,
-                onChange: (e) => setNewRolePolicy({...newRolePolicy, require_uppercase: e.target.checked})
-              }),
-              'حروف بزرگ'
-            ),
-            React.createElement('label', { style: { fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' } },
-              React.createElement('input', {
-                type: 'checkbox',
-                checked: newRolePolicy.require_digit,
-                onChange: (e) => setNewRolePolicy({...newRolePolicy, require_digit: e.target.checked})
-              }),
-              'عدد'
-            ),
-            React.createElement('label', { style: { fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' } },
-              React.createElement('input', {
-                type: 'checkbox',
-                checked: newRolePolicy.require_special_char,
-                onChange: (e) => setNewRolePolicy({...newRolePolicy, require_special_char: e.target.checked})
-              }),
-              'کاراکتر خاص'
-            )
-          )
-        ),
-        React.createElement('div', { className: 'modal-actions' },
-          React.createElement('button', {
-            className: 'btn btn-secondary btn-sm',
-            onClick: () => setShowCreateRoleModal(false)
-          }, 'لغو'),
-          React.createElement('button', {
-            className: 'btn btn-primary btn-sm',
-            onClick: handleCreateRole
-          }, 'ایجاد نقش')
-        )
-      )
-    );
-
-    // ========== Multi Role Modal ==========
-    const MultiRoleModal = React.createElement('div', { className: 'modal-overlay' + (showMultiRoleModal ? ' open' : '') },
-      React.createElement('div', { className: 'modal-box' },
-        React.createElement('h3', null, '👥 اختصاص چند نقش به کاربر'),
-        React.createElement('p', { style: { color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '12px' } },
-          'انتخاب نقش‌ها برای کاربر: ',
-          React.createElement('strong', null, usersList.find(u => u.id === multiRoleUserId)?.username || '')
-        ),
-        React.createElement('div', { className: 'checkbox-grid' },
-          rolesList.map(r =>
-            React.createElement('label', { key: r.id },
-              React.createElement('input', {
-                type: 'checkbox',
-                checked: multiRoleIds.includes(r.id),
-                onChange: (e) => {
-                  if (e.target.checked) {
-                    setMultiRoleIds([...multiRoleIds, r.id]);
-                  } else {
-                    setMultiRoleIds(multiRoleIds.filter(id => id !== r.id));
-                  }
-                }
-              }),
-              r.name
-            )
-          )
-        ),
-        React.createElement('div', { className: 'modal-actions' },
-          React.createElement('button', {
-            className: 'btn btn-secondary btn-sm',
-            onClick: () => {
-              setShowMultiRoleModal(false);
-              setMultiRoleUserId(null);
-              setMultiRoleIds([]);
-            }
-          }, 'لغو'),
-          React.createElement('button', {
-            className: 'btn btn-primary btn-sm',
-            onClick: handleAssignMultipleRoles
-          }, 'اعمال نقش‌ها')
-        )
-      )
-    );
-
-    // ========== Delete Modal ==========
-    const DeleteModal = React.createElement('div', { className: 'modal-overlay' + (showDeleteModal ? ' open' : '') },
-      React.createElement('div', { className: 'modal-box' },
-        React.createElement('h3', null, '⚠️ تایید حذف'),
-        React.createElement('p', null,
-          'آیا از حذف کاربر ',
-          React.createElement('strong', null, deleteTarget?.username || ''),
-          ' اطمینان دارید؟'
-        ),
-        React.createElement('p', { style: { color: 'var(--red)', fontSize: '14px' } },
-          'این عملیات غیرقابل بازگشت است'
-        ),
-        React.createElement('div', { className: 'modal-actions' },
-          React.createElement('button', {
-            className: 'btn btn-secondary btn-sm',
-            onClick: () => setShowDeleteModal(false)
-          }, 'لغو'),
-          React.createElement('button', {
-            className: 'btn btn-danger btn-sm',
-            onClick: () => {
-              if (deleteTarget) handleDeleteUser(deleteTarget.id);
-            }
-          }, '🗑️ حذف')
-        )
-      )
-    );
-
-    return React.createElement('div', { className: 'panel active' },
-      DeleteModal,
-      CreateRoleModal,
-      MultiRoleModal,
-      React.createElement(EditRoleModal, {
-        role: editRole,
-        allPermissions: permissionsList,
-        isOpen: showEditRoleModal,
-        onClose: () => {
-          setShowEditRoleModal(false);
-          setEditRole(null);
-        },
-        onSave: handleEditRole,
-        loading: editLoading
-      }),
-
-      React.createElement('div', { className: 'panel-header' },
-        React.createElement('div', { className: 'panel-title' }, '👥 مدیریت کاربران و نقش‌ها'),
-        React.createElement('div', { className: 'panel-sub' }, 'مدیریت کامل کاربران، نقش‌ها و دسترسی‌ها')
-      ),
-
-      // Stats
-      React.createElement('div', { className: 'admin-stats' },
-        React.createElement('div', { className: 'admin-stat' },
-          React.createElement('div', { className: 'num' }, stats.total),
-          React.createElement('div', { className: 'lbl' }, 'کل کاربران')
-        ),
-        React.createElement('div', { className: 'admin-stat' },
-          React.createElement('div', { className: 'num' }, stats.admins),
-          React.createElement('div', { className: 'lbl' }, 'ادمین‌ها')
-        ),
-        React.createElement('div', { className: 'admin-stat' },
-          React.createElement('div', { className: 'num' }, stats.super),
-          React.createElement('div', { className: 'lbl' }, 'سوپر ادمین')
-        ),
-        React.createElement('div', { className: 'admin-stat' },
-          React.createElement('div', { className: 'num', style: { color: 'var(--red)' } }, stats.blocked),
-          React.createElement('div', { className: 'lbl' }, 'مسدود شده')
-        ),
-        React.createElement('div', { className: 'admin-stat' },
-          React.createElement('div', { className: 'num' }, stats.roles),
-          React.createElement('div', { className: 'lbl' }, 'نقش‌ها')
-        )
-      ),
-
-      // Tabs
-      React.createElement('div', { className: 'tab-switch' },
-        React.createElement('button', {
-          className: activeTab === 'users' ? 'active' : '',
-          onClick: () => setActiveTab('users')
-        }, '👤 کاربران'),
-        React.createElement('button', {
-          className: activeTab === 'roles' ? 'active' : '',
-          onClick: () => setActiveTab('roles')
-        }, '🎯 نقش‌ها'),
-        React.createElement('button', {
-          className: activeTab === 'bulk' ? 'active' : '',
-          onClick: () => setActiveTab('bulk')
-        }, '📦 عملیات گروهی')
-      ),
-
-      // ========== Tab: Users ==========
-      activeTab === 'users' && React.createElement('div', null,
-        // Create User
-        React.createElement('div', { className: 'form-card', style: { marginBottom: '20px' } },
-          React.createElement('h4', { style: { marginBottom: '16px' } }, '➕ ایجاد کاربر جدید'),
-          React.createElement('div', { className: 'form-grid' },
-            React.createElement('div', { className: 'field' },
-              React.createElement('label', null, 'نام کاربری'),
-              React.createElement('input', {
-                type: 'text',
-                id: 'newUsername',
-                placeholder: 'نام کاربری'
-              })
-            ),
-            React.createElement('div', { className: 'field' },
-              React.createElement('label', null, 'رمز عبور'),
-              React.createElement('input', {
-                type: 'text',
-                id: 'newPassword',
-                placeholder: 'رمز عبور'
-              })
-            ),
-            React.createElement('div', { className: 'field' },
-              React.createElement('label', null, 'نقش'),
-              React.createElement('select', { id: 'newUserRole' },
-                React.createElement('option', { value: '' }, 'بدون نقش'),
-                rolesList.map(r =>
-                  React.createElement('option', { key: r.id, value: r.id }, r.name)
-                )
-              )
-            ),
-            React.createElement('div', { className: 'field', style: { display: 'flex', alignItems: 'flex-end' } },
-              React.createElement('button', {
-                className: 'btn btn-primary',
-                onClick: () => {
-                  const username = document.getElementById('newUsername').value;
-                  const password = document.getElementById('newPassword').value;
-                  const roleId = document.getElementById('newUserRole').value;
-                  handleCreateUser(username, password, roleId);
-                }
-              }, '➕ ایجاد کاربر')
-            )
-          )
-        ),
-
-        // User List
-        React.createElement('div', { className: 'form-card' },
-          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' } },
-            React.createElement('h4', null, '👥 لیست کاربران'),
-            React.createElement('div', { style: { display: 'flex', gap: '12px', alignItems: 'center' } },
-              React.createElement('input', {
-                type: 'text',
-                placeholder: 'جستجو...',
-                value: searchTerm,
-                onChange: (e) => setSearchTerm(e.target.value),
-                style: {
-                  background: 'var(--bg-input)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '10px',
-                  padding: '8px 14px',
-                  color: 'var(--text)',
-                  outline: 'none'
-                }
-              }),
-              React.createElement('button', { className: 'btn btn-secondary btn-sm', onClick: onRefresh }, '🔄 Refresh')
-            )
-          ),
-          React.createElement('div', { className: 'user-grid-admin' },
-            filteredUsers.length === 0 ?
-              React.createElement('div', { style: { textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' } },
-                'هیچ کاربری یافت نشد'
-              ) :
-              filteredUsers.map(user => {
-                const isCurrentUser = user.id === parseInt(localStorage.getItem('userId') || '0');
-                const userRole = user.is_superuser ? 'super' : user.is_staff ? 'admin' : 'user';
-                const roleLabel = user.is_superuser ? 'سوپر ادمین' : user.is_staff ? 'ادمین' : 'کاربر';
-                const userRoles = user.roles || [];
-                
-                return React.createElement('div', { key: user.id, className: 'user-row' },
-                  React.createElement('div', { className: 'user-info' },
-                    React.createElement('div', { className: 'user-avatar' }, (user.username || 'U')[0].toUpperCase()),
-                    React.createElement('div', { className: 'user-details' },
-                      React.createElement('div', { className: 'uname' },
-                        user.username,
-                        isCurrentUser ? ' (شما)' : ''
-                      ),
-                      React.createElement('div', { className: 'uemail' }, user.email || 'بدون ایمیل'),
-                      React.createElement('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } },
-                        userRoles.map(r =>
-                          React.createElement('span', { key: r.id, className: 'role-tag' },
-                            r.name,
-                            !isCurrentUser && React.createElement('span', {
-                              className: 'remove-role',
-                              onClick: (e) => {
-                                e.stopPropagation();
-                                handleUnassignRole(user.id, r.id);
-                              }
-                            }, '✕')
-                          )
-                        )
-                      )
-                    )
-                  ),
-                  React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
-                    React.createElement('span', { className: `user-badge ${userRole}` }, roleLabel),
-                    React.createElement('span', { className: `user-badge ${user.is_active ? 'user' : 'blocked'}` },
-                      user.is_active ? 'فعال' : 'مسدود'
-                    ),
-                    React.createElement('div', { className: 'user-actions' },
-                      !isCurrentUser && React.createElement('button', {
-                        className: 'btn btn-secondary btn-sm',
-                        onClick: () => {
-                          const target = usersList.find(u => u.id === user.id);
-                          if (target) {
-                            setMultiRoleUserId(user.id);
-                            setMultiRoleIds(userRoles.map(r => r.id));
-                            setShowMultiRoleModal(true);
-                          }
-                        }
-                      }, '🎯 نقش‌ها'),
-                      !isCurrentUser && React.createElement('button', {
-                        className: 'btn btn-secondary btn-sm',
-                        onClick: () => handleChangePassword(user.id)
-                      }, '🔑 رمز'),
-                      !isCurrentUser && React.createElement('button', {
-                        className: `btn ${user.is_active ? 'btn-danger' : 'btn-success'} btn-sm`,
-                        onClick: () => handleToggleBlock(user.id, user.is_active)
-                      }, user.is_active ? '🚫 مسدود' : '✅ فعال'),
-                      !isCurrentUser && React.createElement('button', {
-                        className: 'btn btn-danger btn-sm',
-                        onClick: () => {
-                          setDeleteTarget(user);
-                          setShowDeleteModal(true);
-                        }
-                      }, '🗑️')
-                    )
-                  )
-                );
-              })
-          )
-        )
-      ),
-
-      // ========== Tab: Roles ==========
-      activeTab === 'roles' && React.createElement('div', null,
-        React.createElement('div', { className: 'section-card' },
-          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' } },
-            React.createElement('h4', null, '🎯 مدیریت نقش‌ها'),
-            React.createElement('button', {
-              className: 'btn btn-primary btn-sm',
-              onClick: () => setShowCreateRoleModal(true)
-            }, '➕ ایجاد نقش جدید')
-          )
-        ),
-        React.createElement('div', { className: 'form-card' },
-          React.createElement('div', { className: 'user-grid-admin' },
-            rolesList.length === 0 ?
-              React.createElement('div', { style: { textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' } },
-                'هیچ نقشی ایجاد نشده است'
-              ) :
-              rolesList.map(role => {
-                const isProtected = ['admin', 'superadmin', 'user'].includes(role.name.toLowerCase());
-                return React.createElement('div', { key: role.id, className: 'user-row' },
-                  React.createElement('div', { className: 'user-info' },
-                    React.createElement('div', { className: 'user-avatar', style: { background: 'linear-gradient(135deg, var(--gold), var(--orange))' } },
-                      role.name[0].toUpperCase()
-                    ),
-                    React.createElement('div', { className: 'user-details' },
-                      React.createElement('div', { className: 'uname' },
-                        role.name,
-                        isProtected ? ' 🔒' : ''
-                      ),
-                      React.createElement('div', { className: 'uemail' },
-                        `${role.user_count || 0} کاربر | ${role.permissions?.length || 0} دسترسی`
-                      )
-                    )
-                  ),
-                  React.createElement('div', { className: 'user-actions' },
-                    !isProtected && React.createElement('button', {
-                      className: 'btn btn-secondary btn-sm',
-                      onClick: () => {
-                        setEditRole(role);
-                        setShowEditRoleModal(true);
-                      }
-                    }, '✏️ ویرایش'),
-                    !isProtected && React.createElement('button', {
-                      className: 'btn btn-danger btn-sm',
-                      onClick: () => handleDeleteRole(role.id, role.name)
-                    }, '🗑️ حذف')
-                  )
-                );
-              })
-          )
-        )
-      ),
-
-      // ========== Tab: Bulk Operations ==========
-      activeTab === 'bulk' && React.createElement('div', null,
-        // Bulk Assign Role
-        React.createElement('div', { className: 'section-card' },
-          React.createElement('h4', null, '📦 اختصاص نقش به گروهی از کاربران'),
-          React.createElement('div', { className: 'form-grid' },
-            React.createElement('div', { className: 'field' },
-              React.createElement('label', null, 'نقش'),
-              React.createElement('select', {
-                value: selectedRoleId,
-                onChange: (e) => setSelectedRoleId(e.target.value)
-              },
-                React.createElement('option', { value: '' }, 'انتخاب نقش...'),
-                rolesList.map(r =>
-                  React.createElement('option', { key: r.id, value: r.id }, r.name)
-                )
-              )
-            ),
-            React.createElement('div', { className: 'field' },
-              React.createElement('label', null, 'کاربران'),
-              React.createElement('select', {
-                multiple: true,
-                value: selectedUserIds,
-                onChange: (e) => {
-                  const options = e.target.options;
-                  const values = [];
-                  for (let i = 0; i < options.length; i++) {
-                    if (options[i].selected) values.push(parseInt(options[i].value));
-                  }
-                  setSelectedUserIds(values);
-                },
-                style: { height: '100px' }
-              },
-                usersList.map(u =>
-                  React.createElement('option', { key: u.id, value: u.id }, u.username)
-                )
-              )
-            )
-          ),
-          React.createElement('div', { className: 'btn-row' },
-            React.createElement('button', {
-              className: 'btn btn-primary btn-sm',
-              onClick: handleBulkAssignRole
-            }, '📤 اعمال نقش به کاربران'),
-            React.createElement('span', { className: 'hint' },
-              `${selectedUserIds.length} کاربر انتخاب شده`
-            )
-          )
-        ),
-
-        // Bulk Block / Unblock
-        React.createElement('div', { className: 'section-card' },
-          React.createElement('h4', null, '🚫 مسدود/فعال کردن گروهی کاربران'),
-          React.createElement('div', { className: 'form-grid' },
-            React.createElement('div', { className: 'field full' },
-              React.createElement('label', null, 'کاربران'),
-              React.createElement('select', {
-                multiple: true,
-                value: bulkBlockUsers,
-                onChange: (e) => {
-                  const options = e.target.options;
-                  const values = [];
-                  for (let i = 0; i < options.length; i++) {
-                    if (options[i].selected) values.push(parseInt(options[i].value));
-                  }
-                  setBulkBlockUsers(values);
-                },
-                style: { height: '100px' }
-              },
-                usersList.map(u =>
-                  React.createElement('option', { key: u.id, value: u.id }, u.username)
-                )
-              )
-            )
-          ),
-          React.createElement('div', { className: 'btn-row' },
-            React.createElement('button', {
-              className: 'btn btn-danger btn-sm',
-              onClick: () => handleBulkBlock(true)
-            }, '🚫 مسدود کردن'),
-            React.createElement('button', {
-              className: 'btn btn-success btn-sm',
-              onClick: () => handleBulkBlock(false)
-            }, '✅ فعال کردن'),
-            React.createElement('span', { className: 'hint' },
-              `${bulkBlockUsers.length} کاربر انتخاب شده`
-            )
-          )
-        ),
-
-        // Bulk Change Password
-        React.createElement('div', { className: 'section-card' },
-          React.createElement('h4', null, '🔑 تغییر رمز عبور گروهی کاربران'),
-          React.createElement('div', { className: 'form-grid' },
-            React.createElement('div', { className: 'field full' },
-              React.createElement('label', null, 'کاربران'),
-              React.createElement('select', {
-                multiple: true,
-                value: bulkBlockUsers,
-                onChange: (e) => {
-                  const options = e.target.options;
-                  const values = [];
-                  for (let i = 0; i < options.length; i++) {
-                    if (options[i].selected) values.push(parseInt(options[i].value));
-                  }
-                  setBulkBlockUsers(values);
-                },
-                style: { height: '80px' }
-              },
-                usersList.map(u =>
-                  React.createElement('option', { key: u.id, value: u.id }, u.username)
-                )
-              )
-            ),
-            React.createElement('div', { className: 'field full' },
-              React.createElement('label', null, 'رمز عبور جدید'),
-              React.createElement('input', {
-                type: 'text',
-                value: bulkPassword,
-                onChange: (e) => setBulkPassword(e.target.value),
-                placeholder: 'رمز عبور جدید (حداقل ۸ کاراکتر)'
-              })
-            )
-          ),
-          React.createElement('div', { className: 'btn-row' },
-            React.createElement('button', {
-              className: 'btn btn-warning btn-sm',
-              onClick: handleBulkChangePassword
-            }, '🔑 تغییر رمز عبور'),
-            React.createElement('span', { className: 'hint' },
-              `${bulkBlockUsers.length} کاربر انتخاب شده`
-            )
-          )
-        )
-      )
-    );
-  };
 
   // ============================================
   // COMPONENT: System Info
@@ -2403,6 +1357,1027 @@
   };
 
   // ============================================
+  // COMPONENT: Edit Role Modal
+  // ============================================
+  const EditRoleModal = ({ 
+    role, 
+    allPermissions, 
+    isOpen, 
+    onClose, 
+    onSave, 
+    loading 
+  }) => {
+    const [form, setForm] = useState({
+      name: role?.name || '',
+      permissions: role?.permissions?.map(p => p.id) || []
+    });
+    const toast = useToast();
+
+    useEffect(() => {
+      if (role) {
+        setForm({
+          name: role.name || '',
+          permissions: role.permissions?.map(p => p.id) || []
+        });
+      }
+    }, [role]);
+
+    const handleSubmit = async () => {
+      if (!form.name.trim()) {
+        toast('نام نقش الزامی است', 'error');
+        return;
+      }
+      await onSave(role.id, form);
+      onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return React.createElement('div', { className: 'modal-overlay open' },
+      React.createElement('div', { className: 'modal-box' },
+        React.createElement('h3', null, '✏️ ویرایش نقش: ', role?.name),
+        
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'نام نقش'),
+          React.createElement('input', {
+            type: 'text',
+            value: form.name,
+            onChange: (e) => setForm({...form, name: e.target.value}),
+            placeholder: 'نام نقش را وارد کنید'
+          })
+        ),
+        
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'دسترسی‌ها'),
+          React.createElement('div', { className: 'checkbox-grid' },
+            allPermissions.map(p =>
+              React.createElement('label', { key: p.id },
+                React.createElement('input', {
+                  type: 'checkbox',
+                  checked: form.permissions.includes(p.id),
+                  onChange: (e) => {
+                    if (e.target.checked) {
+                      setForm({
+                        ...form,
+                        permissions: [...form.permissions, p.id]
+                      });
+                    } else {
+                      setForm({
+                        ...form,
+                        permissions: form.permissions.filter(id => id !== p.id)
+                      });
+                    }
+                  }
+                }),
+                p.name
+              )
+            )
+          )
+        ),
+        
+        React.createElement('div', { className: 'modal-actions' },
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-sm',
+            onClick: onClose,
+            disabled: loading
+          }, 'لغو'),
+          React.createElement('button', {
+            className: 'btn btn-primary btn-sm',
+            onClick: handleSubmit,
+            disabled: loading
+          }, loading ? 'در حال ذخیره...' : '💾 ذخیره تغییرات')
+        )
+      )
+    );
+  };
+
+  // ============================================
+  // COMPONENT: User Management (Full)
+  // ============================================
+  const UserManagement = ({ users, roles, loading, onRefresh, permissions: allPermissions }) => {
+    const [usersList, setUsersList] = useState(users || []);
+    const [rolesList, setRolesList] = useState(roles || []);
+    const [permissionsList, setPermissionsList] = useState(allPermissions || []);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [activeTab, setActiveTab] = useState('users');
+    
+    const [newRoleName, setNewRoleName] = useState('');
+    const [newRolePerms, setNewRolePerms] = useState([]);
+    const [newRolePolicy, setNewRolePolicy] = useState({
+      min_length: 8,
+      require_uppercase: true,
+      require_digit: true,
+      require_special_char: false,
+      require_lowercase: true,
+      expiry_days: 90,
+      max_attempts: 5
+    });
+    const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
+    
+    const [editRole, setEditRole] = useState(null);
+    const [showEditRoleModal, setShowEditRoleModal] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    
+    const [selectedRoleId, setSelectedRoleId] = useState('');
+    const [selectedUserIds, setSelectedUserIds] = useState([]);
+    const [bulkBlockUsers, setBulkBlockUsers] = useState([]);
+    const [bulkPassword, setBulkPassword] = useState('');
+    
+    const [multiRoleUserId, setMultiRoleUserId] = useState(null);
+    const [multiRoleIds, setMultiRoleIds] = useState([]);
+    const [showMultiRoleModal, setShowMultiRoleModal] = useState(false);
+
+    const toast = useToast();
+
+    useEffect(() => {
+      setUsersList(users || []);
+    }, [users]);
+
+    useEffect(() => {
+      setRolesList(roles || []);
+    }, [roles]);
+
+    useEffect(() => {
+      setPermissionsList(allPermissions || []);
+    }, [allPermissions]);
+
+    const handleCreateUser = async (username, password, roleId) => {
+      if (!username || !password) {
+        toast('نام کاربری و رمز عبور الزامی است', 'error');
+        return false;
+      }
+      try {
+        const response = await fetchWithAuth('/api/admin-action/', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'create_user',
+            username: username,
+            password: password,
+            groups: roleId ? [parseInt(roleId)] : []
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast('کاربر با موفقیت ایجاد شد', 'success');
+          onRefresh();
+          return true;
+        } else {
+          toast(data.msg || 'خطا در ایجاد کاربر', 'error');
+          return false;
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+        return false;
+      }
+    };
+
+    const handleDeleteUser = async (userId) => {
+      try {
+        const response = await fetchWithAuth('/api/admin-action/', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'delete_user', user_id: userId })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast('کاربر با موفقیت حذف شد', 'success');
+          setShowDeleteModal(false);
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در حذف کاربر', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleToggleBlock = async (userId, currentStatus) => {
+      try {
+        const response = await fetchWithAuth('/api/admin-action/', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: currentStatus ? 'block_user' : 'unblock_user',
+            user_id: userId
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(currentStatus ? 'کاربر مسدود شد' : 'کاربر فعال شد', 'success');
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در تغییر وضعیت', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleChangePassword = async (userId) => {
+      const newPass = prompt('رمز عبور جدید را وارد کنید:');
+      if (!newPass) return;
+      try {
+        const response = await fetchWithAuth('/api/admin-action/', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'change_password',
+            user_id: userId,
+            new_password: newPass
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast('رمز عبور با موفقیت تغییر کرد', 'success');
+        } else {
+          toast(data.msg || 'خطا در تغییر رمز', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    // ========== Unassign Role (بدون محدودیت آخرین نقش) ==========
+    const handleUnassignRole = async (userId, roleId) => {
+      if (!confirm('آیا از حذف این نقش از کاربر اطمینان دارید؟')) return;
+      try {
+        const response = await fetchWithAuth('/api/users/remove-role/', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: userId,
+            role_id: roleId
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          await onRefresh();
+        } else {
+          toast(data.msg || 'خطا در حذف نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    // ========== Edit Role ==========
+    const handleEditRole = async (roleId, formData) => {
+      setEditLoading(true);
+      try {
+        const response = await fetchWithAuth(`/api/roles/${roleId}/update/`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: formData.name,
+            permissions: formData.permissions
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          await onRefresh();
+          setShowEditRoleModal(false);
+          setEditRole(null);
+        } else {
+          toast(data.msg || 'خطا در ویرایش نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      } finally {
+        setEditLoading(false);
+      }
+    };
+
+    const handleCreateRole = async () => {
+      if (!newRoleName.trim()) {
+        toast('نام نقش الزامی است', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth('/api/roles/create-advanced/', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: newRoleName,
+            permissions: newRolePerms,
+            password_policy: newRolePolicy
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast('نقش با موفقیت ایجاد شد', 'success');
+          setShowCreateRoleModal(false);
+          setNewRoleName('');
+          setNewRolePerms([]);
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در ایجاد نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleDeleteRole = async (roleId, roleName) => {
+      if (!confirm(`آیا از حذف نقش "${roleName}" اطمینان دارید؟`)) return;
+      try {
+        const response = await fetchWithAuth(`/api/delete-role/${roleId}/`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast('نقش با موفقیت حذف شد', 'success');
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در حذف نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleBulkAssignRole = async () => {
+      if (!selectedRoleId || selectedUserIds.length === 0) {
+        toast('نقش و کاربران را انتخاب کنید', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth('/api/roles/assign-bulk/', {
+          method: 'POST',
+          body: JSON.stringify({
+            role_id: parseInt(selectedRoleId),
+            user_ids: selectedUserIds
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          setSelectedUserIds([]);
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در اختصاص نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleBulkBlock = async (block) => {
+      if (bulkBlockUsers.length === 0) {
+        toast('کاربران را انتخاب کنید', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth('/api/users/bulk-block/', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_ids: bulkBlockUsers,
+            block: block
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          setBulkBlockUsers([]);
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در عملیات', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleBulkChangePassword = async () => {
+      if (bulkBlockUsers.length === 0 || !bulkPassword) {
+        toast('کاربران و رمز عبور جدید را وارد کنید', 'error');
+        return;
+      }
+      if (bulkPassword.length < 8) {
+        toast('رمز عبور باید حداقل ۸ کاراکتر باشد', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth('/api/users/bulk-change-password/', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_ids: bulkBlockUsers,
+            new_password: bulkPassword
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          setBulkBlockUsers([]);
+          setBulkPassword('');
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در تغییر رمز', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleAssignMultipleRoles = async () => {
+      if (!multiRoleUserId || multiRoleIds.length === 0) {
+        toast('کاربر و نقش‌ها را انتخاب کنید', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth('/api/users/assign-multiple-roles/', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: multiRoleUserId,
+            role_ids: multiRoleIds
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          setShowMultiRoleModal(false);
+          setMultiRoleUserId(null);
+          setMultiRoleIds([]);
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در اختصاص نقش‌ها', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const filteredUsers = usersList.filter(u =>
+      u.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const stats = {
+      total: usersList.length,
+      admins: usersList.filter(u => u.is_staff).length,
+      super: usersList.filter(u => u.is_superuser).length,
+      blocked: usersList.filter(u => !u.is_active).length,
+      roles: rolesList.length
+    };
+
+    if (loading) {
+      return React.createElement('div', { className: 'panel active' },
+        React.createElement('div', { className: 'panel-header' },
+          React.createElement('div', { className: 'panel-title' }, '👥 مدیریت کاربران'),
+          React.createElement('div', { className: 'panel-sub' }, 'در حال بارگذاری...')
+        ),
+        React.createElement('div', { className: 'form-card' },
+          React.createElement('div', { style: { textAlign: 'center', padding: '40px' } },
+            React.createElement('span', { className: 'loading-spinner' })
+          )
+        )
+      );
+    }
+
+    const CreateRoleModal = React.createElement('div', { className: 'modal-overlay' + (showCreateRoleModal ? ' open' : '') },
+      React.createElement('div', { className: 'modal-box' },
+        React.createElement('h3', null, '➕ ایجاد نقش جدید'),
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'نام نقش'),
+          React.createElement('input', {
+            type: 'text',
+            value: newRoleName,
+            onChange: (e) => setNewRoleName(e.target.value),
+            placeholder: 'نام نقش را وارد کنید'
+          })
+        ),
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'دسترسی‌ها'),
+          React.createElement('div', { className: 'checkbox-grid' },
+            permissionsList.map(p =>
+              React.createElement('label', { key: p.id },
+                React.createElement('input', {
+                  type: 'checkbox',
+                  checked: newRolePerms.includes(p.id),
+                  onChange: (e) => {
+                    if (e.target.checked) {
+                      setNewRolePerms([...newRolePerms, p.id]);
+                    } else {
+                      setNewRolePerms(newRolePerms.filter(id => id !== p.id));
+                    }
+                  }
+                }),
+                p.name
+              )
+            )
+          )
+        ),
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'سیاست رمز عبور'),
+          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } },
+            React.createElement('div', null,
+              React.createElement('label', { style: { fontSize: '12px' } }, 'حداقل طول'),
+              React.createElement('input', {
+                type: 'number',
+                value: newRolePolicy.min_length,
+                onChange: (e) => setNewRolePolicy({...newRolePolicy, min_length: parseInt(e.target.value) || 8})
+              })
+            ),
+            React.createElement('div', null,
+              React.createElement('label', { style: { fontSize: '12px' } }, 'انقضا (روز)'),
+              React.createElement('input', {
+                type: 'number',
+                value: newRolePolicy.expiry_days,
+                onChange: (e) => setNewRolePolicy({...newRolePolicy, expiry_days: parseInt(e.target.value) || 90})
+              })
+            )
+          ),
+          React.createElement('div', { style: { display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' } },
+            React.createElement('label', { style: { fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' } },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: newRolePolicy.require_uppercase,
+                onChange: (e) => setNewRolePolicy({...newRolePolicy, require_uppercase: e.target.checked})
+              }),
+              'حروف بزرگ'
+            ),
+            React.createElement('label', { style: { fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' } },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: newRolePolicy.require_digit,
+                onChange: (e) => setNewRolePolicy({...newRolePolicy, require_digit: e.target.checked})
+              }),
+              'عدد'
+            ),
+            React.createElement('label', { style: { fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' } },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: newRolePolicy.require_special_char,
+                onChange: (e) => setNewRolePolicy({...newRolePolicy, require_special_char: e.target.checked})
+              }),
+              'کاراکتر خاص'
+            )
+          )
+        ),
+        React.createElement('div', { className: 'modal-actions' },
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-sm',
+            onClick: () => setShowCreateRoleModal(false)
+          }, 'لغو'),
+          React.createElement('button', {
+            className: 'btn btn-primary btn-sm',
+            onClick: handleCreateRole
+          }, 'ایجاد نقش')
+        )
+      )
+    );
+
+    const MultiRoleModal = React.createElement('div', { className: 'modal-overlay' + (showMultiRoleModal ? ' open' : '') },
+      React.createElement('div', { className: 'modal-box' },
+        React.createElement('h3', null, '👥 اختصاص چند نقش به کاربر'),
+        React.createElement('p', { style: { color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '12px' } },
+          'انتخاب نقش‌ها برای کاربر: ',
+          React.createElement('strong', null, usersList.find(u => u.id === multiRoleUserId)?.username || '')
+        ),
+        React.createElement('div', { className: 'checkbox-grid' },
+          rolesList.map(r =>
+            React.createElement('label', { key: r.id },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: multiRoleIds.includes(r.id),
+                onChange: (e) => {
+                  if (e.target.checked) {
+                    setMultiRoleIds([...multiRoleIds, r.id]);
+                  } else {
+                    setMultiRoleIds(multiRoleIds.filter(id => id !== r.id));
+                  }
+                }
+              }),
+              r.name
+            )
+          )
+        ),
+        React.createElement('div', { className: 'modal-actions' },
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-sm',
+            onClick: () => {
+              setShowMultiRoleModal(false);
+              setMultiRoleUserId(null);
+              setMultiRoleIds([]);
+            }
+          }, 'لغو'),
+          React.createElement('button', {
+            className: 'btn btn-primary btn-sm',
+            onClick: handleAssignMultipleRoles
+          }, 'اعمال نقش‌ها')
+        )
+      )
+    );
+
+    const DeleteModal = React.createElement('div', { className: 'modal-overlay' + (showDeleteModal ? ' open' : '') },
+      React.createElement('div', { className: 'modal-box' },
+        React.createElement('h3', null, '⚠️ تایید حذف'),
+        React.createElement('p', null,
+          'آیا از حذف کاربر ',
+          React.createElement('strong', null, deleteTarget?.username || ''),
+          ' اطمینان دارید؟'
+        ),
+        React.createElement('p', { style: { color: 'var(--red)', fontSize: '14px' } },
+          'این عملیات غیرقابل بازگشت است'
+        ),
+        React.createElement('div', { className: 'modal-actions' },
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-sm',
+            onClick: () => setShowDeleteModal(false)
+          }, 'لغو'),
+          React.createElement('button', {
+            className: 'btn btn-danger btn-sm',
+            onClick: () => {
+              if (deleteTarget) handleDeleteUser(deleteTarget.id);
+            }
+          }, '🗑️ حذف')
+        )
+      )
+    );
+
+    return React.createElement('div', { className: 'panel active' },
+      DeleteModal,
+      CreateRoleModal,
+      MultiRoleModal,
+      React.createElement(EditRoleModal, {
+        role: editRole,
+        allPermissions: permissionsList,
+        isOpen: showEditRoleModal,
+        onClose: () => {
+          setShowEditRoleModal(false);
+          setEditRole(null);
+        },
+        onSave: handleEditRole,
+        loading: editLoading
+      }),
+
+      React.createElement('div', { className: 'panel-header' },
+        React.createElement('div', { className: 'panel-title' }, '👥 مدیریت کاربران و نقش‌ها'),
+        React.createElement('div', { className: 'panel-sub' }, 'مدیریت کامل کاربران، نقش‌ها و دسترسی‌ها')
+      ),
+
+      React.createElement('div', { className: 'admin-stats' },
+        React.createElement('div', { className: 'admin-stat' },
+          React.createElement('div', { className: 'num' }, stats.total),
+          React.createElement('div', { className: 'lbl' }, 'کل کاربران')
+        ),
+        React.createElement('div', { className: 'admin-stat' },
+          React.createElement('div', { className: 'num' }, stats.admins),
+          React.createElement('div', { className: 'lbl' }, 'ادمین‌ها')
+        ),
+        React.createElement('div', { className: 'admin-stat' },
+          React.createElement('div', { className: 'num' }, stats.super),
+          React.createElement('div', { className: 'lbl' }, 'سوپر ادمین')
+        ),
+        React.createElement('div', { className: 'admin-stat' },
+          React.createElement('div', { className: 'num', style: { color: 'var(--red)' } }, stats.blocked),
+          React.createElement('div', { className: 'lbl' }, 'مسدود شده')
+        ),
+        React.createElement('div', { className: 'admin-stat' },
+          React.createElement('div', { className: 'num' }, stats.roles),
+          React.createElement('div', { className: 'lbl' }, 'نقش‌ها')
+        )
+      ),
+
+      React.createElement('div', { className: 'tab-switch' },
+        React.createElement('button', {
+          className: activeTab === 'users' ? 'active' : '',
+          onClick: () => setActiveTab('users')
+        }, '👤 کاربران'),
+        React.createElement('button', {
+          className: activeTab === 'roles' ? 'active' : '',
+          onClick: () => setActiveTab('roles')
+        }, '🎯 نقش‌ها'),
+        React.createElement('button', {
+          className: activeTab === 'bulk' ? 'active' : '',
+          onClick: () => setActiveTab('bulk')
+        }, '📦 عملیات گروهی')
+      ),
+
+      activeTab === 'users' && React.createElement('div', null,
+        React.createElement('div', { className: 'form-card', style: { marginBottom: '20px' } },
+          React.createElement('h4', { style: { marginBottom: '16px' } }, '➕ ایجاد کاربر جدید'),
+          React.createElement('div', { className: 'form-grid' },
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'نام کاربری'),
+              React.createElement('input', {
+                type: 'text',
+                id: 'newUsername',
+                placeholder: 'نام کاربری'
+              })
+            ),
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'رمز عبور'),
+              React.createElement('input', {
+                type: 'text',
+                id: 'newPassword',
+                placeholder: 'رمز عبور'
+              })
+            ),
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'نقش'),
+              React.createElement('select', { id: 'newUserRole' },
+                React.createElement('option', { value: '' }, 'بدون نقش'),
+                rolesList.map(r =>
+                  React.createElement('option', { key: r.id, value: r.id }, r.name)
+                )
+              )
+            ),
+            React.createElement('div', { className: 'field', style: { display: 'flex', alignItems: 'flex-end' } },
+              React.createElement('button', {
+                className: 'btn btn-primary',
+                onClick: () => {
+                  const username = document.getElementById('newUsername').value;
+                  const password = document.getElementById('newPassword').value;
+                  const roleId = document.getElementById('newUserRole').value;
+                  handleCreateUser(username, password, roleId);
+                }
+              }, '➕ ایجاد کاربر')
+            )
+          )
+        ),
+
+        React.createElement('div', { className: 'form-card' },
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' } },
+            React.createElement('h4', null, '👥 لیست کاربران'),
+            React.createElement('div', { style: { display: 'flex', gap: '12px', alignItems: 'center' } },
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'جستجو...',
+                value: searchTerm,
+                onChange: (e) => setSearchTerm(e.target.value),
+                style: {
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '10px',
+                  padding: '8px 14px',
+                  color: 'var(--text)',
+                  outline: 'none'
+                }
+              }),
+              React.createElement('button', { className: 'btn btn-secondary btn-sm', onClick: onRefresh }, '🔄 Refresh')
+            )
+          ),
+          React.createElement('div', { className: 'user-grid-admin' },
+            filteredUsers.length === 0 ?
+              React.createElement('div', { style: { textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' } },
+                'هیچ کاربری یافت نشد'
+              ) :
+              filteredUsers.map(user => {
+                const isCurrentUser = user.id === parseInt(localStorage.getItem('userId') || '0');
+                const userRole = user.is_superuser ? 'super' : user.is_staff ? 'admin' : 'user';
+                const roleLabel = user.is_superuser ? 'سوپر ادمین' : user.is_staff ? 'ادمین' : 'کاربر';
+                const userRoles = user.roles || [];
+                
+                return React.createElement('div', { key: user.id, className: 'user-row' },
+                  React.createElement('div', { className: 'user-info' },
+                    React.createElement('div', { className: 'user-avatar' }, (user.username || 'U')[0].toUpperCase()),
+                    React.createElement('div', { className: 'user-details' },
+                      React.createElement('div', { className: 'uname' },
+                        user.username,
+                        isCurrentUser ? ' (شما)' : ''
+                      ),
+                      React.createElement('div', { className: 'uemail' }, user.email || 'بدون ایمیل'),
+                      React.createElement('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } },
+                        userRoles.map(r =>
+                          React.createElement('span', { key: r.id, className: 'role-tag' },
+                            r.name,
+                            !isCurrentUser && React.createElement('span', {
+                              className: 'remove-role',
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                handleUnassignRole(user.id, r.id);
+                              }
+                            }, '✕')
+                          )
+                        )
+                      )
+                    )
+                  ),
+                  React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
+                    React.createElement('span', { className: `user-badge ${userRole}` }, roleLabel),
+                    React.createElement('span', { className: `user-badge ${user.is_active ? 'user' : 'blocked'}` },
+                      user.is_active ? 'فعال' : 'مسدود'
+                    ),
+                    React.createElement('div', { className: 'user-actions' },
+                      !isCurrentUser && React.createElement('button', {
+                        className: 'btn btn-secondary btn-sm',
+                        onClick: () => {
+                          const target = usersList.find(u => u.id === user.id);
+                          if (target) {
+                            setMultiRoleUserId(user.id);
+                            setMultiRoleIds(userRoles.map(r => r.id));
+                            setShowMultiRoleModal(true);
+                          }
+                        }
+                      }, '🎯 نقش‌ها'),
+                      !isCurrentUser && React.createElement('button', {
+                        className: 'btn btn-secondary btn-sm',
+                        onClick: () => handleChangePassword(user.id)
+                      }, '🔑 رمز'),
+                      !isCurrentUser && React.createElement('button', {
+                        className: `btn ${user.is_active ? 'btn-danger' : 'btn-success'} btn-sm`,
+                        onClick: () => handleToggleBlock(user.id, user.is_active)
+                      }, user.is_active ? '🚫 مسدود' : '✅ فعال'),
+                      !isCurrentUser && React.createElement('button', {
+                        className: 'btn btn-danger btn-sm',
+                        onClick: () => {
+                          setDeleteTarget(user);
+                          setShowDeleteModal(true);
+                        }
+                      }, '🗑️')
+                    )
+                  )
+                );
+              })
+          )
+        )
+      ),
+
+      activeTab === 'roles' && React.createElement('div', null,
+        React.createElement('div', { className: 'section-card' },
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' } },
+            React.createElement('h4', null, '🎯 مدیریت نقش‌ها'),
+            React.createElement('button', {
+              className: 'btn btn-primary btn-sm',
+              onClick: () => setShowCreateRoleModal(true)
+            }, '➕ ایجاد نقش جدید')
+          )
+        ),
+        React.createElement('div', { className: 'form-card' },
+          React.createElement('div', { className: 'user-grid-admin' },
+            rolesList.length === 0 ?
+              React.createElement('div', { style: { textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' } },
+                'هیچ نقشی ایجاد نشده است'
+              ) :
+              rolesList.map(role => {
+                const isProtected = ['admin', 'superadmin', 'user'].includes(role.name.toLowerCase());
+                return React.createElement('div', { key: role.id, className: 'user-row' },
+                  React.createElement('div', { className: 'user-info' },
+                    React.createElement('div', { className: 'user-avatar', style: { background: 'linear-gradient(135deg, var(--gold), var(--orange))' } },
+                      role.name[0].toUpperCase()
+                    ),
+                    React.createElement('div', { className: 'user-details' },
+                      React.createElement('div', { className: 'uname' },
+                        role.name,
+                        isProtected ? ' 🔒' : ''
+                      ),
+                      React.createElement('div', { className: 'uemail' },
+                        `${role.user_count || 0} کاربر | ${role.permissions?.length || 0} دسترسی`
+                      )
+                    )
+                  ),
+                  React.createElement('div', { className: 'user-actions' },
+                    !isProtected && React.createElement('button', {
+                      className: 'btn btn-secondary btn-sm',
+                      onClick: () => {
+                        setEditRole(role);
+                        setShowEditRoleModal(true);
+                      }
+                    }, '✏️ ویرایش'),
+                    !isProtected && React.createElement('button', {
+                      className: 'btn btn-danger btn-sm',
+                      onClick: () => handleDeleteRole(role.id, role.name)
+                    }, '🗑️ حذف')
+                  )
+                );
+              })
+          )
+        )
+      ),
+
+      activeTab === 'bulk' && React.createElement('div', null,
+        React.createElement('div', { className: 'section-card' },
+          React.createElement('h4', null, '📦 اختصاص نقش به گروهی از کاربران'),
+          React.createElement('div', { className: 'form-grid' },
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'نقش'),
+              React.createElement('select', {
+                value: selectedRoleId,
+                onChange: (e) => setSelectedRoleId(e.target.value)
+              },
+                React.createElement('option', { value: '' }, 'انتخاب نقش...'),
+                rolesList.map(r =>
+                  React.createElement('option', { key: r.id, value: r.id }, r.name)
+                )
+              )
+            ),
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'کاربران'),
+              React.createElement('select', {
+                multiple: true,
+                value: selectedUserIds,
+                onChange: (e) => {
+                  const options = e.target.options;
+                  const values = [];
+                  for (let i = 0; i < options.length; i++) {
+                    if (options[i].selected) values.push(parseInt(options[i].value));
+                  }
+                  setSelectedUserIds(values);
+                },
+                style: { height: '100px' }
+              },
+                usersList.map(u =>
+                  React.createElement('option', { key: u.id, value: u.id }, u.username)
+                )
+              )
+            )
+          ),
+          React.createElement('div', { className: 'btn-row' },
+            React.createElement('button', {
+              className: 'btn btn-primary btn-sm',
+              onClick: handleBulkAssignRole
+            }, '📤 اعمال نقش به کاربران'),
+            React.createElement('span', { className: 'hint' },
+              `${selectedUserIds.length} کاربر انتخاب شده`
+            )
+          )
+        ),
+
+        React.createElement('div', { className: 'section-card' },
+          React.createElement('h4', null, '🚫 مسدود/فعال کردن گروهی کاربران'),
+          React.createElement('div', { className: 'form-grid' },
+            React.createElement('div', { className: 'field full' },
+              React.createElement('label', null, 'کاربران'),
+              React.createElement('select', {
+                multiple: true,
+                value: bulkBlockUsers,
+                onChange: (e) => {
+                  const options = e.target.options;
+                  const values = [];
+                  for (let i = 0; i < options.length; i++) {
+                    if (options[i].selected) values.push(parseInt(options[i].value));
+                  }
+                  setBulkBlockUsers(values);
+                },
+                style: { height: '100px' }
+              },
+                usersList.map(u =>
+                  React.createElement('option', { key: u.id, value: u.id }, u.username)
+                )
+              )
+            )
+          ),
+          React.createElement('div', { className: 'btn-row' },
+            React.createElement('button', {
+              className: 'btn btn-danger btn-sm',
+              onClick: () => handleBulkBlock(true)
+            }, '🚫 مسدود کردن'),
+            React.createElement('button', {
+              className: 'btn btn-success btn-sm',
+              onClick: () => handleBulkBlock(false)
+            }, '✅ فعال کردن'),
+            React.createElement('span', { className: 'hint' },
+              `${bulkBlockUsers.length} کاربر انتخاب شده`
+            )
+          )
+        ),
+
+        React.createElement('div', { className: 'section-card' },
+          React.createElement('h4', null, '🔑 تغییر رمز عبور گروهی کاربران'),
+          React.createElement('div', { className: 'form-grid' },
+            React.createElement('div', { className: 'field full' },
+              React.createElement('label', null, 'کاربران'),
+              React.createElement('select', {
+                multiple: true,
+                value: bulkBlockUsers,
+                onChange: (e) => {
+                  const options = e.target.options;
+                  const values = [];
+                  for (let i = 0; i < options.length; i++) {
+                    if (options[i].selected) values.push(parseInt(options[i].value));
+                  }
+                  setBulkBlockUsers(values);
+                },
+                style: { height: '80px' }
+              },
+                usersList.map(u =>
+                  React.createElement('option', { key: u.id, value: u.id }, u.username)
+                )
+              )
+            ),
+            React.createElement('div', { className: 'field full' },
+              React.createElement('label', null, 'رمز عبور جدید'),
+              React.createElement('input', {
+                type: 'text',
+                value: bulkPassword,
+                onChange: (e) => setBulkPassword(e.target.value),
+                placeholder: 'رمز عبور جدید (حداقل ۸ کاراکتر)'
+              })
+            )
+          ),
+          React.createElement('div', { className: 'btn-row' },
+            React.createElement('button', {
+              className: 'btn btn-warning btn-sm',
+              onClick: handleBulkChangePassword
+            }, '🔑 تغییر رمز عبور'),
+            React.createElement('span', { className: 'hint' },
+              `${bulkBlockUsers.length} کاربر انتخاب شده`
+            )
+          )
+        )
+      )
+    );
+  };
+
+  // ============================================
   // COMPONENT: Main App
   // ============================================
   const App = () => {
@@ -2425,7 +2400,6 @@
     });
     const toast = useToast();
 
-    // دریافت نام کاربر از JWT
     useEffect(() => {
       const token = getAuthToken();
       if (!token) {
@@ -2442,7 +2416,6 @@
       }
     }, []);
 
-    // بارگذاری اطلاعات
     const loadAllData = useCallback(async () => {
       setLoading(prev => ({ ...prev, network: true, fileSize: true, ai: true, logs: true, users: true }));
 
@@ -2521,7 +2494,6 @@
       loadAllData();
     }, [loadAllData]);
 
-    // توابع عملیات
     const handleNetworkSave = async (formData) => {
       setLoading(prev => ({ ...prev, save: true }));
       try {
@@ -2706,14 +2678,12 @@
     const handleRefreshUsers = async () => {
       setLoading(prev => ({ ...prev, users: true }));
       try {
-        // به‌روزرسانی کاربران
         const response = await fetchWithAuth('/api/users-list/');
         const data = await response.json();
         if (Array.isArray(data)) {
           setUsers(data);
         }
         
-        // به‌روزرسانی نقش‌ها (مهم!)
         const rolesResponse = await fetchWithAuth('/api/roles/');
         const rolesData = await rolesResponse.json();
         if (Array.isArray(rolesData)) {
@@ -2728,7 +2698,6 @@
       }
     };
 
-    // Navigation items
     const tabs = [
       { id: 'system', label: 'System', icon: 'system' },
       { id: 'network', label: 'Network Info', icon: 'network' },
@@ -2816,7 +2785,6 @@
     };
 
     return React.createElement('div', { className: 'app' },
-      // Dynamic Island
       React.createElement('div', { className: 'dynamic-island' },
         React.createElement('span', { className: 'time', id: 'islandTime' }, '9:41'),
         React.createElement('span', { className: 'notch-divider' }),
@@ -2827,7 +2795,6 @@
         )
       ),
       
-      // Titlebar
       React.createElement('div', { className: 'titlebar' },
         React.createElement('div', { className: 'titlebar-left' },
           React.createElement('div', { className: 'back-btn' },
@@ -2855,9 +2822,7 @@
         )
       ),
       
-      // Body
       React.createElement('div', { className: 'body' },
-        // Sidebar
         React.createElement('div', { className: 'sidebar' },
           React.createElement('div', { className: 'sidebar-section-label' }, 'Overview'),
           tabs.map(tab => 
@@ -2872,13 +2837,11 @@
           )
         ),
         
-        // Main Content
         React.createElement('div', { className: 'main' },
           renderPanel()
         )
       ),
       
-      // Toast
       React.createElement('div', { className: 'toast-container', id: 'toastContainer' },
         React.createElement('div', { className: 'toast', id: 'toast' },
           React.createElement('span', { className: 'toast-icon', id: 'toastIcon' }),
@@ -2888,9 +2851,6 @@
     );
   };
 
-  // ============================================
-  // رندر برنامه
-  // ============================================
   const root = ReactDOM.createRoot(document.getElementById('root'));
   root.render(
     React.createElement(ToastProvider, null,
@@ -2898,9 +2858,6 @@
     )
   );
 
-  // ============================================
-  // Dynamic Island Clock
-  // ============================================
   function updateIslandTime() {
     const now = new Date();
     const h = String(now.getHours()).padStart(2, '0');
@@ -2910,7 +2867,6 @@
   }
   updateIslandTime();
   setInterval(updateIslandTime, 10000);
-  
 </script>
 
 </body>

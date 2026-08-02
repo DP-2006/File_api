@@ -2361,3 +2361,38 @@ def delete_role_api(request, role_id):
         return Response({'success': False, 'msg': 'نقش یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_permissions_view(request):
+    """دریافت دسترسی‌های کاربر بر اساس نقش‌ها
+    
+- اگر سوپرادمین بدون نقش باشد → همه دسترسی‌ها
+-  اگر سوپرادمین با نقش باشد → فقط دسترسی‌های نقش‌ها یا نقشی که دارد 
+-(منظور دسترسی هایی هست که هنگام تعریف ممکن است پیش فرض به کاربر داده شود ) اگر کاربر معمولی باشد یعنی از اول هیچ گروه ینبوده یک کاربر ساده  → دسترسی‌های نقش‌ها + دسترسی‌های مستقیم
+    """
+    from .permissions import get_user_permissions_by_roles
+    
+    if request.user.is_superuser and request.user.groups.count() == 0:
+        permissions = get_user_permissions_list(request.user)
+    else:
+        permissions = get_user_permissions_by_roles(request.user)
+    
+    roles = [{'id': g.id, 'name': g.name} for g in request.user.groups.all()]
+    
+    return Response({
+        'user_id': request.user.id,
+        'username': request.user.username,
+        'is_superuser': request.user.is_superuser,
+        'is_staff': request.user.is_staff,
+        'roles': roles,
+        'permissions': permissions,
+        'has_permissions': len(permissions) > 0,
+        'has_roles': len(roles) > 0
+    })
