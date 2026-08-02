@@ -806,6 +806,101 @@
   }
 
   // ============================================
+  // COMPONENT: Edit Role Modal
+  // ============================================
+  const EditRoleModal = ({ 
+    role, 
+    allPermissions, 
+    isOpen, 
+    onClose, 
+    onSave, 
+    loading 
+  }) => {
+    const [form, setForm] = useState({
+      name: role?.name || '',
+      permissions: role?.permissions?.map(p => p.id) || []
+    });
+    const toast = useToast();
+
+    useEffect(() => {
+      if (role) {
+        setForm({
+          name: role.name || '',
+          permissions: role.permissions?.map(p => p.id) || []
+        });
+      }
+    }, [role]);
+
+    const handleSubmit = async () => {
+      if (!form.name.trim()) {
+        toast('نام نقش الزامی است', 'error');
+        return;
+      }
+      await onSave(role.id, form);
+      onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return React.createElement('div', { className: 'modal-overlay open' },
+      React.createElement('div', { className: 'modal-box' },
+        React.createElement('h3', null, '✏️ ویرایش نقش: ', role?.name),
+        
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'نام نقش'),
+          React.createElement('input', {
+            type: 'text',
+            value: form.name,
+            onChange: (e) => setForm({...form, name: e.target.value}),
+            placeholder: 'نام نقش را وارد کنید'
+          })
+        ),
+        
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'دسترسی‌ها'),
+          React.createElement('div', { className: 'checkbox-grid' },
+            allPermissions.map(p =>
+              React.createElement('label', { key: p.id },
+                React.createElement('input', {
+                  type: 'checkbox',
+                  checked: form.permissions.includes(p.id),
+                  onChange: (e) => {
+                    if (e.target.checked) {
+                      setForm({
+                        ...form,
+                        permissions: [...form.permissions, p.id]
+                      });
+                    } else {
+                      setForm({
+                        ...form,
+                        permissions: form.permissions.filter(id => id !== p.id)
+                      });
+                    }
+                  }
+                }),
+                p.name
+              )
+            )
+          )
+        ),
+        
+        React.createElement('div', { className: 'modal-actions' },
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-sm',
+            onClick: onClose,
+            disabled: loading
+          }, 'لغو'),
+          React.createElement('button', {
+            className: 'btn btn-primary btn-sm',
+            onClick: handleSubmit,
+            disabled: loading
+          }, loading ? 'در حال ذخیره...' : '💾 ذخیره تغییرات')
+        )
+      )
+    );
+  };
+
+  // ============================================
   // COMPONENT: User Management (Full)
   // ============================================
   const UserManagement = ({ users, roles, loading, onRefresh, permissions: allPermissions }) => {
@@ -830,6 +925,11 @@
       max_attempts: 5
     });
     const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
+    
+    // State for Edit Role
+    const [editRole, setEditRole] = useState(null);
+    const [showEditRoleModal, setShowEditRoleModal] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
     
     // State for Bulk Assign
     const [selectedRoleId, setSelectedRoleId] = useState('');
@@ -970,6 +1070,34 @@
         }
       } catch (error) {
         if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    // ========== Edit Role ==========
+    const handleEditRole = async (roleId, formData) => {
+      setEditLoading(true);
+      try {
+        const response = await fetchWithAuth(`/api/roles/${roleId}/update/`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: formData.name,
+            permissions: formData.permissions
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          // رفرش کامل برای به‌روزرسانی نقش‌ها و کاربران
+          await onRefresh();
+          setShowEditRoleModal(false);
+          setEditRole(null);
+        } else {
+          toast(data.msg || 'خطا در ویرایش نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      } finally {
+        setEditLoading(false);
       }
     };
 
@@ -1330,6 +1458,17 @@
       DeleteModal,
       CreateRoleModal,
       MultiRoleModal,
+      React.createElement(EditRoleModal, {
+        role: editRole,
+        allPermissions: permissionsList,
+        isOpen: showEditRoleModal,
+        onClose: () => {
+          setShowEditRoleModal(false);
+          setEditRole(null);
+        },
+        onSave: handleEditRole,
+        loading: editLoading
+      }),
 
       React.createElement('div', { className: 'panel-header' },
         React.createElement('div', { className: 'panel-title' }, '👥 مدیریت کاربران و نقش‌ها'),
@@ -1554,6 +1693,13 @@
                     )
                   ),
                   React.createElement('div', { className: 'user-actions' },
+                    !isProtected && React.createElement('button', {
+                      className: 'btn btn-secondary btn-sm',
+                      onClick: () => {
+                        setEditRole(role);
+                        setShowEditRoleModal(true);
+                      }
+                    }, '✏️ ویرایش'),
                     !isProtected && React.createElement('button', {
                       className: 'btn btn-danger btn-sm',
                       onClick: () => handleDeleteRole(role.id, role.name)
@@ -2560,14 +2706,23 @@
     const handleRefreshUsers = async () => {
       setLoading(prev => ({ ...prev, users: true }));
       try {
+        // به‌روزرسانی کاربران
         const response = await fetchWithAuth('/api/users-list/');
         const data = await response.json();
         if (Array.isArray(data)) {
           setUsers(data);
-          toast('لیست کاربران به‌روزرسانی شد', 'success');
         }
+        
+        // به‌روزرسانی نقش‌ها (مهم!)
+        const rolesResponse = await fetchWithAuth('/api/roles/');
+        const rolesData = await rolesResponse.json();
+        if (Array.isArray(rolesData)) {
+          setRoles(rolesData);
+        }
+        
+        toast('لیست به‌روزرسانی شد', 'success');
       } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در بارگذاری کاربران', 'error');
+        if (error.message !== 'Unauthorized') toast('خطا در بارگذاری داده‌ها', 'error');
       } finally {
         setLoading(prev => ({ ...prev, users: false }));
       }
@@ -2755,6 +2910,7 @@
   }
   updateIslandTime();
   setInterval(updateIslandTime, 10000);
+  
 </script>
 
 </body>

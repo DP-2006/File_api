@@ -499,3 +499,64 @@ def bulk_change_password_api(request):
         })
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+
+
+
+@api_view(['PUT', 'POST'])
+@permission_classes([IsAuthenticated])
+def update_role_api(request, role_id):
+    """ویرایش نقش - تغییر نام و دسترسی‌ها"""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        role = get_object_or_404(Group, id=role_id)
+        data = request.data
+        
+        # بررسی نقش‌های محافظت شده
+        protected_roles = ['admin', 'superadmin', 'user']
+        if role.name.lower() in protected_roles:
+            return Response({
+                'success': False, 
+                'msg': f'نقش {role.name} قابل ویرایش نیست'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # تغییر نام نقش
+        new_name = data.get('name', '').strip()
+        if new_name and new_name != role.name:
+            if Group.objects.filter(name=new_name).exclude(id=role_id).exists():
+                return Response({
+                    'success': False, 
+                    'msg': 'نقش با این نام قبلاً وجود دارد'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            role.name = new_name
+        
+        # تغییر دسترسی‌ها
+        perm_ids = data.get('permissions', [])
+        if perm_ids:
+            permissions = Permission.objects.filter(id__in=perm_ids)
+            role.permissions.set(permissions)
+        else:
+            role.permissions.clear()
+        
+        role.save()
+        
+        return Response({
+            'success': True,
+            'msg': f'نقش با موفقیت ویرایش شد',
+            'role': {
+                'id': role.id,
+                'name': role.name,
+                'permissions': [{'id': p.id, 'name': p.name, 'codename': p.codename} 
+                              for p in role.permissions.all()]
+            }
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
