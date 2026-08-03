@@ -237,7 +237,7 @@ def assign_multiple_roles_to_user_api(request):
         
         if not user_id or not role_ids:
             return Response({'success': False, 'msg': 'کاربر و نقش‌ها باید مشخص شوند'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
+                            status=status.HTTP_400_BAD_REQUEST)
         
         user = get_object_or_404(User, id=user_id)
         roles = Group.objects.filter(id__in=role_ids)

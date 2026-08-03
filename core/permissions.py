@@ -249,15 +249,13 @@ def get_user_effective_permissions(user):
 def has_permission(user, permission_code):
     """
     بررسی دسترسی کاربر (مستقیم یا از طریق گروه)
-    ⚠️ توجه: برای سوپرادمین‌ها، فقط دسترسی‌های نقش‌ها بررسی می‌شود
     """
     if not user or not user.is_authenticated:
         return False
     
-    # ⚠️ تغییر مهم: سوپرادمین‌ها دیگر همه دسترسی‌ها را ندارند
-    # فقط دسترسی‌های نقش‌هایشان را دارند
-    # if user.is_superuser:
-    #     return True  # ❌ این خط را حذف کنید
+    # سوپرادمین به همه دسترسی‌ها دسترسی دارد
+    if user.is_superuser:
+        return True
     
     # بررسی دسترسی مستقیم
     try:

@@ -132,19 +132,29 @@ def log_out_view(request):
 # =============================================
 # ============ Dashboard Views ============
 # =============================================
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_view(request):
     settings = get_or_create_settings(request.user)
     
+    # فایل‌های شخصی کاربر (آپلود شده توسط خودش - نه ارسالی به دیگران)
     my_files = UploadedFile.objects.filter(
-        Q(uploaded_by=request.user, is_deleted=False) |
-        Q(sent_to_user=request.user, is_deleted=False)
+        uploaded_by=request.user,
+        is_deleted=False,
+        sent_to_user__isnull=True
+    ).order_by('-uploaded_at')
+    
+    # فایل‌های دریافتی از دیگران
+    received_files = UploadedFile.objects.filter(
+        sent_to_user=request.user,
+        is_deleted=False
+    ).exclude(
+        uploaded_by=request.user
     ).order_by('-uploaded_at')
     
     if is_api_request(request):
         serializer = UploadedFileSerializer(my_files, many=True, context={'request': request})
+        received_serializer = UploadedFileSerializer(received_files, many=True, context={'request': request})
         return Response({
             'settings': {
                 'font_size': settings.font_size,
@@ -152,6 +162,7 @@ def dashboard_view(request):
                 'button_size': settings.button_size
             },
             'files': serializer.data,
+            'received_files': received_serializer.data,
             'user': {
                 'id': request.user.id,
                 'username': request.user.username,
@@ -160,9 +171,11 @@ def dashboard_view(request):
             }
         })
     
-    return render(request, 'dashboard.html', {'settings': settings, 'my_files': my_files})
-
-
+    return render(request, 'dashboard.html', {
+        'settings': settings,
+        'my_files': my_files,
+        'received_files': received_files
+    })
 # =============================================
 # ============ Upload Files ============
 # =============================================
@@ -439,7 +452,7 @@ def super_admin_panel(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def admin_action_view(request):
-    if not request.user.is_staff:
+    if not (request.user.is_staff or request.user.is_superuser):
         return Response({'success': False, 'msg': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
 
     data = request.data
@@ -702,7 +715,7 @@ def user_detail_view(request, user_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def toggle_block_user(request, user_id):
-    if not request.user.is_staff:
+    if not (request.user.is_staff or request.user.is_superuser):
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
 
     try:
@@ -2366,17 +2379,9 @@ def delete_role_api(request, role_id):
 
 
 
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_permissions_view(request):
-    """دریافت دسترسی‌های کاربر بر اساس نقش‌ها
-    
-- اگر سوپرادمین بدون نقش باشد → همه دسترسی‌ها
--  اگر سوپرادمین با نقش باشد → فقط دسترسی‌های نقش‌ها یا نقشی که دارد 
--(منظور دسترسی هایی هست که هنگام تعریف ممکن است پیش فرض به کاربر داده شود ) اگر کاربر معمولی باشد یعنی از اول هیچ گروه ینبوده یک کاربر ساده  → دسترسی‌های نقش‌ها + دسترسی‌های مستقیم
-    """
     from .permissions import get_user_permissions_by_roles
     
     if request.user.is_superuser and request.user.groups.count() == 0:
@@ -2395,4 +2400,4 @@ def my_permissions_view(request):
         'permissions': permissions,
         'has_permissions': len(permissions) > 0,
         'has_roles': len(roles) > 0
-    })
+    })  
