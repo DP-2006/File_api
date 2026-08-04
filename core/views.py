@@ -132,17 +132,68 @@ def log_out_view(request):
 # =============================================
 # ============ Dashboard Views ============
 # =============================================
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def dashboard_view(request):
+#     settings = get_or_create_settings(request.user)
+    
+#     my_files = UploadedFile.objects.filter(
+#         Q(uploaded_by=request.user, is_deleted=False) |
+#         Q(sent_to_user=request.user, is_deleted=False)
+#     ).order_by('-uploaded_at')
+    
+#     if is_api_request(request):
+#         serializer = UploadedFileSerializer(my_files, many=True, context={'request': request})
+#         return Response({
+#             'settings': {
+#                 'font_size': settings.font_size,
+#                 'menu_size': settings.menu_size,
+#                 'button_size': settings.button_size
+#             },
+#             'files': serializer.data,
+#             'user': {
+#                 'id': request.user.id,
+#                 'username': request.user.username,
+#                 'is_staff': request.user.is_staff,
+#                 'is_superuser': request.user.is_superuser
+#             }
+#         })
+    
+#     return render(request, 'dashboard.html', {'settings': settings, 'my_files': my_files})
+
+
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_view(request):
     settings = get_or_create_settings(request.user)
     
-    # فایل‌های شخصی کاربر (آپلود شده توسط خودش - نه ارسالی به دیگران)
+    # دیباگ - چاپ تعداد فایل‌ها
+    print(f"=== USER: {request.user.username} (ID: {request.user.id}) ===")
+    
+    # همه فایل‌های کاربر (برای دیباگ)
+    all_user_files = UploadedFile.objects.filter(
+        Q(uploaded_by=request.user) | Q(sent_to_user=request.user),
+        is_deleted=False
+    )
+    print(f"همه فایل‌های مرتبط با کاربر: {all_user_files.count()}")
+    
+    # فایل‌های شخصی کاربر (فقط فایل‌هایی که خودش آپلود کرده و برای کسی ارسال نشده)
     my_files = UploadedFile.objects.filter(
         uploaded_by=request.user,
-        is_deleted=False,
-        sent_to_user__isnull=True
+        sent_to_user__isnull=True,
+        is_deleted=False
     ).order_by('-uploaded_at')
+    print(f"فایل‌های شخصی (sent_to_user__isnull=True): {my_files.count()}")
+    
+    # فایل‌هایی که کاربر آپلود کرده (حتی اگه ارسال شده باشن)
+    all_uploaded = UploadedFile.objects.filter(
+        uploaded_by=request.user,
+        is_deleted=False
+    )
+    print(f"همه فایل‌های آپلود شده توسط کاربر: {all_uploaded.count()}")
     
     # فایل‌های دریافتی از دیگران
     received_files = UploadedFile.objects.filter(
@@ -151,6 +202,15 @@ def dashboard_view(request):
     ).exclude(
         uploaded_by=request.user
     ).order_by('-uploaded_at')
+    print(f"فایل‌های دریافتی: {received_files.count()}")
+    
+    # اگر فایل‌ها خالی هستن، همه فایل‌ها رو نشون بده (برای دیباگ)
+    if my_files.count() == 0 and received_files.count() == 0:
+        # همه فایل‌های غیرحذف شده رو نشون بده
+        all_files = UploadedFile.objects.filter(is_deleted=False)
+        print(f"همه فایل‌های سیستم: {all_files.count()}")
+        for f in all_files:
+            print(f"  - ID: {f.id}, نام: {f.file.name}, آپلود کننده: {f.uploaded_by.username}, ارسال به: {f.sent_to_user.username if f.sent_to_user else 'هیچ‌کس'}")
     
     if is_api_request(request):
         serializer = UploadedFileSerializer(my_files, many=True, context={'request': request})
@@ -171,11 +231,60 @@ def dashboard_view(request):
             }
         })
     
+    django_data = {
+        'user': {
+            'is_staff': request.user.is_staff,
+            'is_superuser': request.user.is_superuser,
+            'username': request.user.username,
+            'id': request.user.id
+        },
+        'settings': {
+            'font_size': settings.font_size,
+            'menu_size': settings.menu_size,
+            'button_size': settings.button_size
+        },
+        'files': [
+            {
+                'id': f.id,
+                'name': f.file.name,
+                'url': f.file.url,
+                'size': f.file.size,
+                'uploaded_at': f.uploaded_at.strftime('%y/%m/%d - %H:%M'),
+                'extension': f.file.name[-4:].lower() if f.file.name else '',
+                'file_size_bytes': f.file.size or 0
+            } for f in my_files
+        ],
+        'received_files': [
+            {
+                'id': f.id,
+                'name': f.file.name,
+                'url': f.file.url,
+                'size': f.file.size,
+                'received_at': f.uploaded_at.strftime('%y/%m/%d - %H:%M'),
+                'extension': f.file.name[-4:].lower() if f.file.name else '',
+                'file_size_bytes': f.file.size or 0,
+                'sender_name': f.uploaded_by.username,
+                'sender_id': f.uploaded_by.id
+            } for f in received_files
+        ]
+    }
+    
     return render(request, 'dashboard.html', {
         'settings': settings,
         'my_files': my_files,
-        'received_files': received_files
+        'received_files': received_files,
+        'django_data': django_data
     })
+
+
+
+
+
+
+
+
+
+
 # =============================================
 # ============ Upload Files ============
 # =============================================
@@ -2401,3 +2510,24 @@ def my_permissions_view(request):
         'has_permissions': len(permissions) > 0,
         'has_roles': len(roles) > 0
     })  
+
+
+
+
+
+
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def debug_files_view(request):
+    all_files = UploadedFile.objects.all().values(
+        'id', 'file', 'uploaded_by__username', 'sent_to_user__username', 
+        'is_deleted', 'uploaded_at'
+    )
+    return Response({
+        'all_files': list(all_files),
+        'user_id': request.user.id,
+        'username': request.user.username
+    })

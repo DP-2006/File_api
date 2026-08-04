@@ -111,11 +111,9 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 
-# فایل‌های مربوط به سلیم
 celerybeat-schedule
 celerybeat.pid
 
-# فایل‌های مربوط به سانسور
 *.pem
 *.key
 *.crt

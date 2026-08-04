@@ -200,6 +200,7 @@ urlpatterns = [
     path('save-settings/', views.save_settings_view, name='save_settings'),
     path('download/<int:file_id>/', views.download_file_view, name='download_file'),
     path('delete-my-file/', views.delete_my_file_view, name='delete_my_file'),
+    path('debug-files/', views.debug_files_view, name='debug_files'),
     
     # ========== Admin ==========
     path('admin-panel/', views.admin_panel_view, name='admin_panel'),
