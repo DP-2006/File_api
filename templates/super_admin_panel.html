@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>پنل مدیریت هوشمند</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f1f5f9;
+            font-family: system-ui, 'Segoe UI', 'Inter', 'Tahoma', sans-serif;
+            color: #0f172a;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-left: 1px solid rgba(203, 213, 225, 0.5);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 1rem;
+            z-index: 20;
+        }
+
+        .sidebar-header {
+            font-size: 1.55rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, #2c3e66);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 1rem;
+        }
+
+        .control-card {
+            background: #ffffffcc;
+            backdrop-filter: blur(4px);
+            border-radius: 20px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .control-card h6 {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #1e293b;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .form-modern {
+            width: 100%;
+            padding: 0.6rem 0.9rem;
+            border-radius: 16px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-modern:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+        }
+
+        .btn-modern {
+            width: 100%;
+            padding: 0.6rem;
+            border-radius: 40px;
+            border: none;
+            font-weight: 500;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary-mod { background: #3b82f6; color: white; }
+        .btn-primary-mod:hover { background: #2563eb; }
+        .btn-success-mod { background: #10b981; color: white; }
+        .btn-outline-mod { background: transparent; border: 1px solid #cbd5e1; }
+
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1.4rem 1.8rem;
+            overflow: hidden;
+        }
+
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .page-title {
+            font-weight: 700;
+            font-size: 1.4rem;
+            background: linear-gradient(to left, #0f172a, #334155);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .search-wrapper {
+            background: white;
+            border-radius: 48px;
+            border: 1px solid #e2e8f0;
+            padding: 0.4rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-wrapper input {
+            border: none;
+            background: transparent;
+            width: 200px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .user-grid {
+            flex: 1;
+            overflow-y: auto;
+            background: transparent;
+            border-radius: 24px;
+        }
+
+        .user-card {
+            background: white;
+            border-radius: 20px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #edf2f7;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .avatar-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(145deg, #eef2ff, #e0e7ff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: #3b82f6;
+        }
+        .user-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .user-username {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .icon-btn {
+            background: #f8fafc;
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-btn.ai { color: #8e44ad; }
+        .icon-btn.block { color: #e67e22; }
+        .icon-btn.edit { color: #3b82f6; }
+        .icon-btn.delete { color: #ef4444; }
+        .icon-btn:hover { background: #eef2ff; }
+
+        .badge-self {
+            background: #e2e8f0;
+            color: #475569;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .perm-panel {
+            width: 320px;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(6px);
+            border-right: 1px solid #e9eef3;
+            display: flex;
+            flex-direction: column;
+            padding: 1.2rem 1rem;
+            overflow-y: auto;
+        }
+        .perm-header {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .perm-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .perm-item {
+            background: #f9f9fc;
+            border-radius: 12px;
+            padding: 0.5rem 0.7rem;
+            border: 1px solid #eef2ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .perm-item.selected {
+            background: #eef2ff;
+            border-color: #3b82f6;
+        }
+        .perm-item input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #3b82f6;
+            flex-shrink: 0;
+        }
+        .perm-item span {
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .pagination-wrap {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .page-btn {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 0.4rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .page-btn.active-page {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+
+        /* مودال استایل‌ها */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .modal-close {
+            font-size: 28px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #64748b;
+        }
+        .modal-close:hover {
+            color: #ef4444;
+        }
+        .ai-result {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 15px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 860px) {
+            body { flex-direction: column; height: auto; overflow: auto; }
+            .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; }
+            .perm-panel { width: 100%; border-right: none; border-top: 1px solid #e2e8f0; }
+            .main-area { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-header">
+        <i class="fas fa-crown"></i>
+        <span>پنل مدیریت هوشمند</span>
+    </div>
+
+    <div class="control-card">
+        <h6><i class="fas fa-key"></i> سیاست رمز عبور</h6>
+        <input type="number" id="minLengthInput" class="form-modern" placeholder="حداقل طول رمز" value="8">
+        <button class="btn-modern btn-primary-mod" id="savePolicyBtn">ذخیره سیاست</button>
+    </div>
+
+    <div class="control-card">
+        <h6><i class="fas fa-layer-group"></i> ایجاد نقش جدید</h6>
+        <input type="text" id="newRoleName" class="form-modern" placeholder="نام نقش">
+        <button class="btn-modern btn-success-mod" id="createRoleBtn">ایجاد نقش</button>
+    </div>
+
+    <button id="backHomeBtn" class="btn-modern btn-outline-mod" style="margin-top: auto;"><i class="fas fa-arrow-right"></i> بازگشت</button>
+</div>
+
+<div class="main-area">
+    <div class="top-nav">
+        <div class="page-title"><i class="fas fa-users"></i> کاربران سامانه</div>
+        <div class="search-wrapper">
+            <i class="fas fa-search" style="color:#94a3b8"></i>
+            <input type="text" id="searchUsersInput" placeholder="جستجو (نام یا یوزرنیم)">
+        </div>
+    </div>
+
+    <div class="user-grid" id="userGridContainer">
+        <div id="usersDynamicList"></div>
+    </div>
+
+    <div class="pagination-wrap" id="paginationControls"></div>
+</div>
+
+<div class="perm-panel">
+    <div class="perm-header"><i class="fas fa-shield-alt"></i> دسترسی‌ها بر اساس نقش</div>
+    <select id="roleSelect" class="form-modern" style="margin-bottom: 1rem;">
+        <option value="">-- انتخاب نقش --</option>
+    </select>
+    <div class="perm-list" id="permissionsList">
+        <div style="font-size:0.75rem; color:#6c757d;">در حال بارگذاری...</div>
+    </div>
+    <button id="savePermsBtn" class="btn-modern btn-primary-mod" style="margin-top: 1rem;">ذخیره دسترسی‌ها</button>
+</div>
+
+<!-- مودال نمایش تحلیل AI -->
+<div id="aiAnalysisModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h3>🤖 تحلیل هوش مصنوعی</h3>
+            <button class="modal-close" onclick="closeAIModal()">&times;</button>
+        </div>
+        <div id="aiAnalysisResult" class="ai-result" style="white-space: pre-wrap; font-family: monospace; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+            در حال تحلیل...
+        </div>
+        <div class="modal-footer" style="margin-top: 20px; padding: 0 15px 15px 15px;">
+            <button class="btn-modern btn-primary-mod" onclick="copyToClipboard()" style="width: auto; padding: 8px 20px; display: inline-block; margin-left: 10px;">📋 کپی متن</button>
+            <button class="btn-modern btn-outline-mod" onclick="closeAIModal()" style="width: auto; padding: 8px 20px; display: inline-block;">بستن</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// متغیرهای全局
+let currentUserId = parseInt('{{ request.user.id }}');
+let allUsersData = [];
+let currentPage = 1;
+const pageSize = 10;
+let currentSearchTerm = "";
+let allRoles = [];
+let allPermissions = [];
+let selectedRoleId = null;
+let currentAnalysis = '';
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+function showMsg(text, isError = false) {
+    let toastDiv = document.createElement('div');
+    toastDiv.innerText = text;
+    toastDiv.style.position = 'fixed';
+    toastDiv.style.bottom = '20px';
+    toastDiv.style.left = '20px';
+    toastDiv.style.backgroundColor = isError ? '#ef4444' : '#10b981';
+    toastDiv.style.color = 'white';
+    toastDiv.style.padding = '10px 20px';
+    toastDiv.style.borderRadius = '30px';
+    toastDiv.style.fontSize = '0.8rem';
+    toastDiv.style.zIndex = '9999';
+    toastDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+    document.body.appendChild(toastDiv);
+    setTimeout(() => toastDiv.remove(), 3000);
+}
+
+// بارگذاری نقش‌ها
+async function loadRoles() {
+    try {
+        const resp = await fetch('/api/roles/');
+        if (resp.ok) {
+            allRoles = await resp.json();
+            console.log('Roles loaded:', allRoles);
+        } else {
+            console.error('Failed to load roles:', resp.status);
+        }
+    } catch(e) {
+        console.error('Error loading roles:', e);
+    }
+}
+
+
+// بارگذاری دسترسی‌ها
+async function loadPermissions() {
+    try {
+        const resp = await fetch('/api/all-permissions/');
+        if (resp.ok) {
+            allPermissions = await resp.json();
+            console.log('Permissions loaded:', allPermissions.length);
+        } else {
+            console.error('Failed to load permissions:', resp.status);
+        }
+    } catch(e) {
+        console.error('Error loading permissions:', e);
+    }
+}
+
+
+
+// بارگذاری کاربران
+async function loadUsers() {
+    try {
+        const resp = await fetch('/api/users-list/');
+        if (resp.ok) {
+            allUsersData = await resp.json();
+            console.log('Users loaded:', allUsersData.length);
+            renderPaginatedUsers();
+        } else {
+            console.error('Failed to load users:', resp.status);
+        }
+    } catch(e) {
+        console.error('Error loading users:', e);
+        document.getElementById('usersDynamicList').innerHTML = '<div style="text-align:center; padding:2rem; color:red;">خطا در بارگذاری کاربران</div>';
+    }
+}
+
+async function fetchInitialData() {
+    await loadRoles();
+    await loadPermissions();
+    populateRoleSelect();
+    renderPermissionsUI();
+}
+
+function populateRoleSelect() {
+    const select = document.getElementById('roleSelect');
+    if(!select) return;
+    select.innerHTML = '<option value="">-- انتخاب نقش --</option>';
+    allRoles.forEach(role => {
+        const opt = document.createElement('option');
+        opt.value = role.id;
+        opt.textContent = role.name;
+        select.appendChild(opt);
+    });
+    select.onchange = (e) => {
+        selectedRoleId = e.target.value ? parseInt(e.target.value) : null;
+        if(selectedRoleId) fetchRolePermissions(selectedRoleId);
+        else clearPermissionChecks();
+    };
+}
+
+async function fetchRolePermissions(roleId) {
+    try {
+        const resp = await fetch(`/api/role-permissions/${roleId}/`);
+        if(resp.ok) {
+            const permsIds = await resp.json();
+            document.querySelectorAll('#permissionsList .perm-check').forEach(cb => {
+                cb.checked = permsIds.includes(parseInt(cb.value));
+                const parentDiv = cb.closest('.perm-item');
+                if(parentDiv) parentDiv.classList.toggle('selected', cb.checked);
+            });
+        }
+    } catch(e) { console.error(e); }
+}
+
+function clearPermissionChecks() {
+    document.querySelectorAll('#permissionsList .perm-check').forEach(cb => {
+        cb.checked = false;
+        const parentDiv = cb.closest('.perm-item');
+        if(parentDiv) parentDiv.classList.remove('selected');
+    });
+}
+
+function renderPermissionsUI() {
+    const container = document.getElementById('permissionsList');
+    if(!container) return;
+    if(!allPermissions.length) { 
+        container.innerHTML = '<div style="font-size:0.7rem;">هیچ دسترسی‌ای یافت نشد</div>'; 
+        return; 
+    }
+    container.innerHTML = '';
+    // فقط نمایش 50 دسترسی اول برای جلوگیری از سنگین شدن صفحه
+    const displayPerms = allPermissions.slice(0, 100);
+    displayPerms.forEach(perm => {
+        const div = document.createElement('div');
+        div.className = 'perm-item';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = perm.id;
+        cb.className = 'perm-check';
+        cb.addEventListener('change', (e) => {
+            e.stopPropagation();
+            div.classList.toggle('selected', cb.checked);
+        });
+        const labelSpan = document.createElement('span');
+        labelSpan.innerText = perm.name;
+        div.appendChild(cb);
+        div.appendChild(labelSpan);
+        div.addEventListener('click', (e) => {
+            if(e.target !== cb) {
+                cb.checked = !cb.checked;
+                div.classList.toggle('selected', cb.checked);
+            }
+        });
+        container.appendChild(div);
+    });
+}
+
+// ذخیره دسترسی‌ها
+document.getElementById('savePermsBtn')?.addEventListener('click', async () => {
+    if(!selectedRoleId) { showMsg('نقشی انتخاب نشده', true); return; }
+    const selectedPerms = [];
+    document.querySelectorAll('#permissionsList .perm-check:checked').forEach(cb => {
+        selectedPerms.push(parseInt(cb.value));
+    });
+    try {
+        const resp = await fetch('/api/save-role-permissions/', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json', 'X-CSRFToken': csrftoken},
+            body: JSON.stringify({role_id: selectedRoleId, permissions: selectedPerms})
+        });
+        const data = await resp.json();
+        if(data.success) showMsg('دسترسی‌ها با موفقیت ذخیره شد');
+        else showMsg('خطا: ' + data.msg, true);
+    } catch(e) { showMsg('خطا شبکه', true); }
+});
+
+// ایجاد نقش جدید
+document.getElementById('createRoleBtn')?.addEventListener('click', async () => {
+    const roleName = document.getElementById('newRoleName').value.trim();
+    if(!roleName) { showMsg('نام نقش را وارد کنید', true); return; }
+    
+    try {
+        const resp = await fetch('/api/create-role/', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json', 'X-CSRFToken': csrftoken},
+            body: JSON.stringify({name: roleName})
+        });
+        const data = await resp.json();
+        
+        if(data.success) {
+            showMsg('نقش با موفقیت ایجاد شد');
+            document.getElementById('newRoleName').value = '';
+            await loadRoles();
+            populateRoleSelect();
+        } else {
+            showMsg('خطا: ' + data.msg, true);
+        }
+    } catch(e) {
+        showMsg('خطا در ارتباط با سرور', true);
+    }
+});
+
+function renderPaginatedUsers() {
+    let filtered = [...allUsersData];
+    if(currentSearchTerm.trim() !== "") {
+        const term = currentSearchTerm.trim().toLowerCase();
+        filtered = filtered.filter(u => (u.full_name || '').toLowerCase().includes(term) || (u.username || '').toLowerCase().includes(term));
+    }
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    if(currentPage > totalPages && totalPages>0) currentPage = totalPages;
+    if(currentPage < 1) currentPage = 1;
+    const start = (currentPage - 1) * pageSize;
+    const pageUsers = filtered.slice(start, start + pageSize);
+
+    const container = document.getElementById('usersDynamicList');
+    if(!container) return;
+    if(pageUsers.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:2rem;">کاربری یافت نشد</div>';
+    } else {
+        container.innerHTML = pageUsers.map(user => {
+            const isSelf = user.id === currentUserId;
+            return `
+                <div class="user-card" data-id="${user.id}">
+                    <div class="user-info">
+                        <div class="avatar-icon"><i class="fas fa-user-astronaut"></i></div>
+                        <div>
+                            <div class="user-name">${escapeHtml(user.full_name || user.username)} ${isSelf ? '<span class="badge-self">(شما)</span>' : ''}</div>
+                            <div class="user-username">@${escapeHtml(user.username)}</div>
+                            <div class="user-status">${user.is_active ? '<span style="color:green;">● فعال</span>' : '<span style="color:red;">● مسدود</span>'}</div>
+                        </div>
+                    </div>
+                    <div class="action-group">
+                        <button class="icon-btn ai" onclick="analyzeUserPersonality(${user.id}, '${escapeHtml(user.username)}')" title="تحلیل با AI"><i class="fas fa-robot"></i></button>
+                        ${!isSelf ? `
+                            <button class="icon-btn block" onclick="toggleBlockUser(${user.id})" title="مسدود/فعال"><i class="fas fa-lock"></i></button>
+                            <button class="icon-btn edit" onclick="editUserById(${user.id})" title="ویرایش"><i class="fas fa-pen"></i></button>
+                            <button class="icon-btn delete" onclick="deleteUserById(${user.id})" title="حذف"><i class="fas fa-trash"></i></button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    renderPaginationControls(totalPages);
+}
+
+function renderPaginationControls(totalPages) {
+    const paginationDiv = document.getElementById('paginationControls');
+    if(!paginationDiv) return;
+    if(totalPages <= 1) { paginationDiv.innerHTML = ''; return; }
+    let html = '';
+    for(let i=1; i<=totalPages; i++) {
+        html += `<button class="page-btn ${i === currentPage ? 'active-page' : ''}" data-page="${i}">${i}</button>`;
+    }
+    paginationDiv.innerHTML = html;
+    document.querySelectorAll('.page-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const page = parseInt(btn.getAttribute('data-page'));
+            if(!isNaN(page)) { currentPage = page; renderPaginatedUsers(); }
+        });
+    });
+}
+
+function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;});}
+
+// عملیات روی کاربران
+window.toggleBlockUser = async (userId) => {
+    if(userId === currentUserId) {
+        showMsg('❌ نمی‌توانید خودتان را مسدود کنید!', true);
+        return;
+    }
+    try {
+        const resp = await fetch(`/api/toggle-block/${userId}/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await resp.json();
+        showMsg(data.msg, !data.success);
+        if(data.success) setTimeout(() => location.reload(), 700);
+    } catch(e) { showMsg('خطا در ارتباط', true); }
+};
+
+window.editUserById = (id) => {
+    if(id === currentUserId) {
+        showMsg('برای ویرایش اطلاعات خود به بخش پروفایل مراجعه کنید', true);
+        return;
+    }
+    window.open(`/admin/auth/user/${id}/change/`, '_blank');
+};
+
+
+
+
+
+window.deleteUserById = async (id) => {
+    if(id === currentUserId) {
+        showMsg('❌ نمی‌توانید خودتان را حذف کنید!', true);
+        return;
+    }
+    if(!confirm('آیا کاربر حذف شود؟ این عمل غیرقابل بازگشت است.')) return;
+    try {
+        const resp = await fetch(`/api/delete-user/${id}/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await resp.json();
+        showMsg(data.msg, !data.success);
+        if(data.success) setTimeout(() => location.reload(), 600);
+    } catch(e) { showMsg('خطا در حذف', true); }
+};
+
+// تابع جدید برای تحلیل عمیق با AI
+window.analyzeUserPersonality = async (userId, username) => {
+    const modal = document.getElementById('aiAnalysisModal');
+    const resultDiv = document.getElementById('aiAnalysisResult');
+    
+    modal.style.display = 'flex';
+    resultDiv.innerHTML = '<div class="loading-spinner"></div><br>🤖 در حال تحلیل عمیق شخصیت کاربر...<br><br>⏳ این فرآیند ممکن است 30-60 ثانیه طول بکشد...';
+    
+    fetch(`/api/analyze-user-personality/${userId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentAnalysis = data.analysis;
+                
+                // نمایش آمار فایل‌ها
+                let statsHtml = '';
+                if (data.stats) {
+                    statsHtml = `
+                    <div style="background: #e0e7ff; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+                        <strong>📊 آمار فایل‌های کاربر:</strong><br>
+                        تعداد کل: ${data.stats.total_files}<br>
+                        تنوع فایل‌ها: ${Object.keys(data.stats.file_types).length} نوع<br>
+                        ${data.stats.suspicious_files && data.stats.suspicious_files.length > 0 ? '⚠️ فایل‌های مشکوک: ' + data.stats.suspicious_files.join(', ') : ''}
+                    </div>
+                    `;
+                }
+                
+                resultDiv.innerHTML = statsHtml + data.analysis.replace(/\n/g, '<br>');
+            } else {
+                resultDiv.innerHTML = `<div style="color: red;">❌ خطا: ${data.error || 'تحلیل انجام نشد'}</div>`;
+            }
+        })
+        .catch(error => {
+            resultDiv.innerHTML = `<div style="color: red;">❌ خطا در ارتباط با سرور: ${error}</div>`;
+        });
+};
+
+function closeAIModal() {
+    document.getElementById('aiAnalysisModal').style.display = 'none';
+}
+
+function copyToClipboard() {
+    if (currentAnalysis) {
+        navigator.clipboard.writeText(currentAnalysis);
+        showMsg('✅ متن تحلیل کپی شد');
+    } else {
+        showMsg('❌ متنی برای کپی وجود ندارد', true);
+    }
+}
+
+document.getElementById('searchUsersInput')?.addEventListener('input', (e) => {
+    currentSearchTerm = e.target.value;
+    currentPage = 1;
+    renderPaginatedUsers();
+});
+
+document.getElementById('savePolicyBtn')?.addEventListener('click', async () => {
+    const minLen = document.getElementById('minLengthInput').value;
+    try {
+        const resp = await fetch('/api/set-password-policy/', {
+            method:'POST',
+            headers:{'Content-Type':'application/json', 'X-CSRFToken': csrftoken},
+            body: JSON.stringify({min_length: minLen})
+        });
+        const data = await resp.json();
+        showMsg(data.msg, !data.success);
+    } catch(e) { showMsg('خطا', true); }
+});
+
+document.getElementById('backHomeBtn')?.addEventListener('click', () => {
+    window.location.href = '/admin-panel/';
+});
+
+// مقداردهی اولیه
+window.addEventListener('DOMContentLoaded', async () => {
+    // مخفی کردن skeleton
+    const skeleton = document.getElementById('skeletonUsers');
+    if(skeleton) skeleton.style.display = 'none';
+    document.getElementById('usersDynamicList').style.display = 'block';
+    
+    await fetchInitialData();
+    await loadUsers();
+});
+</script>
+</body>
+</html>

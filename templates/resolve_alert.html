@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 بررسی هشدار امنیتی</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 30px;
+            direction: rtl;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            padding: 15px 20px;
+            border-radius: 12px 12px 0 0;
+            margin: -30px -30px 25px -30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-header i {
+            font-size: 1.4em;
+        }
+        
+        .info-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #94a3b8;
+            min-width: 120px;
+        }
+        
+        .info-value {
+            color: #e2e8f0;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .badge-critical { background: #dc2626; color: white; }
+        .badge-high { background: #f59e0b; color: #1a1a2e; }
+        .badge-medium { background: #fbbf24; color: #1a1a2e; }
+        .badge-low { background: #10b981; color: white; }
+        .badge-pending { background: #f59e0b; color: #1a1a2e; }
+        .badge-reviewed { background: #3b82f6; color: white; }
+        .badge-blocked { background: #dc2626; color: white; }
+        .badge-ignored { background: #6b7280; color: white; }
+        
+        .description-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 20px 0 10px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #475569;
+            color: white;
+        }
+        
+        .btn-link {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #475569;
+        }
+        
+        .btn-link:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: #94a3b8;
+            color: white;
+        }
+        
+        hr {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
+        }
+        
+        .file-preview {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .file-preview i {
+            font-size: 1.5em;
+            color: #f59e0b;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .back-link:hover {
+            color: #e2e8f0;
+        }
+        
+        @media (max-width: 600px) {
+            body { padding: 15px; }
+            .card { padding: 20px; }
+            .card-header { margin: -20px -20px 20px -20px; padding: 12px 16px; font-size: 1em; }
+            .info-row { flex-direction: column; gap: 4px; }
+            .info-label { min-width: auto; }
+            .btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <span>🔍</span>
+            بررسی هشدار امنیتی
+        </div>
+        
+        <div class="file-preview">
+            <span>📄</span>
+            <strong style="color: #f59e0b;">{{ alert.file.file.name }}</strong>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">👤 کاربر:</span>
+            <span class="info-value">{{ alert.file.uploaded_by.username }}</span>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">📅 تاریخ آپلود:</span>
+            <span class="info-value">{{ alert.file.uploaded_at|date:"Y-m-d H:i" }}</span>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">⚠️ نوع تهدید:</span>
+            <span class="info-value">
+                <span class="badge badge-{{ alert.severity }}">
+                    {{ alert.get_threat_type_display }}
+                </span>
+            </span>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">📊 شدت:</span>
+            <span class="info-value">
+                <span class="badge badge-{{ alert.severity }}">
+                    {{ alert.get_severity_display }}
+                </span>
+            </span>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">📌 وضعیت:</span>
+            <span class="info-value">
+                <span class="badge badge-{{ alert.status }}">
+                    {{ alert.get_status_display }}
+                </span>
+            </span>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <strong>🤖 تحلیل هوش مصنوعی:</strong>
+            <div class="description-box">
+                {{ alert.description|linebreaks }}
+            </div>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">💡 توصیه AI:</span>
+            <span class="info-value">{{ alert.recommended_action }}</span>
+        </div>
+        
+        <hr>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="btn-group">
+                <button type="submit" name="action" value="review" class="btn btn-success">
+                    ✅ بررسی شد (امن است)
+                </button>
+                <button type="submit" name="action" value="block" class="btn btn-danger">
+                    🚫 مسدود کردن فایل
+                </button>
+                <button type="submit" name="action" value="ignore" class="btn btn-secondary">
+                    🙈 چشم‌پوشی (هشدار مثبت کاذب)
+                </button>
+            </div>
+            <a href="{% url 'security_alerts' %}" class="back-link">🔙 بازگشت به لیست هشدارها</a>
+        </form>
+    </div>
+</div>
+</body>
+</html>   

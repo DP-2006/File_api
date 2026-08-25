@@ -1,0 +1,2873 @@
+<!DOCTYPE html>
+<html lang="fa" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>تنظیمات · مدیریت</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-secondary: #16161f;
+    --bg-card: rgba(255,255,255,0.07);
+    --bg-card-hover: rgba(255,255,255,0.12);
+    --bg-input: rgba(255,255,255,0.06);
+    --text: #f5f5f7;
+    --text-secondary: rgba(255,255,255,0.6);
+    --text-tertiary: rgba(255,255,255,0.35);
+    --accent: #0a84ff;
+    --accent-glow: rgba(10,132,255,0.25);
+    --gold: #d4af37;
+    --gold-light: #f5c451;
+    --green: #34c759;
+    --red: #ff3b30;
+    --orange: #ff9500;
+    --border: rgba(255,255,255,0.08);
+    --radius: 16px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+    --shadow: 0 20px 60px rgba(0,0,0,0.6);
+    --tap: 52px;
+  }
+
+  [data-theme="light"] {
+    --bg: #f0f0f3;
+    --bg-secondary: #e8e8ed;
+    --bg-card: rgba(255,255,255,0.7);
+    --bg-card-hover: rgba(255,255,255,0.85);
+    --bg-input: rgba(0,0,0,0.04);
+    --text: #1c1c1e;
+    --text-secondary: rgba(0,0,0,0.55);
+    --text-tertiary: rgba(0,0,0,0.3);
+    --border: rgba(0,0,0,0.07);
+    --shadow: 0 20px 60px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  html, body { height: 100%; overscroll-behavior: none; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.4s ease, color 0.3s ease;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .app {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    transition: background 0.3s;
+  }
+
+  .dynamic-island {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border-radius: 40px;
+    padding: 10px 28px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    min-height: 44px;
+    user-select: none;
+    pointer-events: auto;
+  }
+  .dynamic-island .time { font-size: 14px; font-weight: 700; letter-spacing: 0.3px; color: #fff; font-variant-numeric: tabular-nums; }
+  .dynamic-island .notch-divider { width: 1px; height: 22px; background: rgba(255,255,255,0.15); }
+  .dynamic-island .app-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: -0.2px; }
+  .dynamic-island .app-name .user-name { color: var(--gold-light); }
+  .dynamic-island .app-name .separator { color: rgba(255,255,255,0.3); margin: 0 6px; }
+
+  .titlebar {
+    height: 70px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    margin-top: 10px;
+    background: transparent;
+  }
+  .titlebar-left { display: flex; align-items: center; gap: 16px; }
+  .titlebar-left .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--accent);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: default;
+    opacity: 0.8;
+  }
+  .titlebar-left .back-btn svg { width: 20px; height: 20px; fill: var(--accent); }
+  .titlebar-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #fff 40%, rgba(255,255,255,0.5));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  [data-theme="light"] .titlebar-title {
+    background: linear-gradient(135deg, #1c1c1e 40%, rgba(0,0,0,0.5));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .titlebar-actions { display: flex; align-items: center; gap: 12px; }
+  .theme-toggle {
+    width: 52px;
+    height: 30px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    position: relative;
+    transition: 0.3s;
+    padding: 2px;
+  }
+  .theme-toggle .knob {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform: translateX(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #fff;
+  }
+  [data-theme="light"] .theme-toggle .knob {
+    transform: translateX(22px);
+    background: var(--gold);
+  }
+  .titlebar-actions .profile-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1c1c1e;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .body {
+    flex: 1;
+    display: flex;
+    gap: 0;
+    min-height: 0;
+    padding: 0 24px 24px 24px;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 220px;
+    flex: 0 0 auto;
+    padding: 8px 6px 0 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .sidebar-section-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    padding: 12px 12px 6px;
+    font-weight: 700;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: var(--tap);
+    padding: 10px 14px;
+    border-radius: 14px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    transition: background 0.15s, color 0.15s, transform 0.08s;
+    width: 100%;
+    text-align: left;
+  }
+  .nav-item .ico { width: 30px; height: 30px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+  .nav-item .ico svg { width: 24px; height: 24px; fill: var(--text-secondary); transition: fill 0.2s; }
+  .nav-item:active { transform: scale(0.96); }
+  .nav-item.active { background: var(--accent); color: #fff; box-shadow: 0 4px 16px var(--accent-glow); }
+  .nav-item.active .ico svg { fill: #fff; }
+  .nav-item:not(.active):hover { background: var(--bg-card); }
+
+  .main {
+    flex: 1;
+    padding: 0 0 0 24px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  .main::-webkit-scrollbar { width: 6px; }
+  .main::-webkit-scrollbar-thumb { background: var(--bg-card); border-radius: 10px; }
+
+  .panel { display: none; animation: fadeUp 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .panel.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .panel-header { margin-bottom: 24px; padding-top: 4px; }
+  .panel-title { font-size: 26px; font-weight: 800; letter-spacing: -0.3px; }
+  .panel-sub { font-size: 15px; color: var(--text-secondary); margin-top: 4px; }
+  .panel-sub code { background: var(--bg-card); padding: 2px 10px; border-radius: 8px; font-size: 13px; font-family: 'Inter', monospace; color: var(--gold-light); }
+
+  .grid-2col { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: background 0.2s; }
+  .card .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); margin-bottom: 6px; font-weight: 700; }
+  .card .v { font-size: 17px; font-weight: 700; font-family: 'Inter', monospace; letter-spacing: -0.2px; }
+
+  .form-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px 30px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 22px; margin-bottom: 24px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: -0.2px; }
+  .field input, .field select {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    min-height: var(--tap);
+    font-size: 16px;
+    color: var(--text);
+    font-family: 'Inter', monospace;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
+  .field input::placeholder { color: var(--text-tertiary); }
+  .hint { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .btn {
+    border: none;
+    cursor: pointer;
+    padding: 0 24px;
+    min-height: var(--tap);
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.1s, filter 0.15s, background 0.15s;
+    font-family: inherit;
+  }
+  .btn:active { transform: scale(0.95); }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 16px var(--accent-glow); }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-secondary { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--bg-card-hover); }
+  .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+  .btn-danger { background: rgba(255,59,48,0.12); color: var(--red); border: 1px solid rgba(255,59,48,0.2); }
+  .btn-success { background: rgba(52,199,89,0.12); color: var(--green); border: 1px solid rgba(52,199,89,0.2); }
+  .btn-warning { background: rgba(255,149,0,0.12); color: var(--orange); border: 1px solid rgba(255,149,0,0.2); }
+
+  .toggle {
+    width: 52px;
+    height: 32px;
+    border-radius: 32px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: background 0.25s;
+  }
+  .toggle .knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .toggle.on { background: var(--green); }
+  .toggle.on .knob { transform: translateX(20px); }
+
+  .status-row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 12px 16px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); }
+  .status-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--green); box-shadow: 0 0 12px rgba(52,199,89,0.4); flex: 0 0 auto; }
+  .status-dot.offline { background: var(--red); box-shadow: 0 0 12px rgba(255,59,48,0.4); }
+  .status-dot.checking { background: var(--orange); box-shadow: 0 0 12px rgba(255,149,0,0.4); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .status-text { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+  .status-detail { font-size: 13px; color: var(--text-tertiary); margin-left: 4px; }
+
+  .model-tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .model-tag {
+    padding: 10px 18px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Inter', monospace;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: 0.15s;
+  }
+  .model-tag:active { transform: scale(0.94); }
+  .model-tag.active { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 4px 16px var(--accent-glow); }
+
+  .range-row { display: flex; align-items: center; gap: 16px; min-height: var(--tap); }
+  .range-row input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 6px;
+    background: var(--bg-card);
+    accent-color: var(--accent);
+    outline: none;
+  }
+  .range-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 2px 12px var(--accent-glow);
+    border: 2px solid var(--bg);
+  }
+  .range-val { font-family: 'Inter', monospace; font-size: 16px; font-weight: 700; width: 40px; text-align: right; color: var(--accent); }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast-container {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    pointer-events: none;
+  }
+  .toast {
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 16px 28px;
+    border-radius: 18px;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateY(0) scale(1); opacity: 1; }
+  .toast .toast-icon { width: 20px; height: 20px; border-radius: 50%; background: var(--green); flex: 0 0 auto; }
+  .toast .toast-icon.error { background: var(--red); }
+
+  @media (max-width: 900px) {
+    .sidebar { width: 72px; padding-right: 0; }
+    .nav-item span:not(.ico) { display: none; }
+    .nav-item { justify-content: center; padding: 10px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .main { padding-left: 12px; }
+    .dynamic-island { padding: 8px 16px; gap: 12px; }
+    .dynamic-island .app-name .separator { display: none; }
+    .titlebar-title { font-size: 22px; }
+  }
+  @media (max-width: 600px) {
+    .sidebar { display: none; }
+    .body { padding: 0 16px 16px; }
+    .main { padding-left: 0; }
+    .dynamic-island { top: 10px; padding: 6px 14px; }
+    .dynamic-island .time { font-size: 12px; }
+    .dynamic-island .app-name { font-size: 11px; }
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-card); border-radius: 10px; }
+
+  .log-container {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    overflow-x: auto;
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+  }
+  .log-entry {
+    padding: 6px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    display: flex;
+    gap: 16px;
+    align-items: baseline;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .log-entry .log-time {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    flex: 0 0 80px;
+  }
+  .log-entry .log-level {
+    font-weight: 700;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 20px;
+    flex: 0 0 auto;
+  }
+  .log-entry .log-level.info { background: rgba(10,132,255,0.2); color: var(--accent); }
+  .log-entry .log-level.warning { background: rgba(255,149,0,0.2); color: var(--orange); }
+  .log-entry .log-level.error { background: rgba(255,59,48,0.2); color: var(--red); }
+  .log-entry .log-level.debug { background: rgba(255,255,255,0.05); color: var(--text-secondary); }
+  .log-entry .log-msg { color: var(--text-secondary); flex: 1; }
+  .log-filter-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .log-filter-bar select, .log-filter-bar input {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+  }
+  .log-filter-bar select:focus, .log-filter-bar input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+  .log-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+  }
+
+  .user-grid-admin {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .user-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    transition: background 0.2s;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .user-row:hover { background: var(--bg-card-hover); }
+  .user-row .user-info { display: flex; align-items: center; gap: 14px; }
+  .user-row .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--gold));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    color: #fff;
+  }
+  .user-row .user-details .uname { font-weight: 600; }
+  .user-row .user-details .uemail { font-size: 13px; color: var(--text-secondary); }
+  .user-row .user-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .user-row .user-badge {
+    font-size: 11px;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .user-row .user-badge.admin { background: rgba(10,132,255,0.2); color: var(--accent); }
+  .user-row .user-badge.super { background: rgba(212,175,55,0.2); color: var(--gold); }
+  .user-row .user-badge.user { background: rgba(255,255,255,0.05); color: var(--text-secondary); }
+  .user-row .user-badge.blocked { background: rgba(255,59,48,0.15); color: var(--red); }
+
+  .btn-sm {
+    padding: 6px 14px;
+    min-height: 36px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+
+  .admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .admin-stat {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .admin-stat .num { font-size: 28px; font-weight: 800; color: var(--accent); }
+  .admin-stat .lbl { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 3000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .modal-box h3 { margin-bottom: 16px; }
+  .modal-box .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap; }
+
+  .role-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-card);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .role-tag .remove-role {
+    cursor: pointer;
+    color: var(--red);
+    font-weight: 700;
+    margin-left: 4px;
+    transition: transform 0.15s;
+    display: inline-block;
+  }
+  .role-tag .remove-role:hover {
+    transform: scale(1.2);
+  }
+
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 8px;
+    background: var(--bg-input);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .checkbox-grid label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .checkbox-grid input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+  }
+
+  .selected-users-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 0;
+  }
+  .selected-user-tag {
+    background: var(--bg-card);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .tab-switch {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .tab-switch button {
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: 0.2s;
+  }
+  .tab-switch button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .tab-switch button:hover:not(.active) { background: var(--bg-card); }
+
+  .section-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 20px;
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .section-card h4 {
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<script>
+  const { useState, useEffect, useCallback, createContext, useContext, useRef } = React;
+
+  // ============================================
+  // مدیریت احراز هویت و Token
+  // ============================================
+  function getAuthToken() {
+    return localStorage.getItem('authToken') || '';
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  async function fetchWithAuth(url, options = {}) {
+    const token = getAuthToken();
+    const csrfToken = getCookie('csrftoken');
+    
+    options.headers = options.headers || {};
+    
+    if (token) {
+      options.headers['Authorization'] = `Token ${token}`;
+    }
+    
+    if (csrfToken) {
+      options.headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    if (!options.headers['Content-Type'] && !(options.body instanceof FormData)) {
+      options.headers['Content-Type'] = 'application/json';
+    }
+    
+    try {
+      const response = await fetch(url, options);
+      
+      if (response.status === 401) {
+        showToast('لطفاً مجدداً وارد سیستم شوید', 'error');
+        setTimeout(() => {
+          window.location.href = '/login/';
+        }, 1500);
+        throw new Error('Unauthorized');
+      }
+      
+      return response;
+    } catch (error) {
+      if (error.message !== 'Unauthorized') {
+        console.error('Fetch error:', error);
+      }
+      throw error;
+    }
+  }
+
+  let toastTimer;
+  function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    const el = document.getElementById('toast');
+    const icon = document.getElementById('toastIcon');
+    const msg = document.getElementById('toastMsg');
+    
+    msg.textContent = message;
+    icon.className = 'toast-icon' + (type === 'error' ? ' error' : '');
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  const ToastContext = createContext(null);
+  const ToastProvider = ({ children }) => {
+    const toast = useCallback((msg, type) => {
+      showToast(msg, type);
+    }, []);
+    return React.createElement(ToastContext.Provider, { value: toast }, children);
+  };
+  const useToast = () => useContext(ToastContext);
+
+  function getUsernameFromToken() {
+    const token = getAuthToken();
+    if (!token) return null;
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        return payload.username || payload.sub || payload.user || payload.email || null;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error parsing JWT:', error);
+      return null;
+    }
+  }
+
+  // ============================================
+  // COMPONENT: System Info
+  // ============================================
+  const SystemInfo = ({ data, loading }) => {
+    if (loading) {
+      return React.createElement('div', { className: 'panel active' },
+        React.createElement('div', { className: 'panel-header' },
+          React.createElement('div', { className: 'panel-title' }, 'System Information'),
+          React.createElement('div', { className: 'panel-sub' }, 'در حال بارگذاری...')
+        ),
+        React.createElement('div', { className: 'grid-2col' },
+          [1,2,3,4,5].map(i => 
+            React.createElement('div', { key: i, className: 'card' },
+              React.createElement('div', { className: 'k' }, '•••'),
+              React.createElement('div', { className: 'v' }, '---')
+            )
+          )
+        )
+      );
+    }
+    
+    const items = [
+      ['Hostname', data?.hostname || 'نامشخص'],
+      ['OS', data?.os || 'نامشخص'],
+      ['Processor', data?.processor || 'نامشخص'],
+      ['RAM', data?.ram_total || 'نامشخص'],
+      ['Python', data?.python_version || 'نامشخص']
+    ];
+    
+    return React.createElement('div', { className: 'panel active' },
+      React.createElement('div', { className: 'panel-header' },
+        React.createElement('div', { className: 'panel-title' }, 'System Information'),
+        React.createElement('div', { className: 'panel-sub' }, 'اطلاعات سیستم از <code>/network-info/</code>')
+      ),
+      React.createElement('div', { className: 'grid-2col' },
+        items.map(([label, value]) => 
+          React.createElement('div', { key: label, className: 'card' },
+            React.createElement('div', { className: 'k' }, label),
+            React.createElement('div', { className: 'v' }, value)
+          )
+        )
+      )
+    );
+  };
+
+  // ============================================
+  // COMPONENT: Network Info
+  // ============================================
+  const NetworkInfo = ({ data, loading }) => {
+    if (loading) {
+      return React.createElement('div', { className: 'panel active' },
+        React.createElement('div', { className: 'panel-header' },
+          React.createElement('div', { className: 'panel-title' }, 'Network Information'),
+          React.createElement('div', { className: 'panel-sub' }, 'در حال بارگذاری...')
+        ),
+        React.createElement('div', { className: 'grid-2col' },
+          [1,2,3,4,5,6].map(i => 
+            React.createElement('div', { key: i, className: 'card' },
+              React.createElement('div', { className: 'k' }, '•••'),
+              React.createElement('div', { className: 'v' }, '---')
+            )
+          )
+        )
+      );
+    }
+    
+    const items = [
+      ['IP Address', data?.ip_address || 'نامشخص'],
+      ['Subnet Mask', data?.subnet_mask || 'نامشخص'],
+      ['Gateway', data?.default_gateway || 'نامشخص'],
+      ['Primary DNS', data?.primary_dns || 'نامشخص'],
+      ['Secondary DNS', data?.secondary_dns || 'نامشخص'],
+      ['MAC Address', data?.mac_address || 'نامشخص']
+    ];
+    
+    return React.createElement('div', { className: 'panel active' },
+      React.createElement('div', { className: 'panel-header' },
+        React.createElement('div', { className: 'panel-title' }, 'Network Information'),
+        React.createElement('div', { className: 'panel-sub' }, 'اطلاعات شبکه از <code>/network-info/</code>')
+      ),
+      React.createElement('div', { className: 'grid-2col' },
+        items.map(([label, value]) => 
+          React.createElement('div', { key: label, className: 'card' },
+            React.createElement('div', { className: 'k' }, label),
+            React.createElement('div', { className: 'v' }, value)
+          )
+        )
+      )
+    );
+  };
+
+  // ============================================
+  // COMPONENT: Network Settings
+  // ============================================
+  const NetworkSettings = ({ data, onSave, onApply, loading }) => {
+    const [form, setForm] = useState({
+      ip_address: data?.ip_address || '',
+      subnet_mask: data?.subnet_mask || '',
+      default_gateway: data?.default_gateway || '',
+      primary_dns: data?.primary_dns || '',
+      secondary_dns: data?.secondary_dns || ''
+    });
+    const toast = useToast();
+
+    useEffect(() => {
+      if (data) {
+        setForm({
+          ip_address: data.ip_address || '',
+          subnet_mask: data.subnet_mask || '',
+          default_gateway: data.default_gateway || '',
+          primary_dns: data.primary_dns || '',
+          secondary_dns: data.secondary_dns || ''
+        });
+      }
+    }, [data]);
+
+    const handleChange = (e) => {
+      setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+      if (!ipPattern.test(form.ip_address)) {
+        toast('فرمت IP Address نامعتبر است', 'error');
+        return;
+      }
+      onSave(form);
+    };
+
+    const fields = [
+      { name: 'ip_address', label: 'IP Address' },
+      { name: 'subnet_mask', label: 'Subnet Mask' },
+      { name: 'default_gateway', label: 'Default Gateway' },
+      { name: 'primary_dns', label: 'Primary DNS' },
+      { name: 'secondary_dns', label: 'Secondary DNS' }
+    ];
+
+    return React.createElement('div', { className: 'panel active' },
+      React.createElement('div', { className: 'panel-header' },
+        React.createElement('div', { className: 'panel-title' }, 'Network Settings'),
+        React.createElement('div', { className: 'panel-sub' }, 'تنظیمات شبکه — <code>/network-save/</code>')
+      ),
+      React.createElement('form', { onSubmit: handleSubmit, className: 'form-card' },
+        React.createElement('div', { className: 'form-grid' },
+          fields.map(f => 
+            React.createElement('div', { key: f.name, className: 'field' },
+              React.createElement('label', null, f.label),
+              React.createElement('input', {
+                name: f.name,
+                value: form[f.name] || '',
+                onChange: handleChange,
+                placeholder: f.label
+              })
+            )
+          )
+        ),
+        React.createElement('div', { className: 'btn-row' },
+          React.createElement('button', { type: 'submit', className: 'btn btn-primary', disabled: loading },
+            loading ? React.createElement('span', { className: 'loading-spinner' }) : '💾 Save'
+          ),
+          React.createElement('button', { 
+            type: 'button', 
+            className: 'btn btn-secondary', 
+            onClick: () => onApply(form),
+            disabled: loading
+          },
+            loading ? React.createElement('span', { className: 'loading-spinner' }) : '⚡ Apply'
+          )
+        )
+      )
+    );
+  };
+
+  // ============================================
+  // COMPONENT: File Size Settings
+  // ============================================
+  const FileSizeSettings = ({ data, onSave, onReset, loading }) => {
+    const [form, setForm] = useState({
+      max_upload_size_mb: data?.max_upload_size_mb || 250,
+      max_download_size_mb: data?.max_download_size_mb || 500,
+      warning_threshold_mb: data?.warning_threshold_mb || 200,
+      allow_large_files: data?.allow_large_files || false
+    });
+    const toast = useToast();
+
+    useEffect(() => {
+      if (data) {
+        setForm({
+          max_upload_size_mb: data.max_upload_size_mb || 250,
+          max_download_size_mb: data.max_download_size_mb || 500,
+          warning_threshold_mb: data.warning_threshold_mb || 200,
+          allow_large_files: data.allow_large_files || false
+        });
+      }
+    }, [data]);
+
+    const handleChange = (e) => {
+      const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+      setForm({ ...form, [e.target.name]: val });
+    };
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (form.max_upload_size_mb < 1 || form.max_download_size_mb < 1 || form.warning_threshold_mb < 1) {
+        toast('مقادیر باید بزرگتر از 0 باشند', 'error');
+        return;
+      }
+      onSave(form);
+    };
+
+    return React.createElement('div', { className: 'panel active' },
+      React.createElement('div', { className: 'panel-header' },
+        React.createElement('div', { className: 'panel-title' }, 'File Size Limits'),
+        React.createElement('div', { className: 'panel-sub' }, '<code>/api/file-size-settings/</code>')
+      ),
+      React.createElement('form', { onSubmit: handleSubmit, className: 'form-card' },
+        React.createElement('div', { className: 'form-grid' },
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'Max Upload (MB)'),
+            React.createElement('input', {
+              type: 'number',
+              name: 'max_upload_size_mb',
+              value: form.max_upload_size_mb,
+              onChange: handleChange,
+              min: '1'
+            })
+          ),
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'Max Download (MB)'),
+            React.createElement('input', {
+              type: 'number',
+              name: 'max_download_size_mb',
+              value: form.max_download_size_mb,
+              onChange: handleChange,
+              min: '1'
+            })
+          ),
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'Warning Threshold (MB)'),
+            React.createElement('input', {
+              type: 'number',
+              name: 'warning_threshold_mb',
+              value: form.warning_threshold_mb,
+              onChange: handleChange,
+              min: '1'
+            })
+          ),
+          React.createElement('div', { className: 'field full' },
+            React.createElement('label', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+              'Allow Large Files',
+              React.createElement('div', {
+                className: 'toggle' + (form.allow_large_files ? ' on' : ''),
+                onClick: () => setForm({ ...form, allow_large_files: !form.allow_large_files })
+              },
+                React.createElement('div', { className: 'knob' })
+              )
+            ),
+            React.createElement('span', { className: 'hint' }, 'Override limits for verified accounts')
+          )
+        ),
+        React.createElement('div', { className: 'btn-row' },
+          React.createElement('button', { type: 'submit', className: 'btn btn-primary', disabled: loading },
+            loading ? React.createElement('span', { className: 'loading-spinner' }) : '💾 Save'
+          ),
+          React.createElement('button', { 
+            type: 'button', 
+            className: 'btn btn-ghost', 
+            onClick: onReset,
+            disabled: loading
+          },
+            loading ? React.createElement('span', { className: 'loading-spinner' }) : '↺ Reset'
+          )
+        )
+      )
+    );
+  };
+
+  // ============================================
+  // COMPONENT: AI Settings
+  // ============================================
+  const AISettings = ({ data, onSave, onTest, onRestart, onGetModels, loading }) => {
+    const [form, setForm] = useState({
+      host: data?.host || 'localhost',
+      port: data?.port || 11434,
+      model: data?.model || 'llama3.1:8b',
+      timeout: data?.timeout || 30,
+      temperature: data?.temperature || 0.7,
+      is_active: data?.is_active !== undefined ? data.is_active : true
+    });
+    const [status, setStatus] = useState('checking');
+    const [models, setModels] = useState([]);
+    const toast = useToast();
+
+    useEffect(() => {
+      if (data) {
+        setForm({
+          host: data.host || 'localhost',
+          port: data.port || 11434,
+          model: data.model || 'llama3.1:8b',
+          timeout: data.timeout || 30,
+          temperature: data.temperature || 0.7,
+          is_active: data.is_active !== undefined ? data.is_active : true
+        });
+      }
+    }, [data]);
+
+    const handleChange = (e) => {
+      const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+      setForm({ ...form, [e.target.name]: val });
+    };
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (!form.host || !form.port || !form.model) {
+        toast('لطفاً تمام فیلدها را پر کنید', 'error');
+        return;
+      }
+      if (form.port < 1 || form.port > 65535) {
+        toast('پورت باید بین 1 تا 65535 باشد', 'error');
+        return;
+      }
+      onSave(form);
+    };
+
+    const testConnection = async () => {
+      setStatus('checking');
+      try {
+        const result = await onTest(form);
+        if (result.success) {
+          setStatus('online');
+          if (result.models) setModels(result.models);
+        } else {
+          setStatus('offline');
+        }
+      } catch {
+        setStatus('offline');
+      }
+    };
+
+    const getModels = async () => {
+      try {
+        const result = await onGetModels(form);
+        if (result.models) setModels(result.models);
+      } catch {}
+    };
+
+    const statusText = {
+      online: '🟢 اتصال برقرار است',
+      offline: '🔴 اتصال برقرار نیست',
+      checking: '🟡 در حال بررسی...'
+    };
+
+    return React.createElement('div', { className: 'panel active' },
+      React.createElement('div', { className: 'panel-header' },
+        React.createElement('div', { className: 'panel-title' }, 'AI · Ollama'),
+        React.createElement('div', { className: 'panel-sub' }, 'تنظیمات مدل محلی')
+      ),
+      React.createElement('form', { onSubmit: handleSubmit, className: 'form-card' },
+        React.createElement('div', { className: 'status-row' },
+          React.createElement('span', { className: 'status-dot ' + status }),
+          React.createElement('span', { className: 'status-text' }, statusText[status] || 'در حال بررسی...')
+        ),
+        React.createElement('div', { className: 'form-grid' },
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'Host'),
+            React.createElement('input', {
+              name: 'host',
+              value: form.host,
+              onChange: handleChange,
+              placeholder: 'localhost'
+            })
+          ),
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'Port'),
+            React.createElement('input', {
+              type: 'number',
+              name: 'port',
+              value: form.port,
+              onChange: handleChange,
+              placeholder: '11434'
+            })
+          ),
+          React.createElement('div', { className: 'field full' },
+            React.createElement('label', null, 'Model'),
+            React.createElement('input', {
+              name: 'model',
+              value: form.model,
+              onChange: handleChange,
+              placeholder: 'llama3.1:8b'
+            }),
+            models.length > 0 && React.createElement('div', { className: 'model-tags' },
+              models.map(m => 
+                React.createElement('span', {
+                  key: m,
+                  className: 'model-tag' + (m === form.model ? ' active' : ''),
+                  onClick: () => setForm({ ...form, model: m })
+                }, m)
+              )
+            )
+          ),
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'Timeout (s)'),
+            React.createElement('input', {
+              type: 'number',
+              name: 'timeout',
+              value: form.timeout,
+              onChange: handleChange,
+              min: '1'
+            })
+          ),
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'Temperature'),
+            React.createElement('div', { className: 'range-row' },
+              React.createElement('input', {
+                type: 'range',
+                min: '0',
+                max: '2',
+                step: '0.1',
+                value: form.temperature,
+                onChange: (e) => setForm({ ...form, temperature: parseFloat(e.target.value) })
+              }),
+              React.createElement('span', { className: 'range-val' }, form.temperature)
+            )
+          ),
+          React.createElement('div', { className: 'field full' },
+            React.createElement('label', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+              'Active',
+              React.createElement('div', {
+                className: 'toggle' + (form.is_active ? ' on' : ''),
+                onClick: () => setForm({ ...form, is_active: !form.is_active })
+              },
+                React.createElement('div', { className: 'knob' })
+              )
+            )
+          )
+        ),
+        React.createElement('div', { className: 'btn-row' },
+          React.createElement('button', { 
+            type: 'button', 
+            className: 'btn btn-secondary', 
+            onClick: testConnection,
+            disabled: loading
+          },
+            loading ? React.createElement('span', { className: 'loading-spinner' }) : '🔌 Test'
+          ),
+          React.createElement('button', { 
+            type: 'button', 
+            className: 'btn btn-secondary', 
+            onClick: getModels,
+            disabled: loading
+          },
+            loading ? React.createElement('span', { className: 'loading-spinner' }) : '📥 Get Models'
+          ),
+          React.createElement('button', { 
+            type: 'button', 
+            className: 'btn btn-danger', 
+            onClick: onRestart,
+            disabled: loading
+          },
+            loading ? React.createElement('span', { className: 'loading-spinner' }) : '⟳ Restart'
+          ),
+          React.createElement('button', { type: 'submit', className: 'btn btn-primary', disabled: loading },
+            loading ? React.createElement('span', { className: 'loading-spinner' }) : '💾 Save'
+          )
+        )
+      )
+    );
+  };
+
+  // ============================================
+  // COMPONENT: Log Viewer
+  // ============================================
+  const LogViewer = ({ logs, loading, onRefresh, onClear }) => {
+    const [filterLevel, setFilterLevel] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredLogs = logs.filter(log => {
+      if (filterLevel !== 'all' && log.level !== filterLevel) return false;
+      if (searchTerm && !log.message.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      return true;
+    });
+
+    const levelCounts = logs.reduce((acc, log) => {
+      acc[log.level] = (acc[log.level] || 0) + 1;
+      return acc;
+    }, {});
+
+    if (loading) {
+      return React.createElement('div', { className: 'panel active' },
+        React.createElement('div', { className: 'panel-header' },
+          React.createElement('div', { className: 'panel-title' }, '📋 Log Viewer'),
+          React.createElement('div', { className: 'panel-sub' }, 'در حال بارگذاری لاگ‌ها...')
+        ),
+        React.createElement('div', { className: 'form-card' },
+          React.createElement('div', { style: { textAlign: 'center', padding: '40px' } },
+            React.createElement('span', { className: 'loading-spinner' })
+          )
+        )
+      );
+    }
+
+    return React.createElement('div', { className: 'panel active' },
+      React.createElement('div', { className: 'panel-header' },
+        React.createElement('div', { className: 'panel-title' }, '📋 Log Viewer'),
+        React.createElement('div', { className: 'panel-sub' }, 'مشاهده لاگ‌های سیستم')
+      ),
+      React.createElement('div', { className: 'form-card' },
+        React.createElement('div', { className: 'log-stats' },
+          React.createElement('span', null, '📊 مجموع: ', logs.length),
+          Object.entries(levelCounts).map(([level, count]) =>
+            React.createElement('span', { key: level, style: { color: level === 'error' ? 'var(--red)' : level === 'warning' ? 'var(--orange)' : 'var(--text-secondary)' } },
+              level.toUpperCase(), ': ', count
+            )
+          )
+        ),
+        React.createElement('div', { className: 'log-filter-bar' },
+          React.createElement('select', {
+            value: filterLevel,
+            onChange: (e) => setFilterLevel(e.target.value)
+          },
+            React.createElement('option', { value: 'all' }, 'همه'),
+            React.createElement('option', { value: 'info' }, 'INFO'),
+            React.createElement('option', { value: 'warning' }, 'WARNING'),
+            React.createElement('option', { value: 'error' }, 'ERROR'),
+            React.createElement('option', { value: 'debug' }, 'DEBUG')
+          ),
+          React.createElement('input', {
+            type: 'text',
+            placeholder: 'جستجو در لاگ‌ها...',
+            value: searchTerm,
+            onChange: (e) => setSearchTerm(e.target.value)
+          }),
+          React.createElement('button', { className: 'btn btn-secondary btn-sm', onClick: onRefresh }, '🔄 Refresh'),
+          React.createElement('button', { className: 'btn btn-danger btn-sm', onClick: onClear }, '🗑️ Clear')
+        ),
+        React.createElement('div', { className: 'log-container' },
+          filteredLogs.length === 0 ?
+            React.createElement('div', { style: { textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' } },
+              'هیچ لاگی یافت نشد'
+            ) :
+            filteredLogs.map((log, idx) =>
+              React.createElement('div', { key: idx, className: 'log-entry' },
+                React.createElement('span', { className: 'log-time' }, log.time || '---'),
+                React.createElement('span', { className: `log-level ${log.level}` }, log.level.toUpperCase()),
+                React.createElement('span', { className: 'log-msg' }, log.message)
+              )
+            )
+        )
+      )
+    );
+  };
+
+  // ============================================
+  // COMPONENT: Edit Role Modal
+  // ============================================
+  const EditRoleModal = ({ 
+    role, 
+    allPermissions, 
+    isOpen, 
+    onClose, 
+    onSave, 
+    loading 
+  }) => {
+    const [form, setForm] = useState({
+      name: role?.name || '',
+      permissions: role?.permissions?.map(p => p.id) || []
+    });
+    const toast = useToast();
+
+    useEffect(() => {
+      if (role) {
+        setForm({
+          name: role.name || '',
+          permissions: role.permissions?.map(p => p.id) || []
+        });
+      }
+    }, [role]);
+
+    const handleSubmit = async () => {
+      if (!form.name.trim()) {
+        toast('نام نقش الزامی است', 'error');
+        return;
+      }
+      await onSave(role.id, form);
+      onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return React.createElement('div', { className: 'modal-overlay open' },
+      React.createElement('div', { className: 'modal-box' },
+        React.createElement('h3', null, '✏️ ویرایش نقش: ', role?.name),
+        
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'نام نقش'),
+          React.createElement('input', {
+            type: 'text',
+            value: form.name,
+            onChange: (e) => setForm({...form, name: e.target.value}),
+            placeholder: 'نام نقش را وارد کنید'
+          })
+        ),
+        
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'دسترسی‌ها'),
+          React.createElement('div', { className: 'checkbox-grid' },
+            allPermissions.map(p =>
+              React.createElement('label', { key: p.id },
+                React.createElement('input', {
+                  type: 'checkbox',
+                  checked: form.permissions.includes(p.id),
+                  onChange: (e) => {
+                    if (e.target.checked) {
+                      setForm({
+                        ...form,
+                        permissions: [...form.permissions, p.id]
+                      });
+                    } else {
+                      setForm({
+                        ...form,
+                        permissions: form.permissions.filter(id => id !== p.id)
+                      });
+                    }
+                  }
+                }),
+                p.name
+              )
+            )
+          )
+        ),
+        
+        React.createElement('div', { className: 'modal-actions' },
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-sm',
+            onClick: onClose,
+            disabled: loading
+          }, 'لغو'),
+          React.createElement('button', {
+            className: 'btn btn-primary btn-sm',
+            onClick: handleSubmit,
+            disabled: loading
+          }, loading ? 'در حال ذخیره...' : '💾 ذخیره تغییرات')
+        )
+      )
+    );
+  };
+
+  // ============================================
+  // COMPONENT: User Management (Full)
+  // ============================================
+  const UserManagement = ({ users, roles, loading, onRefresh, permissions: allPermissions }) => {
+    const [usersList, setUsersList] = useState(users || []);
+    const [rolesList, setRolesList] = useState(roles || []);
+    const [permissionsList, setPermissionsList] = useState(allPermissions || []);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [activeTab, setActiveTab] = useState('users');
+    
+    const [newRoleName, setNewRoleName] = useState('');
+    const [newRolePerms, setNewRolePerms] = useState([]);
+    const [newRolePolicy, setNewRolePolicy] = useState({
+      min_length: 8,
+      require_uppercase: true,
+      require_digit: true,
+      require_special_char: false,
+      require_lowercase: true,
+      expiry_days: 90,
+      max_attempts: 5
+    });
+    const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
+    
+    const [editRole, setEditRole] = useState(null);
+    const [showEditRoleModal, setShowEditRoleModal] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    
+    const [selectedRoleId, setSelectedRoleId] = useState('');
+    const [selectedUserIds, setSelectedUserIds] = useState([]);
+    const [bulkBlockUsers, setBulkBlockUsers] = useState([]);
+    const [bulkPassword, setBulkPassword] = useState('');
+    
+    const [multiRoleUserId, setMultiRoleUserId] = useState(null);
+    const [multiRoleIds, setMultiRoleIds] = useState([]);
+    const [showMultiRoleModal, setShowMultiRoleModal] = useState(false);
+
+    const toast = useToast();
+
+    useEffect(() => {
+      setUsersList(users || []);
+    }, [users]);
+
+    useEffect(() => {
+      setRolesList(roles || []);
+    }, [roles]);
+
+    useEffect(() => {
+      setPermissionsList(allPermissions || []);
+    }, [allPermissions]);
+
+    const handleCreateUser = async (username, password, roleId) => {
+      if (!username || !password) {
+        toast('نام کاربری و رمز عبور الزامی است', 'error');
+        return false;
+      }
+      try {
+        const response = await fetchWithAuth('/api/admin-action/', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'create_user',
+            username: username,
+            password: password,
+            groups: roleId ? [parseInt(roleId)] : []
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast('کاربر با موفقیت ایجاد شد', 'success');
+          onRefresh();
+          return true;
+        } else {
+          toast(data.msg || 'خطا در ایجاد کاربر', 'error');
+          return false;
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+        return false;
+      }
+    };
+
+    const handleDeleteUser = async (userId) => {
+      try {
+        const response = await fetchWithAuth('/api/admin-action/', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'delete_user', user_id: userId })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast('کاربر با موفقیت حذف شد', 'success');
+          setShowDeleteModal(false);
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در حذف کاربر', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleToggleBlock = async (userId, currentStatus) => {
+      try {
+        const response = await fetchWithAuth('/api/admin-action/', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: currentStatus ? 'block_user' : 'unblock_user',
+            user_id: userId
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(currentStatus ? 'کاربر مسدود شد' : 'کاربر فعال شد', 'success');
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در تغییر وضعیت', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleChangePassword = async (userId) => {
+      const newPass = prompt('رمز عبور جدید را وارد کنید:');
+      if (!newPass) return;
+      try {
+        const response = await fetchWithAuth('/api/admin-action/', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'change_password',
+            user_id: userId,
+            new_password: newPass
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast('رمز عبور با موفقیت تغییر کرد', 'success');
+        } else {
+          toast(data.msg || 'خطا در تغییر رمز', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    // ========== Unassign Role (بدون محدودیت آخرین نقش) ==========
+    const handleUnassignRole = async (userId, roleId) => {
+      if (!confirm('آیا از حذف این نقش از کاربر اطمینان دارید؟')) return;
+      try {
+        const response = await fetchWithAuth('/api/users/remove-role/', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: userId,
+            role_id: roleId
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          await onRefresh();
+        } else {
+          toast(data.msg || 'خطا در حذف نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    // ========== Edit Role ==========
+    const handleEditRole = async (roleId, formData) => {
+      setEditLoading(true);
+      try {
+        const response = await fetchWithAuth(`/api/roles/${roleId}/update/`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: formData.name,
+            permissions: formData.permissions
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          await onRefresh();
+          setShowEditRoleModal(false);
+          setEditRole(null);
+        } else {
+          toast(data.msg || 'خطا در ویرایش نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      } finally {
+        setEditLoading(false);
+      }
+    };
+
+    const handleCreateRole = async () => {
+      if (!newRoleName.trim()) {
+        toast('نام نقش الزامی است', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth('/api/roles/create-advanced/', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: newRoleName,
+            permissions: newRolePerms,
+            password_policy: newRolePolicy
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast('نقش با موفقیت ایجاد شد', 'success');
+          setShowCreateRoleModal(false);
+          setNewRoleName('');
+          setNewRolePerms([]);
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در ایجاد نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleDeleteRole = async (roleId, roleName) => {
+      if (!confirm(`آیا از حذف نقش "${roleName}" اطمینان دارید؟`)) return;
+      try {
+        const response = await fetchWithAuth(`/api/delete-role/${roleId}/`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast('نقش با موفقیت حذف شد', 'success');
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در حذف نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleBulkAssignRole = async () => {
+      if (!selectedRoleId || selectedUserIds.length === 0) {
+        toast('نقش و کاربران را انتخاب کنید', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth('/api/roles/assign-bulk/', {
+          method: 'POST',
+          body: JSON.stringify({
+            role_id: parseInt(selectedRoleId),
+            user_ids: selectedUserIds
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          setSelectedUserIds([]);
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در اختصاص نقش', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleBulkBlock = async (block) => {
+      if (bulkBlockUsers.length === 0) {
+        toast('کاربران را انتخاب کنید', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth('/api/users/bulk-block/', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_ids: bulkBlockUsers,
+            block: block
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          setBulkBlockUsers([]);
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در عملیات', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleBulkChangePassword = async () => {
+      if (bulkBlockUsers.length === 0 || !bulkPassword) {
+        toast('کاربران و رمز عبور جدید را وارد کنید', 'error');
+        return;
+      }
+      if (bulkPassword.length < 8) {
+        toast('رمز عبور باید حداقل ۸ کاراکتر باشد', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth('/api/users/bulk-change-password/', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_ids: bulkBlockUsers,
+            new_password: bulkPassword
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          setBulkBlockUsers([]);
+          setBulkPassword('');
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در تغییر رمز', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleAssignMultipleRoles = async () => {
+      if (!multiRoleUserId || multiRoleIds.length === 0) {
+        toast('کاربر و نقش‌ها را انتخاب کنید', 'error');
+        return;
+      }
+      try {
+        const response = await fetchWithAuth('/api/users/assign-multiple-roles/', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: multiRoleUserId,
+            role_ids: multiRoleIds
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast(data.msg, 'success');
+          setShowMultiRoleModal(false);
+          setMultiRoleUserId(null);
+          setMultiRoleIds([]);
+          onRefresh();
+        } else {
+          toast(data.msg || 'خطا در اختصاص نقش‌ها', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const filteredUsers = usersList.filter(u =>
+      u.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const stats = {
+      total: usersList.length,
+      admins: usersList.filter(u => u.is_staff).length,
+      super: usersList.filter(u => u.is_superuser).length,
+      blocked: usersList.filter(u => !u.is_active).length,
+      roles: rolesList.length
+    };
+
+    if (loading) {
+      return React.createElement('div', { className: 'panel active' },
+        React.createElement('div', { className: 'panel-header' },
+          React.createElement('div', { className: 'panel-title' }, '👥 مدیریت کاربران'),
+          React.createElement('div', { className: 'panel-sub' }, 'در حال بارگذاری...')
+        ),
+        React.createElement('div', { className: 'form-card' },
+          React.createElement('div', { style: { textAlign: 'center', padding: '40px' } },
+            React.createElement('span', { className: 'loading-spinner' })
+          )
+        )
+      );
+    }
+
+    const CreateRoleModal = React.createElement('div', { className: 'modal-overlay' + (showCreateRoleModal ? ' open' : '') },
+      React.createElement('div', { className: 'modal-box' },
+        React.createElement('h3', null, '➕ ایجاد نقش جدید'),
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'نام نقش'),
+          React.createElement('input', {
+            type: 'text',
+            value: newRoleName,
+            onChange: (e) => setNewRoleName(e.target.value),
+            placeholder: 'نام نقش را وارد کنید'
+          })
+        ),
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'دسترسی‌ها'),
+          React.createElement('div', { className: 'checkbox-grid' },
+            permissionsList.map(p =>
+              React.createElement('label', { key: p.id },
+                React.createElement('input', {
+                  type: 'checkbox',
+                  checked: newRolePerms.includes(p.id),
+                  onChange: (e) => {
+                    if (e.target.checked) {
+                      setNewRolePerms([...newRolePerms, p.id]);
+                    } else {
+                      setNewRolePerms(newRolePerms.filter(id => id !== p.id));
+                    }
+                  }
+                }),
+                p.name
+              )
+            )
+          )
+        ),
+        React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
+          React.createElement('label', null, 'سیاست رمز عبور'),
+          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } },
+            React.createElement('div', null,
+              React.createElement('label', { style: { fontSize: '12px' } }, 'حداقل طول'),
+              React.createElement('input', {
+                type: 'number',
+                value: newRolePolicy.min_length,
+                onChange: (e) => setNewRolePolicy({...newRolePolicy, min_length: parseInt(e.target.value) || 8})
+              })
+            ),
+            React.createElement('div', null,
+              React.createElement('label', { style: { fontSize: '12px' } }, 'انقضا (روز)'),
+              React.createElement('input', {
+                type: 'number',
+                value: newRolePolicy.expiry_days,
+                onChange: (e) => setNewRolePolicy({...newRolePolicy, expiry_days: parseInt(e.target.value) || 90})
+              })
+            )
+          ),
+          React.createElement('div', { style: { display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' } },
+            React.createElement('label', { style: { fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' } },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: newRolePolicy.require_uppercase,
+                onChange: (e) => setNewRolePolicy({...newRolePolicy, require_uppercase: e.target.checked})
+              }),
+              'حروف بزرگ'
+            ),
+            React.createElement('label', { style: { fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' } },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: newRolePolicy.require_digit,
+                onChange: (e) => setNewRolePolicy({...newRolePolicy, require_digit: e.target.checked})
+              }),
+              'عدد'
+            ),
+            React.createElement('label', { style: { fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' } },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: newRolePolicy.require_special_char,
+                onChange: (e) => setNewRolePolicy({...newRolePolicy, require_special_char: e.target.checked})
+              }),
+              'کاراکتر خاص'
+            )
+          )
+        ),
+        React.createElement('div', { className: 'modal-actions' },
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-sm',
+            onClick: () => setShowCreateRoleModal(false)
+          }, 'لغو'),
+          React.createElement('button', {
+            className: 'btn btn-primary btn-sm',
+            onClick: handleCreateRole
+          }, 'ایجاد نقش')
+        )
+      )
+    );
+
+    const MultiRoleModal = React.createElement('div', { className: 'modal-overlay' + (showMultiRoleModal ? ' open' : '') },
+      React.createElement('div', { className: 'modal-box' },
+        React.createElement('h3', null, '👥 اختصاص چند نقش به کاربر'),
+        React.createElement('p', { style: { color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '12px' } },
+          'انتخاب نقش‌ها برای کاربر: ',
+          React.createElement('strong', null, usersList.find(u => u.id === multiRoleUserId)?.username || '')
+        ),
+        React.createElement('div', { className: 'checkbox-grid' },
+          rolesList.map(r =>
+            React.createElement('label', { key: r.id },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: multiRoleIds.includes(r.id),
+                onChange: (e) => {
+                  if (e.target.checked) {
+                    setMultiRoleIds([...multiRoleIds, r.id]);
+                  } else {
+                    setMultiRoleIds(multiRoleIds.filter(id => id !== r.id));
+                  }
+                }
+              }),
+              r.name
+            )
+          )
+        ),
+        React.createElement('div', { className: 'modal-actions' },
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-sm',
+            onClick: () => {
+              setShowMultiRoleModal(false);
+              setMultiRoleUserId(null);
+              setMultiRoleIds([]);
+            }
+          }, 'لغو'),
+          React.createElement('button', {
+            className: 'btn btn-primary btn-sm',
+            onClick: handleAssignMultipleRoles
+          }, 'اعمال نقش‌ها')
+        )
+      )
+    );
+
+    const DeleteModal = React.createElement('div', { className: 'modal-overlay' + (showDeleteModal ? ' open' : '') },
+      React.createElement('div', { className: 'modal-box' },
+        React.createElement('h3', null, '⚠️ تایید حذف'),
+        React.createElement('p', null,
+          'آیا از حذف کاربر ',
+          React.createElement('strong', null, deleteTarget?.username || ''),
+          ' اطمینان دارید؟'
+        ),
+        React.createElement('p', { style: { color: 'var(--red)', fontSize: '14px' } },
+          'این عملیات غیرقابل بازگشت است'
+        ),
+        React.createElement('div', { className: 'modal-actions' },
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-sm',
+            onClick: () => setShowDeleteModal(false)
+          }, 'لغو'),
+          React.createElement('button', {
+            className: 'btn btn-danger btn-sm',
+            onClick: () => {
+              if (deleteTarget) handleDeleteUser(deleteTarget.id);
+            }
+          }, '🗑️ حذف')
+        )
+      )
+    );
+
+    return React.createElement('div', { className: 'panel active' },
+      DeleteModal,
+      CreateRoleModal,
+      MultiRoleModal,
+      React.createElement(EditRoleModal, {
+        role: editRole,
+        allPermissions: permissionsList,
+        isOpen: showEditRoleModal,
+        onClose: () => {
+          setShowEditRoleModal(false);
+          setEditRole(null);
+        },
+        onSave: handleEditRole,
+        loading: editLoading
+      }),
+
+      React.createElement('div', { className: 'panel-header' },
+        React.createElement('div', { className: 'panel-title' }, '👥 مدیریت کاربران و نقش‌ها'),
+        React.createElement('div', { className: 'panel-sub' }, 'مدیریت کامل کاربران، نقش‌ها و دسترسی‌ها')
+      ),
+
+      React.createElement('div', { className: 'admin-stats' },
+        React.createElement('div', { className: 'admin-stat' },
+          React.createElement('div', { className: 'num' }, stats.total),
+          React.createElement('div', { className: 'lbl' }, 'کل کاربران')
+        ),
+        React.createElement('div', { className: 'admin-stat' },
+          React.createElement('div', { className: 'num' }, stats.admins),
+          React.createElement('div', { className: 'lbl' }, 'ادمین‌ها')
+        ),
+        React.createElement('div', { className: 'admin-stat' },
+          React.createElement('div', { className: 'num' }, stats.super),
+          React.createElement('div', { className: 'lbl' }, 'سوپر ادمین')
+        ),
+        React.createElement('div', { className: 'admin-stat' },
+          React.createElement('div', { className: 'num', style: { color: 'var(--red)' } }, stats.blocked),
+          React.createElement('div', { className: 'lbl' }, 'مسدود شده')
+        ),
+        React.createElement('div', { className: 'admin-stat' },
+          React.createElement('div', { className: 'num' }, stats.roles),
+          React.createElement('div', { className: 'lbl' }, 'نقش‌ها')
+        )
+      ),
+
+      React.createElement('div', { className: 'tab-switch' },
+        React.createElement('button', {
+          className: activeTab === 'users' ? 'active' : '',
+          onClick: () => setActiveTab('users')
+        }, '👤 کاربران'),
+        React.createElement('button', {
+          className: activeTab === 'roles' ? 'active' : '',
+          onClick: () => setActiveTab('roles')
+        }, '🎯 نقش‌ها'),
+        React.createElement('button', {
+          className: activeTab === 'bulk' ? 'active' : '',
+          onClick: () => setActiveTab('bulk')
+        }, '📦 عملیات گروهی')
+      ),
+
+      activeTab === 'users' && React.createElement('div', null,
+        React.createElement('div', { className: 'form-card', style: { marginBottom: '20px' } },
+          React.createElement('h4', { style: { marginBottom: '16px' } }, '➕ ایجاد کاربر جدید'),
+          React.createElement('div', { className: 'form-grid' },
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'نام کاربری'),
+              React.createElement('input', {
+                type: 'text',
+                id: 'newUsername',
+                placeholder: 'نام کاربری'
+              })
+            ),
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'رمز عبور'),
+              React.createElement('input', {
+                type: 'text',
+                id: 'newPassword',
+                placeholder: 'رمز عبور'
+              })
+            ),
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'نقش'),
+              React.createElement('select', { id: 'newUserRole' },
+                React.createElement('option', { value: '' }, 'بدون نقش'),
+                rolesList.map(r =>
+                  React.createElement('option', { key: r.id, value: r.id }, r.name)
+                )
+              )
+            ),
+            React.createElement('div', { className: 'field', style: { display: 'flex', alignItems: 'flex-end' } },
+              React.createElement('button', {
+                className: 'btn btn-primary',
+                onClick: () => {
+                  const username = document.getElementById('newUsername').value;
+                  const password = document.getElementById('newPassword').value;
+                  const roleId = document.getElementById('newUserRole').value;
+                  handleCreateUser(username, password, roleId);
+                }
+              }, '➕ ایجاد کاربر')
+            )
+          )
+        ),
+
+        React.createElement('div', { className: 'form-card' },
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' } },
+            React.createElement('h4', null, '👥 لیست کاربران'),
+            React.createElement('div', { style: { display: 'flex', gap: '12px', alignItems: 'center' } },
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'جستجو...',
+                value: searchTerm,
+                onChange: (e) => setSearchTerm(e.target.value),
+                style: {
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '10px',
+                  padding: '8px 14px',
+                  color: 'var(--text)',
+                  outline: 'none'
+                }
+              }),
+              React.createElement('button', { className: 'btn btn-secondary btn-sm', onClick: onRefresh }, '🔄 Refresh')
+            )
+          ),
+          React.createElement('div', { className: 'user-grid-admin' },
+            filteredUsers.length === 0 ?
+              React.createElement('div', { style: { textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' } },
+                'هیچ کاربری یافت نشد'
+              ) :
+              filteredUsers.map(user => {
+                const isCurrentUser = user.id === parseInt(localStorage.getItem('userId') || '0');
+                const userRole = user.is_superuser ? 'super' : user.is_staff ? 'admin' : 'user';
+                const roleLabel = user.is_superuser ? 'سوپر ادمین' : user.is_staff ? 'ادمین' : 'کاربر';
+                const userRoles = user.roles || [];
+                
+                return React.createElement('div', { key: user.id, className: 'user-row' },
+                  React.createElement('div', { className: 'user-info' },
+                    React.createElement('div', { className: 'user-avatar' }, (user.username || 'U')[0].toUpperCase()),
+                    React.createElement('div', { className: 'user-details' },
+                      React.createElement('div', { className: 'uname' },
+                        user.username,
+                        isCurrentUser ? ' (شما)' : ''
+                      ),
+                      React.createElement('div', { className: 'uemail' }, user.email || 'بدون ایمیل'),
+                      React.createElement('div', { style: { display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' } },
+                        userRoles.map(r =>
+                          React.createElement('span', { key: r.id, className: 'role-tag' },
+                            r.name,
+                            !isCurrentUser && React.createElement('span', {
+                              className: 'remove-role',
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                handleUnassignRole(user.id, r.id);
+                              }
+                            }, '✕')
+                          )
+                        )
+                      )
+                    )
+                  ),
+                  React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
+                    React.createElement('span', { className: `user-badge ${userRole}` }, roleLabel),
+                    React.createElement('span', { className: `user-badge ${user.is_active ? 'user' : 'blocked'}` },
+                      user.is_active ? 'فعال' : 'مسدود'
+                    ),
+                    React.createElement('div', { className: 'user-actions' },
+                      !isCurrentUser && React.createElement('button', {
+                        className: 'btn btn-secondary btn-sm',
+                        onClick: () => {
+                          const target = usersList.find(u => u.id === user.id);
+                          if (target) {
+                            setMultiRoleUserId(user.id);
+                            setMultiRoleIds(userRoles.map(r => r.id));
+                            setShowMultiRoleModal(true);
+                          }
+                        }
+                      }, '🎯 نقش‌ها'),
+                      !isCurrentUser && React.createElement('button', {
+                        className: 'btn btn-secondary btn-sm',
+                        onClick: () => handleChangePassword(user.id)
+                      }, '🔑 رمز'),
+                      !isCurrentUser && React.createElement('button', {
+                        className: `btn ${user.is_active ? 'btn-danger' : 'btn-success'} btn-sm`,
+                        onClick: () => handleToggleBlock(user.id, user.is_active)
+                      }, user.is_active ? '🚫 مسدود' : '✅ فعال'),
+                      !isCurrentUser && React.createElement('button', {
+                        className: 'btn btn-danger btn-sm',
+                        onClick: () => {
+                          setDeleteTarget(user);
+                          setShowDeleteModal(true);
+                        }
+                      }, '🗑️')
+                    )
+                  )
+                );
+              })
+          )
+        )
+      ),
+
+      activeTab === 'roles' && React.createElement('div', null,
+        React.createElement('div', { className: 'section-card' },
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' } },
+            React.createElement('h4', null, '🎯 مدیریت نقش‌ها'),
+            React.createElement('button', {
+              className: 'btn btn-primary btn-sm',
+              onClick: () => setShowCreateRoleModal(true)
+            }, '➕ ایجاد نقش جدید')
+          )
+        ),
+        React.createElement('div', { className: 'form-card' },
+          React.createElement('div', { className: 'user-grid-admin' },
+            rolesList.length === 0 ?
+              React.createElement('div', { style: { textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)' } },
+                'هیچ نقشی ایجاد نشده است'
+              ) :
+              rolesList.map(role => {
+                const isProtected = ['admin', 'superadmin', 'user'].includes(role.name.toLowerCase());
+                return React.createElement('div', { key: role.id, className: 'user-row' },
+                  React.createElement('div', { className: 'user-info' },
+                    React.createElement('div', { className: 'user-avatar', style: { background: 'linear-gradient(135deg, var(--gold), var(--orange))' } },
+                      role.name[0].toUpperCase()
+                    ),
+                    React.createElement('div', { className: 'user-details' },
+                      React.createElement('div', { className: 'uname' },
+                        role.name,
+                        isProtected ? ' 🔒' : ''
+                      ),
+                      React.createElement('div', { className: 'uemail' },
+                        `${role.user_count || 0} کاربر | ${role.permissions?.length || 0} دسترسی`
+                      )
+                    )
+                  ),
+                  React.createElement('div', { className: 'user-actions' },
+                    !isProtected && React.createElement('button', {
+                      className: 'btn btn-secondary btn-sm',
+                      onClick: () => {
+                        setEditRole(role);
+                        setShowEditRoleModal(true);
+                      }
+                    }, '✏️ ویرایش'),
+                    !isProtected && React.createElement('button', {
+                      className: 'btn btn-danger btn-sm',
+                      onClick: () => handleDeleteRole(role.id, role.name)
+                    }, '🗑️ حذف')
+                  )
+                );
+              })
+          )
+        )
+      ),
+
+      activeTab === 'bulk' && React.createElement('div', null,
+        React.createElement('div', { className: 'section-card' },
+          React.createElement('h4', null, '📦 اختصاص نقش به گروهی از کاربران'),
+          React.createElement('div', { className: 'form-grid' },
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'نقش'),
+              React.createElement('select', {
+                value: selectedRoleId,
+                onChange: (e) => setSelectedRoleId(e.target.value)
+              },
+                React.createElement('option', { value: '' }, 'انتخاب نقش...'),
+                rolesList.map(r =>
+                  React.createElement('option', { key: r.id, value: r.id }, r.name)
+                )
+              )
+            ),
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'کاربران'),
+              React.createElement('select', {
+                multiple: true,
+                value: selectedUserIds,
+                onChange: (e) => {
+                  const options = e.target.options;
+                  const values = [];
+                  for (let i = 0; i < options.length; i++) {
+                    if (options[i].selected) values.push(parseInt(options[i].value));
+                  }
+                  setSelectedUserIds(values);
+                },
+                style: { height: '100px' }
+              },
+                usersList.map(u =>
+                  React.createElement('option', { key: u.id, value: u.id }, u.username)
+                )
+              )
+            )
+          ),
+          React.createElement('div', { className: 'btn-row' },
+            React.createElement('button', {
+              className: 'btn btn-primary btn-sm',
+              onClick: handleBulkAssignRole
+            }, '📤 اعمال نقش به کاربران'),
+            React.createElement('span', { className: 'hint' },
+              `${selectedUserIds.length} کاربر انتخاب شده`
+            )
+          )
+        ),
+
+        React.createElement('div', { className: 'section-card' },
+          React.createElement('h4', null, '🚫 مسدود/فعال کردن گروهی کاربران'),
+          React.createElement('div', { className: 'form-grid' },
+            React.createElement('div', { className: 'field full' },
+              React.createElement('label', null, 'کاربران'),
+              React.createElement('select', {
+                multiple: true,
+                value: bulkBlockUsers,
+                onChange: (e) => {
+                  const options = e.target.options;
+                  const values = [];
+                  for (let i = 0; i < options.length; i++) {
+                    if (options[i].selected) values.push(parseInt(options[i].value));
+                  }
+                  setBulkBlockUsers(values);
+                },
+                style: { height: '100px' }
+              },
+                usersList.map(u =>
+                  React.createElement('option', { key: u.id, value: u.id }, u.username)
+                )
+              )
+            )
+          ),
+          React.createElement('div', { className: 'btn-row' },
+            React.createElement('button', {
+              className: 'btn btn-danger btn-sm',
+              onClick: () => handleBulkBlock(true)
+            }, '🚫 مسدود کردن'),
+            React.createElement('button', {
+              className: 'btn btn-success btn-sm',
+              onClick: () => handleBulkBlock(false)
+            }, '✅ فعال کردن'),
+            React.createElement('span', { className: 'hint' },
+              `${bulkBlockUsers.length} کاربر انتخاب شده`
+            )
+          )
+        ),
+
+        React.createElement('div', { className: 'section-card' },
+          React.createElement('h4', null, '🔑 تغییر رمز عبور گروهی کاربران'),
+          React.createElement('div', { className: 'form-grid' },
+            React.createElement('div', { className: 'field full' },
+              React.createElement('label', null, 'کاربران'),
+              React.createElement('select', {
+                multiple: true,
+                value: bulkBlockUsers,
+                onChange: (e) => {
+                  const options = e.target.options;
+                  const values = [];
+                  for (let i = 0; i < options.length; i++) {
+                    if (options[i].selected) values.push(parseInt(options[i].value));
+                  }
+                  setBulkBlockUsers(values);
+                },
+                style: { height: '80px' }
+              },
+                usersList.map(u =>
+                  React.createElement('option', { key: u.id, value: u.id }, u.username)
+                )
+              )
+            ),
+            React.createElement('div', { className: 'field full' },
+              React.createElement('label', null, 'رمز عبور جدید'),
+              React.createElement('input', {
+                type: 'text',
+                value: bulkPassword,
+                onChange: (e) => setBulkPassword(e.target.value),
+                placeholder: 'رمز عبور جدید (حداقل ۸ کاراکتر)'
+              })
+            )
+          ),
+          React.createElement('div', { className: 'btn-row' },
+            React.createElement('button', {
+              className: 'btn btn-warning btn-sm',
+              onClick: handleBulkChangePassword
+            }, '🔑 تغییر رمز عبور'),
+            React.createElement('span', { className: 'hint' },
+              `${bulkBlockUsers.length} کاربر انتخاب شده`
+            )
+          )
+        )
+      )
+    );
+  };
+
+  // ============================================
+  // COMPONENT: Main App
+  // ============================================
+  const App = () => {
+    const [activeTab, setActiveTab] = useState('system');
+    const [username, setUsername] = useState('کاربر');
+    const [networkInfo, setNetworkInfo] = useState(null);
+    const [fileSizeData, setFileSizeData] = useState(null);
+    const [aiData, setAiData] = useState(null);
+    const [logs, setLogs] = useState([]);
+    const [users, setUsers] = useState([]);
+    const [roles, setRoles] = useState([]);
+    const [permissions, setPermissions] = useState([]);
+    const [loading, setLoading] = useState({
+      network: true,
+      fileSize: true,
+      ai: true,
+      logs: true,
+      users: true,
+      save: false
+    });
+    const toast = useToast();
+
+    useEffect(() => {
+      const token = getAuthToken();
+      if (!token) {
+        toast('لطفاً ابتدا وارد سیستم شوید', 'error');
+        setTimeout(() => { window.location.href = '/login/'; }, 1500);
+        return;
+      }
+      
+      const user = getUsernameFromToken();
+      if (user) {
+        setUsername(user);
+      } else {
+        setUsername('کاربر');
+      }
+    }, []);
+
+    const loadAllData = useCallback(async () => {
+      setLoading(prev => ({ ...prev, network: true, fileSize: true, ai: true, logs: true, users: true }));
+
+      try {
+        const response = await fetchWithAuth('/network-info/');
+        const data = await response.json();
+        if (data.success) setNetworkInfo(data.network_info);
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در بارگذاری اطلاعات شبکه', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, network: false }));
+      }
+
+      try {
+        const response = await fetchWithAuth('/api/file-size-settings/');
+        const data = await response.json();
+        if (data.success) setFileSizeData(data.settings);
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در بارگذاری تنظیمات حجم فایل', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, fileSize: false }));
+      }
+
+      try {
+        const response = await fetchWithAuth('/ai-settings/');
+        const data = await response.json();
+        if (data.success) setAiData(data.settings);
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در بارگذاری تنظیمات AI', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, ai: false }));
+      }
+
+      try {
+        const response = await fetchWithAuth('/api/logs/');
+        const data = await response.json();
+        if (data.success) setLogs(data.logs || []);
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در بارگذاری لاگ‌ها', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, logs: false }));
+      }
+
+      try {
+        const response = await fetchWithAuth('/api/users-list/');
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setUsers(data);
+          const currentUser = data.find(u => u.username === username);
+          if (currentUser) localStorage.setItem('userId', currentUser.id);
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در بارگذاری کاربران', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, users: false }));
+      }
+
+      try {
+        const response = await fetchWithAuth('/api/roles/');
+        const data = await response.json();
+        if (Array.isArray(data)) setRoles(data);
+      } catch (error) {
+        if (error.message !== 'Unauthorized') console.error('Error loading roles:', error);
+      }
+
+      try {
+        const response = await fetchWithAuth('/api/all-permissions/');
+        const data = await response.json();
+        if (Array.isArray(data)) setPermissions(data);
+      } catch (error) {
+        if (error.message !== 'Unauthorized') console.error('Error loading permissions:', error);
+      }
+    }, [toast, username]);
+
+    useEffect(() => {
+      loadAllData();
+    }, [loadAllData]);
+
+    const handleNetworkSave = async (formData) => {
+      setLoading(prev => ({ ...prev, save: true }));
+      try {
+        const response = await fetchWithAuth('/network-save/', {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+        const result = await response.json();
+        toast(result.message || 'ذخیره شد', result.success ? 'success' : 'error');
+        if (result.success) {
+          const resp = await fetchWithAuth('/network-info/');
+          const data = await resp.json();
+          if (data.success) setNetworkInfo(data.network_info);
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ذخیره تنظیمات', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, save: false }));
+      }
+    };
+
+    const handleNetworkApply = async (formData) => {
+      if (!confirm('آیا مطمئن هستید که می‌خواهید تنظیمات شبکه را اعمال کنید؟')) return;
+      setLoading(prev => ({ ...prev, save: true }));
+      try {
+        const response = await fetchWithAuth('/network-apply/', {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+        const result = await response.json();
+        toast(result.message || 'اعمال شد', result.success ? 'success' : 'error');
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در اعمال تنظیمات', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, save: false }));
+      }
+    };
+
+    const handleFileSizeSave = async (formData) => {
+      setLoading(prev => ({ ...prev, save: true }));
+      try {
+        const response = await fetchWithAuth('/api/file-size-settings/save/', {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+        const result = await response.json();
+        toast(result.message || 'ذخیره شد', result.success ? 'success' : 'error');
+        if (result.success) {
+          const resp = await fetchWithAuth('/api/file-size-settings/');
+          const data = await resp.json();
+          if (data.success) setFileSizeData(data.settings);
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ذخیره تنظیمات', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, save: false }));
+      }
+    };
+
+    const handleFileSizeReset = async () => {
+      if (!confirm('آیا مطمئن هستید که می‌خواهید تنظیمات را به پیش‌فرض بازنشانی کنید؟')) return;
+      setLoading(prev => ({ ...prev, save: true }));
+      try {
+        const response = await fetchWithAuth('/api/file-size-settings/reset/', {
+          method: 'POST'
+        });
+        const result = await response.json();
+        toast(result.message || 'بازنشانی شد', result.success ? 'success' : 'error');
+        if (result.success) {
+          const resp = await fetchWithAuth('/api/file-size-settings/');
+          const data = await resp.json();
+          if (data.success) setFileSizeData(data.settings);
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در بازنشانی تنظیمات', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, save: false }));
+      }
+    };
+
+    const handleAITest = async (formData) => {
+      try {
+        const response = await fetchWithAuth('/ai-test-connection/', {
+          method: 'POST',
+          body: JSON.stringify({ host: formData.host, port: formData.port, model: formData.model })
+        });
+        const result = await response.json();
+        toast(result.message || 'اتصال برقرار شد', result.success ? 'success' : 'error');
+        return result;
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در تست اتصال', 'error');
+        return { success: false };
+      }
+    };
+
+    const handleAIGetModels = async (formData) => {
+      try {
+        const response = await fetchWithAuth(`/ai-get-models/?host=${formData.host}&port=${formData.port}`);
+        const result = await response.json();
+        if (result.success) {
+          toast(`${result.models?.length || 0} مدل یافت شد`, 'success');
+          return result;
+        } else {
+          toast('خطا در دریافت مدل‌ها', 'error');
+          return { models: [] };
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در دریافت مدل‌ها', 'error');
+        return { models: [] };
+      }
+    };
+
+    const handleAIRestart = async () => {
+      if (!confirm('آیا مطمئن هستید که می‌خواهید سرویس Ollama را ریستارت کنید؟')) return;
+      setLoading(prev => ({ ...prev, save: true }));
+      try {
+        const response = await fetchWithAuth('/ai-restart-ollama/', {
+          method: 'POST'
+        });
+        const result = await response.json();
+        toast(result.message || 'ریستارت شد', result.success ? 'success' : 'error');
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ریستارت', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, save: false }));
+      }
+    };
+
+    const handleAISave = async (formData) => {
+      setLoading(prev => ({ ...prev, save: true }));
+      try {
+        const response = await fetchWithAuth('/ai-save-settings/', {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+        const result = await response.json();
+        toast(result.message || 'ذخیره شد', result.success ? 'success' : 'error');
+        if (result.success) {
+          const resp = await fetchWithAuth('/ai-settings/');
+          const data = await resp.json();
+          if (data.success) setAiData(data.settings);
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ذخیره تنظیمات', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, save: false }));
+      }
+    };
+
+    const handleRefreshLogs = async () => {
+      setLoading(prev => ({ ...prev, logs: true }));
+      try {
+        const response = await fetchWithAuth('/api/logs/');
+        const data = await response.json();
+        if (data.success) setLogs(data.logs || []);
+        toast('لاگ‌ها به‌روزرسانی شدند', 'success');
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در بارگذاری لاگ‌ها', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, logs: false }));
+      }
+    };
+
+    const handleClearLogs = async () => {
+      if (!confirm('آیا مطمئن هستید که می‌خواهید تمام لاگ‌ها را پاک کنید؟')) return;
+      try {
+        const response = await fetchWithAuth('/api/logs/clear/', {
+          method: 'POST'
+        });
+        const data = await response.json();
+        if (data.success) {
+          setLogs([]);
+          toast('لاگ‌ها پاک شدند', 'success');
+        } else {
+          toast('خطا در پاک کردن لاگ‌ها', 'error');
+        }
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+      }
+    };
+
+    const handleRefreshUsers = async () => {
+      setLoading(prev => ({ ...prev, users: true }));
+      try {
+        const response = await fetchWithAuth('/api/users-list/');
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setUsers(data);
+        }
+        
+        const rolesResponse = await fetchWithAuth('/api/roles/');
+        const rolesData = await rolesResponse.json();
+        if (Array.isArray(rolesData)) {
+          setRoles(rolesData);
+        }
+        
+        toast('لیست به‌روزرسانی شد', 'success');
+      } catch (error) {
+        if (error.message !== 'Unauthorized') toast('خطا در بارگذاری داده‌ها', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, users: false }));
+      }
+    };
+
+    const tabs = [
+      { id: 'system', label: 'System', icon: 'system' },
+      { id: 'network', label: 'Network Info', icon: 'network' },
+      { id: 'netsettings', label: 'Network', icon: 'settings' },
+      { id: 'filesize', label: 'Files', icon: 'file' },
+      { id: 'ai', label: 'AI', icon: 'ai' },
+      { id: 'logs', label: 'Logs', icon: 'logs' },
+      { id: 'users', label: 'Users', icon: 'users' }
+    ];
+
+    const renderIcon = (name) => {
+      const icons = {
+        system: React.createElement('svg', { viewBox: '0 0 24 24' },
+          React.createElement('path', { d: 'M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h12v2H6zm0 4h8v2H6z' })
+        ),
+        network: React.createElement('svg', { viewBox: '0 0 24 24' },
+          React.createElement('path', { d: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z' })
+        ),
+        settings: React.createElement('svg', { viewBox: '0 0 24 24' },
+          React.createElement('path', { d: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z' })
+        ),
+        file: React.createElement('svg', { viewBox: '0 0 24 24' },
+          React.createElement('path', { d: 'M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z' })
+        ),
+        ai: React.createElement('svg', { viewBox: '0 0 24 24' },
+          React.createElement('path', { d: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z' })
+        ),
+        logs: React.createElement('svg', { viewBox: '0 0 24 24' },
+          React.createElement('path', { d: 'M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z' })
+        ),
+        users: React.createElement('svg', { viewBox: '0 0 24 24' },
+          React.createElement('path', { d: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z' })
+        )
+      };
+      return icons[name] || icons.system;
+    };
+
+    const renderPanel = () => {
+      switch(activeTab) {
+        case 'system':
+          return React.createElement(SystemInfo, { data: networkInfo, loading: loading.network });
+        case 'network':
+          return React.createElement(NetworkInfo, { data: networkInfo, loading: loading.network });
+        case 'netsettings':
+          return React.createElement(NetworkSettings, {
+            data: networkInfo,
+            onSave: handleNetworkSave,
+            onApply: handleNetworkApply,
+            loading: loading.save
+          });
+        case 'filesize':
+          return React.createElement(FileSizeSettings, {
+            data: fileSizeData,
+            onSave: handleFileSizeSave,
+            onReset: handleFileSizeReset,
+            loading: loading.save
+          });
+        case 'ai':
+          return React.createElement(AISettings, {
+            data: aiData,
+            onSave: handleAISave,
+            onTest: handleAITest,
+            onRestart: handleAIRestart,
+            onGetModels: handleAIGetModels,
+            loading: loading.save
+          });
+        case 'logs':
+          return React.createElement(LogViewer, {
+            logs: logs,
+            loading: loading.logs,
+            onRefresh: handleRefreshLogs,
+            onClear: handleClearLogs
+          });
+        case 'users':
+          return React.createElement(UserManagement, {
+            users: users,
+            roles: roles,
+            permissions: permissions,
+            loading: loading.users,
+            onRefresh: handleRefreshUsers
+          });
+        default:
+          return null;
+      }
+    };
+
+    return React.createElement('div', { className: 'app' },
+      React.createElement('div', { className: 'dynamic-island' },
+        React.createElement('span', { className: 'time', id: 'islandTime' }, '9:41'),
+        React.createElement('span', { className: 'notch-divider' }),
+        React.createElement('span', { className: 'app-name' },
+          React.createElement('span', { className: 'user-name' }, username),
+          React.createElement('span', { className: 'separator' }, '·'),
+          ' Settings'
+        )
+      ),
+      
+      React.createElement('div', { className: 'titlebar' },
+        React.createElement('div', { className: 'titlebar-left' },
+          React.createElement('div', { className: 'back-btn' },
+            React.createElement('svg', { viewBox: '0 0 24 24' },
+              React.createElement('path', { d: 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z' })
+            ),
+            'تنظیمات'
+          )
+        ),
+        React.createElement('div', { className: 'titlebar-title' }, 'سیستم و مدیریت'),
+        React.createElement('div', { className: 'titlebar-actions' },
+          React.createElement('div', { 
+            className: 'theme-toggle', 
+            id: 'themeToggle',
+            onClick: function() {
+              const html = document.documentElement;
+              const isLight = html.getAttribute('data-theme') === 'light';
+              html.setAttribute('data-theme', isLight ? 'dark' : 'light');
+              this.querySelector('.knob').textContent = isLight ? '☾' : '☀';
+            }
+          },
+            React.createElement('div', { className: 'knob' }, '☾')
+          ),
+          React.createElement('div', { className: 'profile-btn' }, username.charAt(0).toUpperCase() || '👤')
+        )
+      ),
+      
+      React.createElement('div', { className: 'body' },
+        React.createElement('div', { className: 'sidebar' },
+          React.createElement('div', { className: 'sidebar-section-label' }, 'Overview'),
+          tabs.map(tab => 
+            React.createElement('button', {
+              key: tab.id,
+              className: 'nav-item' + (activeTab === tab.id ? ' active' : ''),
+              onClick: () => setActiveTab(tab.id)
+            },
+              React.createElement('span', { className: 'ico' }, renderIcon(tab.icon)),
+              React.createElement('span', null, tab.label)
+            )
+          )
+        ),
+        
+        React.createElement('div', { className: 'main' },
+          renderPanel()
+        )
+      ),
+      
+      React.createElement('div', { className: 'toast-container', id: 'toastContainer' },
+        React.createElement('div', { className: 'toast', id: 'toast' },
+          React.createElement('span', { className: 'toast-icon', id: 'toastIcon' }),
+          React.createElement('span', { id: 'toastMsg' }, '')
+        )
+      )
+    );
+  };
+
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(
+    React.createElement(ToastProvider, null,
+      React.createElement(App, null)
+    )
+  );
+
+  function updateIslandTime() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const el = document.getElementById('islandTime');
+    if (el) el.textContent = h + ':' + m;
+  }
+  updateIslandTime();
+  setInterval(updateIslandTime, 10000);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>پنل مدیریت - Admin Manager</title>
+<meta name="csrf-token" content="{{ csrf_token }}">
+  
+<style>
+* { box-sizing: border-box; }
+body {
+font-family: Tahoma, 'Segoe UI', sans-serif;
+padding: 0;
+background: #f4f4f4;
+margin: 0;
+direction: rtl;
+}
+  
+/* سایدبار */
+.sidebar {
+width: 260px;
+background: linear-gradient(180deg, #466d95 0%, #1a252f 100%);
+min-height: 100vh;
+position: fixed;
+right: 0;
+top: 0;
+padding: 20px 0;
+z-index: 1000;
+box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+}
+  
+.sidebar-logo {
+text-align: center;
+color: white;
+padding: 20px 15px;
+border-bottom: 1px solid rgba(255,255,255,0.1);
+margin-bottom: 20px;
+}
+  
+.sidebar-logo h2 {
+color: #3498db;
+margin: 0;
+font-size: 1.4em;
+}
+  
+.sidebar-logo span {
+color: #ecf0f1;
+font-size: 0.85em;
+display: block;
+margin-top: 5px;
+}
+  
+.sidebar-menu {
+list-style: none;
+padding: 0;
+margin: 0;
+}
+  
+.sidebar-menu li {
+margin: 5px 0;
+}
+  
+.sidebar-menu a {
+display: flex;
+align-items: center;
+padding: 15px 20px;
+color: #bdc3c7;
+text-decoration: none;
+transition: all 0.3s;
+border-right: 3px solid transparent;
+}
+  
+.sidebar-menu a:hover,
+.sidebar-menu a.active {
+background: rgba(52, 152, 219, 0.2);
+color: white;
+border-right-color: #3498db;
+}
+  
+.sidebar-menu a i {
+margin-left: 10px;
+width: 20px;
+text-align: center;
+}
+  
+.sidebar-section {
+padding: 15px 20px;
+color: #7f8c8d;
+font-size: 0.75em;
+text-transform: uppercase;
+letter-spacing: 1px;
+border-top: 1px solid rgba(255,255,255,0.05);
+margin-top: 20px;
+}
+  
+.sidebar-user {
+position: absolute;
+bottom: 0;
+width: 100%;
+padding: 15px 20px;
+background: rgba(0,0,0,0.2);
+color: white;
+text-align: center;
+}
+  
+.sidebar-user .user-name {
+font-weight: bold;
+display: block;
+}
+  
+.sidebar-user .user-role {
+font-size: 0.8em;
+color: #3498db;
+}
+  
+/* محتوای اصلی */
+.main-content {
+margin-right: 260px;
+padding: 20px;
+min-height: 100vh;
+}
+  
+.container {
+max-width: 1200px;
+margin: 0 auto;
+background: white;
+padding: 25px;
+border-radius: 10px;
+box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+}
+  
+h1, h2 {
+color: #333;
+margin-top: 0;
+}
+  
+.header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 25px;
+padding-bottom: 15px;
+border-bottom: 2px solid #eee;
+}
+  
+.btn {
+padding: 10px 20px;
+border: none;
+border-radius: 6px;
+cursor: pointer;
+color: white;
+font-size: 0.95em;
+text-decoration: none;
+transition: 0.3s;
+display: inline-block;
+}
+.btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  
+.btn-blue { background: #3498db; }
+.btn-green { background: #2ecc71; }
+.btn-purple { background: #9b59b6; }
+.btn-red { background: #e74c3c; }
+.btn-orange { background: #e67e22; }
+.btn-danger { background: #e74c3c; }
+.btn-danger:hover { background: #c0392b; }
+  
+.section {
+margin-bottom: 35px;
+border: 1px solid #eee;
+padding: 20px;
+border-radius: 10px;
+background: #fafafa;
+}
+  
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+.form-group input, .form-group select {
+width: 100%; padding: 10px; border: 1px solid #ddd;
+border-radius: 5px;
+}
+  
+.form-group input:focus, .form-group select:focus {
+outline: none;
+border-color: #3498db;
+}
+  
+table {
+width: 100%; border-collapse: collapse; margin-top: 15px;
+background: white; border-radius: 8px; overflow: hidden;
+}
+th { background: #3498db; color: white; padding: 12px; text-align: right; }
+td { padding: 10px; border-bottom: 1px solid #eee; text-align: right; }
+  
+.badge { padding: 5px 10px; border-radius: 20px; font-size: .85em; display: inline-block; margin: 2px; }
+.badge-success { background: #d4edda; color: #155724; }
+.badge-danger { background: #f8d7da; color: #721c24; }
+.badge-warning { background: #fff3cd; color: #856404; }
+.badge-info { background: #d1ecf1; color: #0c5460; }
+.badge-primary { background: #d6e9f8; color: #004085; }
+  
+/* Toast */
+.toast {
+position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+padding: 15px 30px; border-radius: 8px; color: white;
+animation: slideDown .3s;
+z-index: 2000;
+}
+@keyframes slideDown { from{opacity:0; transform:translateX(-50%) translateY(-20px);} to{opacity:1; transform:translateX(-50%) translateY(0);} }
+.toast-success { background: #2ecc71; }
+.toast-error { background: #e74c3c; }
+.toast-info { background: #3498db; }
+  
+/* Multi-select */
+.multi-select { height: 100px; }
+  
+/* Stats Cards */
+.stats-grid {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+gap: 15px;
+margin-bottom: 25px;
+}
+  
+.stat-card {
+background: white;
+padding: 20px;
+border-radius: 10px;
+box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+text-align: center;
+}
+  
+.stat-card .number {
+font-size: 2em;
+font-weight: bold;
+color: #3498db;
+}
+  
+.stat-card .label {
+color: #7f8c8d;
+margin-top: 5px;
+}
+
+/* مودال حذف */
+.modal-overlay {
+display: none;
+position: fixed;
+top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(0,0,0,0.6);
+z-index: 3000;
+justify-content: center;
+align-items: center;
+}
+.modal-overlay.open { display: flex; }
+
+.modal-box {
+background: white;
+padding: 30px;
+border-radius: 12px;
+width: 90%;
+max-width: 450px;
+text-align: center;
+box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.modal-box .icon {
+font-size: 4rem;
+color: #e74c3c;
+margin-bottom: 15px;
+}
+.modal-box h3 {
+color: #333;
+margin-bottom: 10px;
+}
+.modal-box p {
+color: #666;
+line-height: 1.6;
+margin-bottom: 20px;
+}
+.modal-box .highlight {
+color: #e74c3c;
+font-weight: bold;
+}
+.modal-actions {
+display: flex;
+gap: 12px;
+justify-content: center;
+}
+.modal-actions button {
+padding: 10px 30px;
+border-radius: 6px;
+border: none;
+font-size: 0.95rem;
+cursor: pointer;
+transition: 0.2s;
+}
+.modal-actions .btn-cancel {
+background: #ecf0f1;
+color: #333;
+}
+.modal-actions .btn-cancel:hover {
+background: #d5dbdb;
+}
+.modal-actions .btn-danger {
+background: #e74c3c;
+color: white;
+}
+.modal-actions .btn-danger:hover {
+background: #c0392b;
+}
+.modal-actions .btn-danger:disabled {
+opacity: 0.5;
+cursor: not-allowed;
+}
+.warning-box {
+background: #fef2f2;
+border-radius: 8px;
+padding: 12px;
+margin: 15px 0;
+text-align: right;
+border-right: 3px solid #e74c3c;
+font-size: 0.85rem;
+color: #991b1b;
+}
+</style>
+</head>
+  
+<body>
+  
+<!-- سایدبار -->
+<aside class="sidebar">
+<div class="sidebar-logo">
+<h2>🛡️ مدیریت</h2>
+<span>پنل ادمین</span>
+</div>
+  
+<ul class="sidebar-menu">
+<li>
+<a href="/dashboard/" class="">
+<i>🏠</i>
+داشبورد
+</a>
+</li>
+<li>
+<a href="/admin-manager/" class="active">
+<i>👥</i>
+مدیریت کاربران
+</a>
+</li>
+<li>
+<a href="#" onclick="scrollToSection('users')">
+<i>📋</i>
+لیست کاربران
+</a>
+</li>
+<li>
+<a href="#" onclick="scrollToSection('files')">
+<i>📁</i>
+فایل‌های آپلود شده
+</a>
+</li>
+<li>
+<a href="/super-admin/">
+<i>⚙️</i>
+سوپر ادمین
+</a>
+</li>
+</ul>
+  
+<div class="sidebar-section">دسترسی سریع</div>
+<ul class="sidebar-menu">
+<li>
+<a href="#" onclick="document.getElementById('newUsername').focus()">
+<i>➕</i>
+ایجاد کاربر جدید
+</a>
+</li>
+</ul>
+  
+<div class="sidebar-user">
+<span class="user-name">{{ request.user.username }}</span>
+<span class="user-role">
+{% if request.user.is_superuser %}سوپر ادمین
+{% elif request.user.is_staff %}ادمین
+{% else %}کاربر{% endif %}
+</span>
+</div>
+</aside>
+  
+<!-- محتوای اصلی -->
+<div class="main-content">
+<div class="container">
+  
+<div class="header">
+<h1>🛡️ پنل مدیریت</h1>
+<div>
+<span style="color: #7f8c8d; margin-left: 15px;">خوش آمدید، <strong>{{ request.user.username }}</strong></span>
+<a href="/super-admin/" class="btn btn-purple">سوپر ادمین</a>
+<a href="/dashboard/" class="btn btn-blue">بازگشت</a>
+</div>
+</div>
+  
+<!-- آمار -->
+<div class="stats-grid">
+<div class="stat-card">
+<div class="number">{{ users.count }}</div>
+<div class="label">تعداد کاربران</div>
+</div>
+<div class="stat-card">
+<div class="number">{{ history.count }}</div>
+<div class="label">فایل‌های آپلود شده</div>
+</div>
+<div class="stat-card">
+<div class="number">{{ all_roles.count }}</div>
+<div class="label">تعداد نقش‌ها</div>
+</div>
+</div>
+  
+<div class="section" id="create-user">
+<h2>➕ ایجاد کاربر جدید</h2>
+  
+<div class="form-group">
+<label>نام کاربری:</label>
+<input id="newUsername" type="text" placeholder="نام کاربری را وارد کنید">
+</div>
+  
+<div class="form-group">
+<label>رمز عبور:</label>
+<input id="newPassword" type="text" placeholder="رمز عبور را وارد کنید">
+</div>
+  
+<div class="form-group">
+<label>انتخاب نقش (گروه):</label>
+<select id="newUserGroups" multiple class="multi-select">
+                {% for role in all_roles %}
+<option value="{{ role.id }}">{{ role.name }}</option>
+                {% endfor %}
+</select>
+<small style="color: #7f8c8d;">برای انتخاب چند نقش، کلید Ctrl را نگه دارید</small>
+</div>
+  
+<div class="form-group">
+<label><input type="checkbox" id="newIsStaff"> ادمین سیستم</label>
+</div>
+  
+<button onclick="createUser()" class="btn btn-green">➕ ایجاد کاربر</button>
+</div>
+  
+<div class="section" id="users">
+<h2>👥 لیست کاربران</h2>
+  
+<table>
+<thead>
+<tr>
+<th>ID</th><th>نام کاربری</th><th>نقش‌ها</th><th>نوع</th><th>وضعیت</th><th>عملیات</th>
+</tr>
+</thead>
+  
+<tbody>
+                {% for user in users %}
+<tr id="user-row-{{ user.id }}">
+<td>{{ user.id }}</td>
+<td>{{ user.username }}</td>
+<td>
+                        {% for g in user.groups.all %}
+<span class="badge badge-success">{{ g.name }}</span>
+                        {% empty %}
+<span style="color: #999;">-</span>
+                        {% endfor %}
+</td>
+<td>
+                        {% if user.is_superuser %}<span class="badge badge-danger">سوپر ادمین</span>
+                        {% elif user.is_staff %}<span class="badge badge-primary">ادمین</span>
+                        {% else %}<span class="badge badge-info">کاربر</span>
+                        {% endif %}
+</td>
+<td id="user-status-{{ user.id }}">
+                        {% if user.is_active %}
+<span class="badge badge-success">فعال</span>
+                        {% else %}
+<span class="badge badge-danger">مسدود</span>
+                        {% endif %}
+</td>
+<td>
+<button onclick="promptChangePassword({{ user.id }})" class="btn btn-blue" style="padding: 5px 10px; font-size: 0.85em;">🔑 رمز</button>
+  
+                        {% if user.is_active %}
+<button onclick="blockUser({{ user.id }})" class="btn btn-purple" style="padding: 5px 10px; font-size: 0.85em;">🚫 مسدود</button>
+                        {% else %}
+<button onclick="unblockUser({{ user.id }})" class="btn btn-green" style="padding: 5px 10px; font-size: 0.85em;">✅ فعال</button>
+                        {% endif %}
+                        
+                        <!-- دکمه حذف - فقط برای کاربران غیر از خودش -->
+                        {% if user.id != request.user.id %}
+                        <button onclick="confirmDeleteUser({{ user.id }}, '{{ user.username }}')" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.85em;">
+                            🗑️ حذف
+                        </button>
+                        {% endif %}
+</td>
+</tr>
+                {% endfor %}
+</tbody>
+</table>
+</div>
+  
+<div class="section" id="files">
+<h2>📁 فایل‌های آپلود شده</h2>
+  
+<table>
+<thead>
+<tr>
+<th>نام فایل</th><th>کاربر</th><th>پوشه</th><th>تاریخ</th><th>عملیات</th>
+</tr>
+</thead>
+  
+<tbody>
+                {% for f in history %}
+<tr data-file-id="{{ f.id }}">
+<td>{{ f.file.name }}</td>
+<td>{{ f.uploaded_by.username }}</td>
+<td>{{ f.folder_name|default:"-" }}</td>
+<td>{{ f.uploaded_at|date:"Y-m-d H:i" }}</td>
+  
+<td>
+<a href="/api/download-file/{{ f.id }}/" class="btn btn-green" style="padding: 5px 10px; font-size: 0.85em;">⬇️ دانلود</a>
+<button onclick="confirmDeleteFile({{ f.id }}, '{{ f.file.name }}')" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.85em;">🗑️ حذف</button>
+</td>
+</tr>
+                {% empty %}
+<tr>
+<td colspan="5" style="text-align: center; color: #999;">فایلی یافت نشد</td>
+</tr>
+                {% endfor %}
+</tbody>
+</table>
+</div>
+  
+</div>
+</div>
+
+<!-- مودال تایید حذف -->
+<div id="deleteConfirmModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="icon">⚠️</div>
+        <h3>تایید حذف</h3>
+        <p>
+            آیا از حذف <span id="deleteItemName" class="highlight"></span> اطمینان دارید؟
+        </p>
+        <div class="warning-box">
+            <small>⚠️ این عملیات غیرقابل بازگشت است و تمام اطلاعات مرتبط حذف خواهد شد.</small>
+        </div>
+        <input type="hidden" id="deleteItemId" value="">
+        <input type="hidden" id="deleteItemType" value="">
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeDeleteModal()">لغو</button>
+            <button class="btn-danger" id="confirmDeleteBtn" onclick="executeDelete()">
+                <span id="deleteBtnText">🗑️ حذف</span>
+                <span id="deleteBtnLoading" style="display: none;">در حال حذف...</span>
+            </button>
+        </div>
+    </div>
+</div>
+  
+<script>
+function scrollToSection(sectionId) {
+const element = document.getElementById(sectionId);
+if (element) {
+element.scrollIntoView({ behavior: 'smooth' });
+}
+}
+  
+function toast(message, type="info") {
+const div = document.createElement("div")
+div.className = `toast toast-${type}`
+div.textContent = message
+document.body.appendChild(div)
+setTimeout(() => div.remove(), 3000)
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+  
+async function createUser() {
+const username = document.getElementById("newUsername").value.trim();
+const password = document.getElementById("newPassword").value.trim();
+  
+if (!username || !password) {
+toast("لطفاً نام کاربری و رمز عبور را وارد کنید", "error");
+return;
+}
+  
+const res = await fetch('/api/admin-action/', {
+method: 'POST',
+headers: {'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+body: JSON.stringify({
+action: "create_user",
+username: username,
+password: password,
+is_staff: document.getElementById("newIsStaff").checked,
+groups: Array.from(
+document.getElementById("newUserGroups").selectedOptions
+            ).map(o => parseInt(o.value))
+        })
+    });
+  
+const data = await res.json();
+toast(data.success ? "✅ کاربر با موفقیت ایجاد شد" : "❌ " + data.msg, data.success ? "success" : "error");
+  
+if(data.success) location.reload();
+}
+  
+function promptChangePassword(id) {
+const p = prompt("رمز جدید را وارد کنید:");
+if(!p) return;
+  
+fetch('/api/admin-action/', {
+method: 'POST',
+headers: {'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+body: JSON.stringify({ action:"change_password", user_id:id, new_password:p })
+    }).then(r => r.json()).then(data => {
+toast(data.success ? "✅ رمز تغییر کرد" : "❌ خطا", data.success ? "success" : "error");
+if(data.success) location.reload();
+    });
+}
+  
+async function blockUser(id) {
+if(!confirm("آیا می‌خواهید این کاربر را مسدود کنید؟")) return;
+  
+const res = await fetch('/api/admin-action/', {
+method: 'POST',
+headers: {'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+body: JSON.stringify({ action:"block_user", user_id:id })
+    });
+const data = await res.json();
+toast(data.success ? "✅ کاربر مسدود شد" : "❌ خطا", data.success ? "success" : "error");
+if(data.success) location.reload();
+}
+  
+async function unblockUser(id) {
+const res = await fetch('/api/admin-action/', {
+method: 'POST',
+headers: {'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+body: JSON.stringify({ action:"unblock_user", user_id:id })
+    });
+const data = await res.json();
+toast(data.success ? "✅ کاربر فعال شد" : "❌ خطا", data.success ? "success" : "error");
+if(data.success) location.reload();
+}
+  
+async function deleteFile(id) {
+if(!confirm("آیا می‌خواهید این فایل را حذف کنید؟")) return;
+  
+const res = await fetch('/api/admin-delete-file/', {
+method: 'POST',
+headers: { "Content-Type":"application/json", 'X-CSRFToken': getCookie('csrftoken') },
+body: JSON.stringify({ file_id:id })
+    });
+  
+const data = await res.json();
+toast(data.success ? "✅ فایل حذف شد" : "❌ خطا", data.success ? "success" : "error");
+  
+if(data.success){
+document.querySelector(`tr[data-file-id="${id}"]`).remove();
+    }
+}
+
+// ==================== توابع حذف با مودال ====================
+let deleteTargetId = null;
+let deleteTargetType = null;
+let deleteTargetName = '';
+
+function confirmDeleteUser(userId, username) {
+    deleteTargetId = userId;
+    deleteTargetType = 'user';
+    deleteTargetName = `کاربر "${username}"`;
+    document.getElementById('deleteItemName').textContent = deleteTargetName;
+    document.getElementById('deleteItemId').value = userId;
+    document.getElementById('deleteItemType').value = 'user';
+    document.getElementById('deleteConfirmModal').classList.add('open');
+}
+
+function confirmDeleteFile(fileId, fileName) {
+    deleteTargetId = fileId;
+    deleteTargetType = 'file';
+    deleteTargetName = `فایل "${fileName}"`;
+    document.getElementById('deleteItemName').textContent = deleteTargetName;
+    document.getElementById('deleteItemId').value = fileId;
+    document.getElementById('deleteItemType').value = 'file';
+    document.getElementById('deleteConfirmModal').classList.add('open');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteConfirmModal').classList.remove('open');
+    deleteTargetId = null;
+    deleteTargetType = null;
+    deleteTargetName = '';
+    document.getElementById('deleteBtnText').style.display = 'inline';
+    document.getElementById('deleteBtnLoading').style.display = 'none';
+    document.getElementById('confirmDeleteBtn').disabled = false;
+}
+
+async function executeDelete() {
+    if (!deleteTargetId || !deleteTargetType) {
+        toast('اطلاعات حذف کامل نیست', 'error');
+        return;
+    }
+    
+    const btn = document.getElementById('confirmDeleteBtn');
+    btn.disabled = true;
+    document.getElementById('deleteBtnText').style.display = 'none';
+    document.getElementById('deleteBtnLoading').style.display = 'inline';
+    
+    try {
+        let url = '';
+        let body = {};
+        
+        if (deleteTargetType === 'user') {
+            url = '/api/admin-action/';
+            body = {
+                action: 'delete_user',
+                user_id: deleteTargetId
+            };
+        } else if (deleteTargetType === 'file') {
+            url = '/api/admin-delete-file/';
+            body = {
+                file_id: deleteTargetId
+            };
+        }
+        
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(body)
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            toast(`✅ ${deleteTargetName} با موفقیت حذف شد`, 'success');
+            
+            if (deleteTargetType === 'user') {
+                const row = document.getElementById(`user-row-${deleteTargetId}`);
+                if (row) row.remove();
+                // به‌روزرسانی آمار
+                const statNumber = document.querySelector('.stats-grid .stat-card:first-child .number');
+                if (statNumber) {
+                    const current = parseInt(statNumber.textContent);
+                    statNumber.textContent = current - 1;
+                }
+            } else if (deleteTargetType === 'file') {
+                const row = document.querySelector(`tr[data-file-id="${deleteTargetId}"]`);
+                if (row) row.remove();
+                const statNumber = document.querySelector('.stats-grid .stat-card:nth-child(2) .number');
+                if (statNumber) {
+                    const current = parseInt(statNumber.textContent);
+                    statNumber.textContent = current - 1;
+                }
+            }
+            
+            closeDeleteModal();
+        } else {
+            toast(`❌ خطا: ${data.msg || 'عملیات ناموفق'}`, 'error');
+            document.getElementById('deleteBtnText').style.display = 'inline';
+            document.getElementById('deleteBtnLoading').style.display = 'none';
+            btn.disabled = false;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        toast('❌ خطا در ارتباط با سرور', 'error');
+        document.getElementById('deleteBtnText').style.display = 'inline';
+        document.getElementById('deleteBtnLoading').style.display = 'none';
+        btn.disabled = false;
+    }
+}
+
+// بستن مودال با کلیک بیرون
+window.onclick = function(event) {
+    const modal = document.getElementById('deleteConfirmModal');
+    if (event.target === modal) {
+        closeDeleteModal();
+    }
+}
+
+// بستن با کلید Escape
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modal = document.getElementById('deleteConfirmModal');
+        if (modal.classList.contains('open')) {
+            closeDeleteModal();
+        }
+    }
+});
+</script>
+  
+</body>
+</html>

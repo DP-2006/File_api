@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>🤖 خلاصه‌سازی فایل با AI</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <strong>{{ file.file.name }}</strong>
+            <small class="text-muted">آپلود شده توسط {{ file.uploaded_by.username }}</small>
+        </div>
+        <div class="card-body">
+            <div class="btn-group mb-3">
+                <button class="btn btn-primary" onclick="getSummary('summary')">
+                    خلاصه کوتاه
+                </button>
+                <button class="btn btn-success" onclick="getSummary('full')">
+                    تحلیل کامل
+                </button>
+            </div>
+            
+            <div id="resultArea" class="alert alert-light" style="min-height: 200px; white-space: pre-wrap;">
+                برای شروع دکمه‌ای را بزنید...
+            </div>
+            
+            <hr>
+            
+            <h5>سوال بپرسید:</h5>
+            <div class="input-group">
+                <input type="text" id="questionInput" class="form-control" placeholder="مثلاً: موضوع اصلی این فایل چیست؟">
+                <button class="btn btn-warning" onclick="askQuestion()">سوال</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getSummary(level) {
+    const resultDiv = document.getElementById('resultArea');
+    resultDiv.innerHTML = 'در حال تحلیل توسط AI... ⏳';
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: `level=${level}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            let html = '';
+            if (data.result.summary) {
+                html = `<h4>📄 خلاصه فایل</h4><p>${data.result.summary.replace(/\n/g, '<br>')}</p>`;
+            } else {
+                html = `<p>${data.result}</p>`;
+            }
+            resultDiv.innerHTML = html;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-danger">خطا: ${data.error}</div>`;
+        }
+    });
+}
+
+function askQuestion() {
+    const question = document.getElementById('questionInput').value;
+    if (!question) {
+        alert('لطفاً سوال خود را وارد کنید');
+        return;
+    }
+    
+    const resultDiv = document.getElementById('resultArea');
+    resultDiv.innerHTML = `در حال پاسخ به "${question}"... ⏳`;
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: `question=${encodeURIComponent(question)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = `<h4>💬 پاسخ AI:</h4><p>${data.result.replace(/\n/g, '<br>')}</p>`;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-danger">خطا: ${data.error}</div>`;
+        }
+    });
+}
+
+function getCookie(name) {
+    let value = "; " + document.cookie;
+    let parts = value.split("; " + name + "=");
+    if (parts.length === 2) return parts.pop().split(";").shift();
+}
+</script>
+{% endblock %}

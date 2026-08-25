@@ -1,0 +1,1569 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>{% if user.is_authenticated %}داشبورد مدیریت فایل - iOS 27{% else %}ورود - iOS 27{% endif %}</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    {% if user.is_authenticated %}
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    {% endif %}
+    
+    <meta name="csrf-token" content="{{ csrf_token }}" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, 'Vazirmatn', 'SF Pro Display', 'SF Pro Text', sans-serif;
+            background: #f2f2f7;
+            color: #000000;
+            height: 100vh;
+            overflow: hidden;
+            direction: rtl;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::-webkit-scrollbar { width: 0px; height: 0px; }
+
+        @keyframes iosFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes iosSpringIn { from { opacity: 0; transform: scale(0.92) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes iosSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .ios-spring-in { animation: iosSpringIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .ios-spin { animation: iosSpin 0.8s linear infinite; }
+
+        .ios-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 14px;
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .ios-btn {
+            background: transparent;
+            border: none;
+            border-radius: 12px;
+            color: #007aff;
+            font-weight: 600;
+            font-size: 15px;
+            padding: 8px 16px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            user-select: none;
+            min-width: 60px;
+            text-decoration: none;
+            font-family: inherit;
+        }
+        .ios-btn:hover { background: rgba(0, 122, 255, 0.06); }
+        .ios-btn:active { transform: scale(0.96); background: rgba(0, 122, 255, 0.12); }
+        .ios-btn-primary { background: #007aff; color: #ffffff; box-shadow: 0 2px 12px rgba(0, 122, 255, 0.25); }
+        .ios-btn-secondary { background: rgba(60, 60, 67, 0.06); color: #007aff; }
+        .ios-btn-danger { background: rgba(255, 59, 48, 0.06); color: #ff3b30; }
+        .ios-btn-success { background: rgba(52, 199, 89, 0.08); color: #34c759; }
+        .ios-btn-disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+        .ios-btn-block { width: 100%; justify-content: center; }
+
+        .ios-sidebar {
+            background: rgba(242, 242, 247, 0.92);
+            backdrop-filter: saturate(180%) blur(30px);
+            -webkit-backdrop-filter: saturate(180%) blur(30px);
+            border-left: 0.5px solid rgba(60, 60, 67, 0.08);
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .ios-sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            color: #1c1c1e;
+            font-size: 15px;
+            font-weight: 500;
+            min-height: 44px;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: right;
+            font-family: inherit;
+            text-decoration: none;
+        }
+        .ios-sidebar-item:hover { background: rgba(60, 60, 67, 0.04); }
+        .ios-sidebar-item:active { transform: scale(0.97); background: rgba(60, 60, 67, 0.08); }
+        .ios-sidebar-item.active { background: rgba(0, 122, 255, 0.08); color: #007aff; }
+        .ios-sidebar-item .ph { font-size: 20px; opacity: 0.7; }
+        .ios-sidebar-item.active .ph { opacity: 1; }
+
+        .ios-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            margin-bottom: 4px;
+        }
+        .ios-brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #007aff, #5856d6);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 2px 12px rgba(0, 122, 255, 0.25);
+        }
+        .ios-brand-title { font-size: 18px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.3px; }
+        .ios-brand-subtitle { font-size: 11px; color: #8e8e93; font-weight: 400; }
+
+        .ios-divider { border: none; height: 0.5px; background: rgba(60, 60, 67, 0.08); margin: 4px 0; }
+        .ios-section-header { font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.3px; padding: 6px 14px; }
+        .ios-section { padding: 4px 0; }
+        .ios-btn-group-vertical { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .ios-btn-group-vertical .ios-btn { width: 100%; justify-content: center; }
+
+        .ios-text-muted { color: #8e8e93; }
+        .ios-text-blue { color: #007aff; }
+
+        .ios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+            gap: 12px;
+            padding: 4px 0;
+        }
+
+        .ios-file-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 14px;
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 180px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            cursor: pointer;
+        }
+        .ios-file-card:hover { transform: translateY(-2px); box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 12px 48px rgba(0,0,0,0.04); }
+        .ios-file-card:active { transform: scale(0.97); }
+        .ios-received-card { border-right: 3px solid #007aff; }
+
+        .ios-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            gap: 12px;
+            color: #8e8e93;
+        }
+        .ios-empty-state-icon { font-size: 56px; opacity: 0.2; }
+        .ios-empty-state-title { font-size: 20px; font-weight: 600; color: #8e8e93; }
+        .ios-empty-state-subtitle { font-size: 15px; color: #8e8e93; }
+
+        .ios-drop-zone {
+            border: 2px dashed rgba(60, 60, 67, 0.12);
+            border-radius: 14px;
+            padding: 28px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            cursor: pointer;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            background: rgba(255, 255, 255, 0.4);
+        }
+        .ios-drop-zone:hover { border-color: rgba(0, 122, 255, 0.3); background: rgba(0, 122, 255, 0.02); }
+        .ios-drop-zone.drag-over { border-color: #007aff; background: rgba(0, 122, 255, 0.04); }
+
+        .ios-staged-file {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px 6px 10px;
+            background: rgba(118, 118, 128, 0.08);
+            border: 0.5px solid rgba(60, 60, 67, 0.04);
+            border-radius: 20px;
+            font-size: 13px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .ios-staged-file-remove { cursor: pointer; color: #8e8e93; padding: 4px; font-size: 16px; border-radius: 50%; }
+        .ios-staged-file-remove:hover { color: #ff3b30; background: rgba(255, 59, 48, 0.06); }
+
+        .ios-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-bottom: 16px;
+        }
+        .ios-header-title { font-size: 28px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.5px; }
+        .ios-header-subtitle { font-size: 13px; color: #8e8e93; margin-top: 2px; }
+        .ios-header-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .ios-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: rgba(118, 118, 128, 0.06);
+            border-radius: 20px;
+            font-size: 13px;
+            color: #8e8e93;
+        }
+        .ios-stat-value { font-weight: 600; color: #1c1c1e; font-size: 15px; }
+
+        .ios-btn-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+        .ios-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            animation: iosFadeIn 0.3s ease-out;
+        }
+        .ios-modal {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: saturate(180%) blur(40px);
+            border-radius: 20px;
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            padding: 24px 20px 28px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: iosSpringIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+        .ios-modal-title { font-size: 22px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; color: #1c1c1e; }
+        .ios-modal-handle { width: 36px; height: 5px; background: rgba(60, 60, 67, 0.2); border-radius: 10px; margin: 0 auto 16px; }
+
+        .ios-input {
+            background: rgba(118, 118, 128, 0.08);
+            border: 0.5px solid rgba(60, 60, 67, 0.06);
+            border-radius: 12px;
+            color: #1c1c1e;
+            padding: 12px 16px;
+            font-size: 15px;
+            width: 100%;
+            transition: all 0.2s ease;
+            min-height: 44px;
+            font-family: inherit;
+        }
+        .ios-input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1); outline: none; background: rgba(255, 255, 255, 0.6); }
+        .ios-input::placeholder { color: #8e8e93; }
+
+        .ios-select {
+            background: rgba(118, 118, 128, 0.08);
+            border: 0.5px solid rgba(60, 60, 67, 0.06);
+            border-radius: 12px;
+            color: #1c1c1e;
+            padding: 12px 16px;
+            font-size: 15px;
+            width: 100%;
+            min-height: 44px;
+            font-family: inherit;
+        }
+        .ios-select:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1); outline: none; }
+
+        .ios-sender-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #8e8e93;
+            margin-top: 4px;
+            padding: 2px 8px;
+            background: rgba(0, 122, 255, 0.04);
+            border-radius: 12px;
+        }
+
+        .ios-icon-pdf { color: #ff3b30; }
+        .ios-icon-video { color: #5856d6; }
+        .ios-icon-zip { color: #ff9500; }
+        .ios-icon-doc { color: #007aff; }
+        .ios-icon-xls { color: #34c759; }
+        .ios-icon-ppt { color: #ff9500; }
+        .ios-icon-image { color: #5856d6; }
+        .ios-icon-default { color: #8e8e93; }
+
+        .ios-toast {
+            background: rgba(30, 30, 35, 0.92);
+            backdrop-filter: saturate(180%) blur(30px);
+            border-radius: 12px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 280px;
+            min-height: 44px;
+            animation: iosSpringIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 0.5px solid rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+        .ios-toast-success { border-right: 3px solid #34c759; }
+        .ios-toast-error { border-right: 3px solid #ff3b30; }
+        .ios-toast-warning { border-right: 3px solid #ff9500; }
+        .ios-toast-info { border-right: 3px solid #007aff; }
+
+        .ios-tab-content { animation: iosFadeIn 0.3s ease-out; }
+
+        @media (max-width: 768px) {
+            .ios-sidebar { width: 240px !important; min-width: 240px !important; padding: 12px 8px; }
+            .ios-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+            .ios-header-title { font-size: 24px; }
+            .ios-btn { min-height: 40px; padding: 6px 14px; font-size: 14px; min-width: 50px; }
+        }
+
+        @media (max-width: 480px) {
+            .ios-sidebar { width: 200px !important; min-width: 200px !important; padding: 8px 6px; }
+            .ios-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+            .ios-header-title { font-size: 20px; }
+            .ios-btn { min-height: 36px; padding: 4px 12px; font-size: 13px; min-width: 44px; border-radius: 10px; }
+        }
+
+        .no-underline { text-decoration: none !important; }
+
+        /* Login */
+        .login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f2f2f7; padding: 20px; }
+        .login-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 20px;
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.06), 0 20px 60px rgba(0, 0, 0, 0.04);
+            padding: 40px 32px;
+            max-width: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    {% if user.is_authenticated %}
+    <!-- ========== DASHBOARD ========== -->
+    <div id="root"></div>
+    
+    {{ django_data|json_script:"django-data" }}
+    
+    <script>
+        // دریافت دیتا از json_script به صورت امن
+        var dataElement = document.getElementById('django-data');
+        if (dataElement) {
+            var djangoData = JSON.parse(dataElement.textContent);
+            window.DJANGO_DATA = djangoData;
+        }
+    </script>
+
+    <script type="text/babel">
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function getFileIcon(extension) {
+            const ext = extension ? extension.toLowerCase() : '';
+            if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext)) {
+                return { icon: 'ph-image', color: 'ios-icon-image' };
+            }
+            if (['.pdf'].includes(ext)) {
+                return { icon: 'ph-file-pdf', color: 'ios-icon-pdf' };
+            }
+            if (['.mp4', '.avi', '.mkv', '.mov', '.wmv'].includes(ext)) {
+                return { icon: 'ph-film-strip', color: 'ios-icon-video' };
+            }
+            if (['.zip', '.rar', '.7z', '.tar', '.gz'].includes(ext)) {
+                return { icon: 'ph-file-zip', color: 'ios-icon-zip' };
+            }
+            if (['.doc', '.docx'].includes(ext)) {
+                return { icon: 'ph-file-doc', color: 'ios-icon-doc' };
+            }
+            if (['.xls', '.xlsx'].includes(ext)) {
+                return { icon: 'ph-file-xls', color: 'ios-icon-xls' };
+            }
+            if (['.ppt', '.pptx'].includes(ext)) {
+                return { icon: 'ph-file-ppt', color: 'ios-icon-ppt' };
+            }
+            return { icon: 'ph-file-text', color: 'ios-icon-default' };
+        }
+
+        let toastId = 0;
+
+        function ToastContainer({ toasts, removeToast }) {
+            if (toasts.length === 0) return null;
+            return React.createElement('div', { className: 'fixed bottom-8 left-8 z-[2000] flex flex-col gap-3 pointer-events-none' },
+                toasts.map(function(toast) {
+                    let toastClass = 'ios-toast ';
+                    if (toast.type === 'success') toastClass += 'ios-toast-success';
+                    else if (toast.type === 'error') toastClass += 'ios-toast-error';
+                    else if (toast.type === 'warning') toastClass += 'ios-toast-warning';
+                    else toastClass += 'ios-toast-info';
+
+                    let iconClass = 'ph ';
+                    if (toast.type === 'success') iconClass += 'ph-check-circle text-[#34c759]';
+                    else if (toast.type === 'error') iconClass += 'ph-warning-circle text-[#ff3b30]';
+                    else if (toast.type === 'warning') iconClass += 'ph-warning text-[#ff9500]';
+                    else iconClass += 'ph-info text-[#007aff]';
+
+                    return React.createElement('div', { key: toast.id, className: toastClass + ' pointer-events-auto' },
+                        React.createElement('i', { className: iconClass + ' text-xl' }),
+                        React.createElement('span', { className: 'text-sm font-medium' }, toast.message)
+                    );
+                })
+            );
+        }
+
+        function useToast() {
+            const [toasts, setToasts] = React.useState([]);
+            const showToast = React.useCallback(function(message, type) {
+                if (type === undefined) type = 'info';
+                var id = ++toastId;
+                setToasts(function(prev) { return prev.concat([{ id: id, message: message, type: type }]); });
+                setTimeout(function() {
+                    setToasts(function(prev) { return prev.filter(function(t) { return t.id !== id; }); });
+                }, 4000);
+            }, []);
+            const removeToast = React.useCallback(function(id) {
+                setToasts(function(prev) { return prev.filter(function(t) { return t.id !== id; }); });
+            }, []);
+            return { toasts: toasts, showToast: showToast, removeToast: removeToast };
+        }
+
+        function Dashboard() {
+            var toast = useToast();
+            var toasts = toast.toasts;
+            var showToast = toast.showToast;
+            var removeToast = toast.removeToast;
+            
+            var djangoData = window.DJANGO_DATA || { user: {}, settings: {}, files: [], received_files: [] };
+            
+            var settingsState = React.useState({
+                fontSize: djangoData.settings.font_size || 18,
+                menuWidth: djangoData.settings.menu_size || 280,
+                buttonHeight: djangoData.settings.button_size || 56,
+            });
+            var settings = settingsState[0];
+            var setSettings = settingsState[1];
+
+            var selectedFilesState = React.useState([]);
+            var selectedFiles = selectedFilesState[0];
+            var setSelectedFiles = selectedFilesState[1];
+
+            var currentFolderState = React.useState('');
+            var currentFolder = currentFolderState[0];
+            var setCurrentFolder = currentFolderState[1];
+
+            var fileListState = React.useState(djangoData.files || []);
+            var fileList = fileListState[0];
+            var setFileList = fileListState[1];
+
+            var receivedFilesState = React.useState(djangoData.received_files || []);
+            var receivedFiles = receivedFilesState[0];
+            var setReceivedFiles = receivedFilesState[1];
+
+            var activeTabState = React.useState('my_files');
+            var activeTab = activeTabState[0];
+            var setActiveTab = activeTabState[1];
+
+            var isUploadingState = React.useState(false);
+            var isUploading = isUploadingState[0];
+            var setIsUploading = isUploadingState[1];
+            
+            var sendModalOpenState = React.useState(false);
+            var sendModalOpen = sendModalOpenState[0];
+            var setSendModalOpen = sendModalOpenState[1];
+
+            var analyzeModalOpenState = React.useState(false);
+            var analyzeModalOpen = analyzeModalOpenState[0];
+            var setAnalyzeModalOpen = analyzeModalOpenState[1];
+
+            var currentFileIdState = React.useState(null);
+            var currentFileId = currentFileIdState[0];
+            var setCurrentFileId = currentFileIdState[1];
+
+            var currentFileNameState = React.useState('');
+            var currentFileName = currentFileNameState[0];
+            var setCurrentFileName = currentFileNameState[1];
+
+            var analysisResultState = React.useState('برای شروع تحلیل، یکی از دکمه‌ها را بزنید...');
+            var analysisResult = analysisResultState[0];
+            var setAnalysisResult = analysisResultState[1];
+
+            var aiQuestionState = React.useState('');
+            var aiQuestion = aiQuestionState[0];
+            var setAiQuestion = aiQuestionState[1];
+
+            var usersState = React.useState([]);
+            var users = usersState[0];
+            var setUsers = usersState[1];
+
+            var selectedUserIdState = React.useState('');
+            var selectedUserId = selectedUserIdState[0];
+            var setSelectedUserId = selectedUserIdState[1];
+
+            var isLoadingUsersState = React.useState(false);
+            var isLoadingUsers = isLoadingUsersState[0];
+            var setIsLoadingUsers = isLoadingUsersState[1];
+
+            var isSendingState = React.useState(false);
+            var isSending = isSendingState[0];
+            var setIsSending = isSendingState[1];
+
+            var isAnalyzingState = React.useState(false);
+            var isAnalyzing = isAnalyzingState[0];
+            var setIsAnalyzing = isAnalyzingState[1];
+            
+            var fileInputRef = React.useRef(null);
+            var folderInputRef = React.useRef(null);
+            var dropZoneRef = React.useRef(null);
+
+            var isStaff = djangoData.user.is_staff || false;
+            var isSuperuser = djangoData.user.is_superuser || false;
+
+            React.useEffect(function() {
+                var root = document.documentElement;
+                root.style.setProperty('--font-base', settings.fontSize + 'px');
+                root.style.setProperty('--menu-width', settings.menuWidth + 'px');
+                root.style.setProperty('--btn-height', settings.buttonHeight + 'px');
+                document.body.style.fontSize = settings.fontSize + 'px';
+            }, [settings]);
+
+            var updateSetting = React.useCallback(function(key, value) {
+                setSettings(function(prev) {
+                    var newSettings = Object.assign({}, prev);
+                    newSettings[key] = value;
+                    return newSettings;
+                });
+                
+                var bodyData = {};
+                if (key === 'fontSize') bodyData.font_size = value;
+                else bodyData.font_size = settings.fontSize;
+                if (key === 'menuWidth') bodyData.menu_size = value;
+                else bodyData.menu_size = settings.menuWidth;
+                if (key === 'buttonHeight') bodyData.button_size = value;
+                else bodyData.button_size = settings.buttonHeight;
+
+                fetch('/save-settings/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(bodyData)
+                }).catch(function(e) { console.error('Settings save failed', e); });
+            }, [settings]);
+
+            var handleFiles = React.useCallback(function(files) {
+                if (!files || files.length === 0) return;
+                var addedCount = 0;
+                var newFiles = selectedFiles.slice();
+                Array.from(files).forEach(function(file) {
+                    if (file.name.toLowerCase().endsWith('.exe')) {
+                        showToast('فایل ' + file.name + ' مجاز نیست.', 'error');
+                        return;
+                    }
+                    if (newFiles.length >= 200) {
+                        showToast('حداکثر ۲۰۰ فایل مجاز است.', 'warning');
+                        return;
+                    }
+                    if (!newFiles.some(function(f) { return f.name === file.name && f.size === file.size; })) {
+                        newFiles.push(file);
+                        addedCount++;
+                    }
+                });
+                setSelectedFiles(newFiles);
+                if (addedCount > 0) {
+                    showToast(addedCount + ' فایل به لیست اضافه شد', 'success');
+                }
+            }, [selectedFiles, showToast]);
+
+            var handleFolder = React.useCallback(function(files) {
+                if (!files || files.length === 0) return;
+                if (files.length > 100) {
+                    if (!confirm('شما ' + files.length + ' فایل از داخل پوشه را انتخاب کرده‌اید. ادامه می‌دهید؟')) {
+                        return;
+                    }
+                }
+                var firstFile = files[0];
+                if (firstFile.webkitRelativePath) {
+                    var pathParts = firstFile.webkitRelativePath.split('/');
+                    setCurrentFolder(pathParts[0]);
+                }
+                var addedCount = 0;
+                var newFiles = selectedFiles.slice();
+                Array.from(files).forEach(function(file) {
+                    if (file.name.toLowerCase().endsWith('.exe')) return;
+                    if (newFiles.length >= 200) {
+                        showToast('حداکثر ۲۰۰ فایل مجاز است.', 'warning');
+                        return;
+                    }
+                    if (!newFiles.some(function(f) { return f.name === file.name && f.size === file.size; })) {
+                        newFiles.push(file);
+                        addedCount++;
+                    }
+                });
+                setSelectedFiles(newFiles);
+                if (addedCount > 0) {
+                    showToast(addedCount + ' فایل از "' + (currentFolder || 'پوشه') + '" به لیست اضافه شد', 'success');
+                }
+            }, [selectedFiles, currentFolder, showToast]);
+
+            var removeFile = React.useCallback(function(index) {
+                setSelectedFiles(function(prev) {
+                    return prev.filter(function(_, i) { return i !== index; });
+                });
+            }, []);
+
+            var clearStaged = React.useCallback(function() {
+                if (selectedFiles.length === 0) return;
+                if (confirm('همه فایل‌های آماده‌ی ارسال را پاک کنید؟')) {
+                    setSelectedFiles([]);
+                    showToast('لیست فایل‌ها پاک شد', 'info');
+                }
+            }, [selectedFiles, showToast]);
+
+            var uploadFiles = React.useCallback(function() {
+                if (selectedFiles.length === 0) return;
+                var formData = new FormData();
+                selectedFiles.forEach(function(file) {
+                    formData.append('files', file);
+                });
+                formData.append('folder_name', currentFolder || 'آپلود کاربر');
+                setIsUploading(true);
+                fetch('/upload/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        showToast(data.msg || (data.uploaded_count || selectedFiles.length) + ' فایل آپلود شد', 'success');
+                        setSelectedFiles([]);
+                        setTimeout(function() { window.location.reload(); }, 1500);
+                    } else {
+                        showToast('خطا: ' + (data.msg || 'آپلود ناموفق'), 'error');
+                    }
+                })
+                .catch(function(err) {
+                    console.error('Upload error:', err);
+                    showToast('خطا در برقراری ارتباط با سرور', 'error');
+                })
+                .finally(function() {
+                    setIsUploading(false);
+                });
+            }, [selectedFiles, currentFolder, showToast]);
+
+            var openSendModal = React.useCallback(function() {
+                setSendModalOpen(true);
+                setIsLoadingUsers(true);
+                fetch('/api/users/')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    setUsers(data || []);
+                })
+                .catch(function(e) {
+                    console.error('Error fetching users:', e);
+                    showToast('خطا در بارگذاری کاربران', 'error');
+                })
+                .finally(function() {
+                    setIsLoadingUsers(false);
+                });
+            }, [showToast]);
+
+            var closeSendModal = React.useCallback(function() {
+                setSendModalOpen(false);
+                setSelectedUserId('');
+                setIsSending(false);
+            }, []);
+
+            var sendFiles = React.useCallback(function() {
+                if (!selectedUserId) {
+                    showToast('لطفاً کاربر مقصد را انتخاب کنید', 'error');
+                    return;
+                }
+                if (selectedFiles.length === 0) {
+                    showToast('هیچ فایلی برای ارسال وجود ندارد', 'error');
+                    return;
+                }
+                var formData = new FormData();
+                selectedFiles.forEach(function(file) {
+                    formData.append('files', file);
+                });
+                formData.append('recipient_id', selectedUserId);
+                setIsSending(true);
+                fetch('/send-files/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        showToast(data.msg || selectedFiles.length + ' فایل ارسال شد', 'success');
+                        closeSendModal();
+                        setSelectedFiles([]);
+                        setTimeout(function() { window.location.reload(); }, 1000);
+                    } else {
+                        showToast('خطا: ' + (data.msg || 'ارسال ناموفق'), 'error');
+                    }
+                })
+                .catch(function(e) {
+                    console.error('Send error:', e);
+                    showToast('خطا در ارتباط با سرور', 'error');
+                })
+                .finally(function() {
+                    setIsSending(false);
+                });
+            }, [selectedUserId, selectedFiles, closeSendModal, showToast]);
+
+            var handleLogout = React.useCallback(function() {
+                if (!confirm('آیا از خروج از حساب اطمینان دارید؟')) return;
+                fetch('/logout-token/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(function(res) {
+                    if (res.ok) {
+                        window.location.href = '/login/';
+                    } else {
+                        window.location.href = '/logout/';
+                    }
+                })
+                .catch(function(e) {
+                    console.error('Logout error:', e);
+                    window.location.href = '/logout/';
+                });
+            }, []);
+
+            var downloadFile = React.useCallback(function(url) {
+                window.open(url, '_blank');
+            }, []);
+
+            var refreshFiles = React.useCallback(function() {
+                window.location.reload();
+            }, []);
+
+            var deleteFile = React.useCallback(function(fileId) {
+                if (!confirm('آیا از حذف این فایل اطمینان دارید؟')) return;
+                fetch('/api/admin-action/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ action: 'delete_file', file_id: fileId })
+                })
+                .then(function(res) { 
+                    if (!res.ok) throw new Error('Server returned ' + res.status);
+                    return res.json(); 
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        showToast(data.msg || 'فایل با موفقیت حذف شد', 'success');
+                        setFileList(function(prev) {
+                            return prev.filter(function(f) { return f.id !== fileId; });
+                        });
+                    } else {
+                        showToast('خطا: ' + (data.msg || 'حذف ناموفق'), 'error');
+                    }
+                })
+                .catch(function(e) {
+                    console.error('Delete error:', e);
+                    showToast('خطا در ارتباط با سرور: ' + e.message, 'error');
+                });
+            }, [showToast]);
+
+            var deleteReceivedFile = React.useCallback(function(fileId) {
+                if (!confirm('آیا از حذف این فایل دریافتی اطمینان دارید؟')) return;
+                fetch('/api/admin-action/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ action: 'delete_file', file_id: fileId })
+                })
+                .then(function(res) { 
+                    if (!res.ok) throw new Error('Server returned ' + res.status);
+                    return res.json(); 
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        showToast(data.msg || 'فایل دریافتی با موفقیت حذف شد', 'success');
+                        setReceivedFiles(function(prev) {
+                            return prev.filter(function(f) { return f.id !== fileId; });
+                        });
+                    } else {
+                        showToast('خطا: ' + (data.msg || 'حذف ناموفق'), 'error');
+                    }
+                })
+                .catch(function(e) {
+                    console.error('Delete error:', e);
+                    showToast('خطا در ارتباط با سرور: ' + e.message, 'error');
+                });
+            }, [showToast]);
+
+            var analyzeFile = React.useCallback(function(fileId, fileName) {
+                setCurrentFileId(fileId);
+                setCurrentFileName(fileName);
+                setAnalysisResult('برای شروع تحلیل، یکی از دکمه‌ها را بزنید...');
+                setAiQuestion('');
+                setAnalyzeModalOpen(true);
+            }, []);
+
+            var closeAnalyzeModal = React.useCallback(function() {
+                setAnalyzeModalOpen(false);
+                setCurrentFileId(null);
+                setCurrentFileName('');
+                setIsAnalyzing(false);
+            }, []);
+
+            var getAISummary = React.useCallback(function(level) {
+                if (!currentFileId) {
+                    showToast('هیچ فایلی انتخاب نشده است', 'error');
+                    return;
+                }
+                setIsAnalyzing(true);
+                setAnalysisResult('⏳ در حال تحلیل توسط هوش مصنوعی...');
+                fetch('/analyze-file/' + currentFileId + '/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ action: 'summarize', level: level })
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Network error');
+                    return res.json();
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        var resultText = data.result || data.analysis || 'تحلیل انجام شد.';
+                        var html = '<div style="color:#007aff;font-weight:700;margin-bottom:12px;font-size:16px;">📄 ' + (data.file_name || 'فایل') + '</div>';
+                        html += '<div>' + resultText.replace(/\n/g, '<br>') + '</div>';
+                        if (data.threat_status && data.threat_status.severity !== 'low') {
+                            html += '<div style="margin-top:12px;color:#ff9500;border:1px solid #ff9500;padding:12px;border-radius:12px;background:rgba(255,149,0,0.04);">';
+                            html += '⚠️ هشدار امنیتی: ' + (data.threat_status.threat_type || 'ناشناخته') + ' (' + (data.threat_status.severity || 'نامشخص') + ')';
+                            html += '</div>';
+                        }
+                        setAnalysisResult(html);
+                    } else {
+                        setAnalysisResult(' خطا: ' + (data.error || 'تحلیل ناموفق'));
+                    }
+                })
+                .catch(function(e) {
+                    console.error('Analysis error:', e);
+                    setAnalysisResult(' خطا در ارتباط با سرور: ' + e.message);
+                })
+                .finally(function() {
+                    setIsAnalyzing(false);
+                });
+            }, [currentFileId, showToast]);
+
+            var askAIQuestion = React.useCallback(function() {
+                if (!aiQuestion.trim()) {
+                    showToast('لطفاً سوال خود را وارد کنید', 'warning');
+                    return;
+                }
+                if (!currentFileId) {
+                    showToast('هیچ فایلی انتخاب نشده است', 'error');
+                    return;
+                }
+                setIsAnalyzing(true);
+                setAnalysisResult(' در حال پاسخ به سوال: "' + aiQuestion + '"...');
+                fetch('/analyze-file/' + currentFileId + '/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ action: 'ask', question: aiQuestion })
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Network error');
+                    return res.json();
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        var resultText = data.result || data.analysis || 'پاسخی دریافت نشد.';
+                        setAnalysisResult(
+                            '<div style="color:#007aff;font-weight:700;margin-bottom:12px;font-size:16px;">💬 پاسخ AI:</div>' +
+                            '<div>' + resultText.replace(/\n/g, '<br>') + '</div>'
+                        );
+                    } else {
+                        setAnalysisResult(' خطا: ' + (data.error || 'پاسخ ناموفق'));
+                    }
+                })
+                .catch(function(e) {
+                    console.error('Question error:', e);
+                    setAnalysisResult(' خطا در ارتباط با سرور: ' + e.message);
+                })
+                .finally(function() {
+                    setIsAnalyzing(false);
+                });
+            }, [aiQuestion, currentFileId, showToast]);
+
+            React.useEffect(function() {
+                var dropZone = dropZoneRef.current;
+                if (!dropZone) return;
+                var preventDefaults = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                };
+                var handleDragOver = function() {
+                    dropZone.classList.add('drag-over');
+                };
+                var handleDragLeave = function() {
+                    dropZone.classList.remove('drag-over');
+                };
+                var handleDrop = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('drag-over');
+                    var files = e.dataTransfer.files;
+                    if (files.length > 0 && files[0].webkitRelativePath) {
+                        handleFolder(files);
+                    } else {
+                        handleFiles(files);
+                    }
+                };
+                ['dragenter', 'dragover'].forEach(function(event) {
+                    dropZone.addEventListener(event, preventDefaults);
+                });
+                dropZone.addEventListener('dragover', handleDragOver);
+                dropZone.addEventListener('dragleave', handleDragLeave);
+                dropZone.addEventListener('drop', handleDrop);
+                return function() {
+                    ['dragenter', 'dragover'].forEach(function(event) {
+                        dropZone.removeEventListener(event, preventDefaults);
+                    });
+                    dropZone.removeEventListener('dragover', handleDragOver);
+                    dropZone.removeEventListener('dragleave', handleDragLeave);
+                    dropZone.removeEventListener('drop', handleDrop);
+                };
+            }, [handleFiles, handleFolder]);
+
+            React.useEffect(function() {
+                var handleClickOutside = function(e) {
+                    if (e.target.classList.contains('modal-overlay')) {
+                        e.target.classList.remove('open');
+                        setSendModalOpen(false);
+                        setAnalyzeModalOpen(false);
+                    }
+                };
+                document.addEventListener('click', handleClickOutside);
+                return function() {
+                    document.removeEventListener('click', handleClickOutside);
+                };
+            }, []);
+
+            var renderFileCard = React.useCallback(function(file) {
+                var fileIcon = getFileIcon(file.extension || '');
+                var fileSize = formatFileSize(file.file_size_bytes || 0);
+                return React.createElement('div', { key: file.id, className: 'ios-file-card' },
+                    React.createElement('div', { className: 'text-4xl ' + fileIcon.color },
+                        React.createElement('i', { className: 'ph ' + fileIcon.icon })
+                    ),
+                    React.createElement('div', { className: 'w-full flex flex-col gap-1' },
+                        React.createElement('div', { className: 'text-sm font-semibold text-[#1c1c1e] truncate px-1', title: file.name },
+                            file.name.length > 18 ? file.name.substring(0, 18) + '...' : file.name
+                        ),
+                        React.createElement('div', { className: 'flex justify-between text-xs ios-text-muted px-1' },
+                            React.createElement('span', null, file.uploaded_at || ''),
+                            React.createElement('span', null, fileSize)
+                        )
+                    ),
+                    React.createElement('div', { className: 'ios-btn-group justify-center pt-1' },
+                        React.createElement('button', {
+                            onClick: function(e) { e.stopPropagation(); downloadFile(file.url); },
+                            className: 'ios-btn ios-btn-primary text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                            title: 'دانلود'
+                        }, React.createElement('i', { className: 'ph ph-download-simple text-base' })),
+                        isStaff ? React.createElement('button', {
+                            onClick: function(e) { e.stopPropagation(); analyzeFile(file.id, file.name); },
+                            className: 'ios-btn ios-btn-secondary text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                            title: 'تحلیل با AI'
+                        }, React.createElement('i', { className: 'ph ph-robot text-base' })) : null,
+                        React.createElement('button', {
+                            onClick: function(e) { e.stopPropagation(); deleteFile(file.id); },
+                            className: 'ios-btn ios-btn-danger text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                            title: 'حذف'
+                        }, React.createElement('i', { className: 'ph ph-trash text-base' }))
+                    )
+                );
+            }, [isStaff, downloadFile, analyzeFile, deleteFile]);
+
+            var renderReceivedFileCard = React.useCallback(function(file) {
+                var fileIcon = getFileIcon(file.extension || '');
+                var fileSize = formatFileSize(file.file_size_bytes || 0);
+                return React.createElement('div', { key: file.id, className: 'ios-file-card ios-received-card' },
+                    React.createElement('div', { className: 'text-4xl ' + fileIcon.color },
+                        React.createElement('i', { className: 'ph ' + fileIcon.icon })
+                    ),
+                    React.createElement('div', { className: 'w-full flex flex-col gap-1' },
+                        React.createElement('div', { className: 'text-sm font-semibold text-[#1c1c1e] truncate px-1', title: file.name },
+                            file.name.length > 18 ? file.name.substring(0, 18) + '...' : file.name
+                        ),
+                        React.createElement('div', { className: 'flex justify-between text-xs ios-text-muted px-1' },
+                            React.createElement('span', null, file.received_at || ''),
+                            React.createElement('span', null, fileSize)
+                        ),
+                        React.createElement('div', { className: 'ios-sender-info justify-center' },
+                            React.createElement('i', { className: 'ph ph-user' }),
+                            React.createElement('span', null, 'از طرف: ' + (file.sender_name || 'کاربر ناشناس'))
+                        )
+                    ),
+                    React.createElement('div', { className: 'ios-btn-group justify-center pt-1' },
+                        React.createElement('button', {
+                            onClick: function(e) { e.stopPropagation(); downloadFile(file.url); },
+                            className: 'ios-btn ios-btn-primary text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                            title: 'دانلود'
+                        }, React.createElement('i', { className: 'ph ph-download-simple text-base' })),
+                        isStaff ? React.createElement('button', {
+                            onClick: function(e) { e.stopPropagation(); analyzeFile(file.id, file.name); },
+                            className: 'ios-btn ios-btn-secondary text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                            title: 'تحلیل با AI'
+                        }, React.createElement('i', { className: 'ph ph-robot text-base' })) : null,
+                        React.createElement('button', {
+                            onClick: function(e) { e.stopPropagation(); deleteReceivedFile(file.id); },
+                            className: 'ios-btn ios-btn-danger text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                            title: 'حذف'
+                        }, React.createElement('i', { className: 'ph ph-trash text-base' }))
+                    )
+                );
+            }, [isStaff, downloadFile, analyzeFile, deleteReceivedFile]);
+
+            var hasStagedFiles = selectedFiles.length > 0;
+
+            return React.createElement(React.Fragment, null,
+                React.createElement('div', { className: 'flex h-screen overflow-hidden bg-[#f2f2f7] text-[#1c1c1e]', style: { fontFamily: '-apple-system, Vazirmatn, SF Pro Display' } },
+                    React.createElement('aside', {
+                        className: 'ios-sidebar flex-shrink-0 shadow-2xl z-10',
+                        style: { width: settings.menuWidth + 'px', minWidth: settings.menuWidth + 'px' }
+                    },
+                        React.createElement('div', { className: 'ios-brand' },
+                            React.createElement('div', { className: 'ios-brand-icon' },
+                                React.createElement('i', { className: 'ph ph-apple-logo' })
+                            ),
+                            React.createElement('div', null,
+                                React.createElement('div', { className: 'ios-brand-title' }, 'مدیریت فایل'),
+                                React.createElement('div', { className: 'ios-brand-subtitle' }, 'iOS 27')
+                            )
+                        ),
+                        React.createElement('div', { className: 'ios-section' },
+                            React.createElement('div', { className: 'ios-section-header' },
+                                React.createElement('i', { className: 'ph ph-compass' }), ' ناوبری'
+                            ),
+                            React.createElement('div', { className: 'ios-btn-group-vertical' },
+                                React.createElement('button', {
+                                    onClick: function() { setActiveTab('my_files'); },
+                                    className: 'ios-sidebar-item ' + (activeTab === 'my_files' ? 'active' : '')
+                                },
+                                    React.createElement('i', { className: 'ph ph-folder' }),
+                                    React.createElement('span', null, 'فایل‌های من'),
+                                    React.createElement('span', { className: 'mr-auto text-xs ios-text-muted' }, '(' + fileList.length + ')')
+                                ),
+                                React.createElement('button', {
+                                    onClick: function() { setActiveTab('received'); },
+                                    className: 'ios-sidebar-item ' + (activeTab === 'received' ? 'active' : '')
+                                },
+                                    React.createElement('i', { className: 'ph ph-inbox' }),
+                                    React.createElement('span', null, 'فایل‌های دریافتی'),
+                                    React.createElement('span', { className: 'mr-auto text-xs ios-text-muted' }, '(' + receivedFiles.length + ')')
+                                ),
+                                React.createElement('a', {
+                                    href: '/ai-settings/',
+                                    className: 'ios-sidebar-item no-underline'
+                                },
+                                    React.createElement('i', { className: 'ph ph-gear-six' }),
+                                    React.createElement('span', null, 'تنظیمات')
+                                )
+                            )
+                        ),
+                        React.createElement('hr', { className: 'ios-divider' }),
+                        React.createElement('div', { className: 'ios-section' },
+                            React.createElement('div', { className: 'ios-section-header' },
+                                React.createElement('i', { className: 'ph ph-cloud-arrow-up' }), ' آپلود'
+                            ),
+                            React.createElement('div', { className: 'ios-btn-group-vertical' },
+                                React.createElement('button', {
+                                    onClick: function() { if (fileInputRef.current) fileInputRef.current.click(); },
+                                    className: 'ios-btn ios-btn-primary ios-btn-block text-sm'
+                                },
+                                    React.createElement('i', { className: 'ph ph-file text-lg' }),
+                                    React.createElement('span', null, 'انتخاب فایل‌ها')
+                                ),
+                                React.createElement('button', {
+                                    onClick: function() { if (folderInputRef.current) folderInputRef.current.click(); },
+                                    className: 'ios-btn ios-btn-secondary ios-btn-block text-sm'
+                                },
+                                    React.createElement('i', { className: 'ph ph-folder text-lg' }),
+                                    React.createElement('span', null, 'انتخاب پوشه')
+                                ),
+                                React.createElement('button', {
+                                    onClick: uploadFiles,
+                                    disabled: !hasStagedFiles || isUploading,
+                                    className: 'ios-btn ios-btn-success ios-btn-block text-sm ' + ((!hasStagedFiles || isUploading) ? 'ios-btn-disabled' : '')
+                                },
+                                    React.createElement('i', { className: 'ph ' + (isUploading ? 'ph-spinner ios-spin' : 'ph-paper-plane-right') + ' text-lg' }),
+                                    React.createElement('span', null, isUploading ? 'در حال آپلود...' : 'ارسال به سرور')
+                                )
+                            )
+                        ),
+                        React.createElement('hr', { className: 'ios-divider' }),
+                        isStaff ? React.createElement('div', { className: 'ios-section' },
+                            React.createElement('div', { className: 'ios-section-header' },
+                                React.createElement('i', { className: 'ph ph-shield' }), ' مدیریت'
+                            ),
+                            React.createElement('div', { className: 'ios-btn-group-vertical' },
+                                React.createElement('a', {
+                                    href: '/admin-panel/',
+                                    className: 'ios-btn ios-btn-secondary ios-btn-block text-sm no-underline'
+                                },
+                                    React.createElement('i', { className: 'ph ph-users text-lg' }),
+                                    React.createElement('span', null, 'مدیریت کاربران')
+                                ),
+                                isSuperuser ? React.createElement('a', {
+                                    href: '/super-admin-panel/',
+                                    className: 'ios-btn ios-btn-danger ios-btn-block text-sm no-underline'
+                                },
+                                    React.createElement('i', { className: 'ph ph-shield-check text-lg' }),
+                                    React.createElement('span', null, 'پنل سوپر ادمین')
+                                ) : null
+                            )
+                        ) : null,
+                        React.createElement('div', { className: 'ios-section mt-auto' },
+                            React.createElement('button', {
+                                onClick: handleLogout,
+                                className: 'ios-btn ios-btn-danger ios-btn-block text-sm'
+                            },
+                                React.createElement('i', { className: 'ph ph-sign-out text-lg' }),
+                                React.createElement('span', null, 'خروج از حساب')
+                            )
+                        )
+                    ),
+                    React.createElement('main', { className: 'flex-1 flex flex-col p-6 gap-5 overflow-hidden min-w-0 bg-[#f2f2f7]' },
+                        React.createElement('header', { className: 'ios-header' },
+                            React.createElement('div', null,
+                                React.createElement('div', { className: 'ios-header-title' },
+                                    React.createElement('span', { className: 'ios-text-blue' }, 
+                                        activeTab === 'my_files' ? '📁' : '📬'
+                                    ),
+                                    ' ' + (activeTab === 'my_files' ? 'فایل‌های من' : 'فایل‌های دریافتی')
+                                ),
+                                React.createElement('div', { className: 'ios-header-subtitle' },
+                                    activeTab === 'my_files' 
+                                        ? (currentFolder ? 'پوشه انتخاب شده: ' + currentFolder : 'مسیر: هیچ پوشه‌ای انتخاب نشده')
+                                        : 'فایل‌هایی که کاربران برای شما ارسال کرده‌اند'
+                                )
+                            ),
+                            React.createElement('div', { className: 'ios-header-stats' },
+                                React.createElement('div', { className: 'ios-stat' },
+                                    React.createElement('i', { className: 'ph ph-files text-lg ios-text-blue' }),
+                                    React.createElement('span', null, activeTab === 'my_files' ? 'فایل‌های من:' : 'دریافتی:'),
+                                    React.createElement('span', { className: 'ios-stat-value' }, 
+                                        activeTab === 'my_files' ? fileList.length : receivedFiles.length
+                                    )
+                                ),
+                                hasStagedFiles && activeTab === 'my_files' ? React.createElement('div', { className: 'ios-stat' },
+                                    React.createElement('i', { className: 'ph ph-clock text-lg text-[#ff9500]' }),
+                                    React.createElement('span', null, 'آماده ارسال:'),
+                                    React.createElement('span', { className: 'ios-stat-value' }, selectedFiles.length)
+                                ) : null
+                            )
+                        ),
+                        activeTab === 'my_files' ? React.createElement('section', { className: 'ios-card p-5 flex-shrink-0' },
+                            React.createElement('div', { className: 'flex flex-col md:flex-row items-stretch md:items-center gap-4' },
+                                React.createElement('div', {
+                                    ref: dropZoneRef,
+                                    className: 'ios-drop-zone flex-1 min-h-[80px]',
+                                    onClick: function() { if (fileInputRef.current) fileInputRef.current.click(); }
+                                },
+                                    React.createElement('i', { className: 'ph ph-cloud-arrow-up text-3xl ios-text-blue' }),
+                                    React.createElement('span', { className: 'text-sm ios-text-muted' },
+                                        'فایل‌ها را اینجا بکشید یا ', React.createElement('strong', { className: 'ios-text-blue' }, 'کلیک کنید')
+                                    )
+                                ),
+                                React.createElement('div', { className: 'ios-btn-group flex-shrink-0' },
+                                    React.createElement('button', {
+                                        onClick: function() { if (fileInputRef.current) fileInputRef.current.click(); },
+                                        className: 'ios-btn ios-btn-primary text-sm',
+                                        style: { minWidth: '80px' }
+                                    },
+                                        React.createElement('i', { className: 'ph ph-file text-lg' }),
+                                        React.createElement('span', null, 'فایل')
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: function() { if (folderInputRef.current) folderInputRef.current.click(); },
+                                        className: 'ios-btn ios-btn-secondary text-sm',
+                                        style: { minWidth: '80px' }
+                                    },
+                                        React.createElement('i', { className: 'ph ph-folder text-lg' }),
+                                        React.createElement('span', null, 'پوشه')
+                                    )
+                                )
+                            ),
+                            hasStagedFiles ? React.createElement('div', { className: 'mt-4 pt-4 border-t border-[#e5e5ea]' },
+                                React.createElement('div', { className: 'flex gap-2 overflow-x-auto pb-2 flex-wrap' },
+                                    selectedFiles.map(function(file, index) {
+                                        var iconClass = 'ph-file';
+                                        if (file.type && file.type.startsWith('image/')) iconClass = 'ph-image';
+                                        else if (file.type && file.type.startsWith('video/')) iconClass = 'ph-film-strip';
+                                        return React.createElement('div', { key: index, className: 'ios-staged-file' },
+                                            React.createElement('i', { className: 'ph ' + iconClass + ' text-lg ios-text-blue' }),
+                                            React.createElement('span', { className: 'text-xs' }, file.name),
+                                            React.createElement('i', {
+                                                className: 'ph ph-x ios-staged-file-remove',
+                                                onClick: function() { removeFile(index); }
+                                            })
+                                        );
+                                    })
+                                ),
+                                React.createElement('div', { className: 'ios-btn-group mt-3' },
+                                    React.createElement('button', {
+                                        onClick: uploadFiles,
+                                        disabled: isUploading,
+                                        className: 'ios-btn ios-btn-success text-sm ' + (isUploading ? 'ios-btn-disabled' : ''),
+                                        style: { minWidth: '120px' }
+                                    },
+                                        React.createElement('i', { className: 'ph ' + (isUploading ? 'ph-spinner ios-spin' : 'ph-paper-plane-right') + ' text-lg' }),
+                                        React.createElement('span', null, isUploading ? 'در حال آپلود...' : 'ارسال به سرور')
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: openSendModal,
+                                        className: 'ios-btn ios-btn-secondary text-sm',
+                                        style: { minWidth: '120px' }
+                                    },
+                                        React.createElement('i', { className: 'ph ph-user-plus text-lg' }),
+                                        React.createElement('span', null, 'ارسال به کاربر')
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: clearStaged,
+                                        className: 'ios-btn ios-btn-danger text-sm',
+                                        style: { minWidth: '80px' }
+                                    },
+                                        React.createElement('i', { className: 'ph ph-x text-lg' }),
+                                        React.createElement('span', null, 'پاک کردن')
+                                    )
+                                )
+                            ) : null
+                        ) : null,
+                        React.createElement('section', { className: 'flex-1 ios-card p-5 flex flex-col min-h-0' },
+                            React.createElement('div', { className: 'flex justify-between items-center pb-4 border-b border-[#e5e5ea] flex-shrink-0 flex-wrap gap-3' },
+                                React.createElement('div', { className: 'text-xl font-semibold flex items-center gap-3 text-[#1c1c1e]' },
+                                    React.createElement('i', { className: 'ph ' + (activeTab === 'my_files' ? 'ph-hard-drives' : 'ph-inbox') + ' text-2xl ios-text-blue' }),
+                                    React.createElement('span', null, activeTab === 'my_files' ? 'فایل‌های من' : 'فایل‌های دریافتی'),
+                                    React.createElement('span', { className: 'text-sm font-normal ios-text-muted' }, 
+                                        '(' + (activeTab === 'my_files' ? fileList.length : receivedFiles.length) + ')'
+                                    )
+                                ),
+                                React.createElement('div', { className: 'ios-btn-group' },
+                                    React.createElement('button', {
+                                        onClick: refreshFiles,
+                                        className: 'ios-btn ios-btn-secondary',
+                                        style: { minWidth: '44px', padding: '0 8px' }
+                                    },
+                                        React.createElement('i', { className: 'ph ph-arrows-clockwise text-lg' })
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: 'ios-grid py-3 px-0.5 overflow-y-auto flex-1 ios-tab-content' },
+                                activeTab === 'my_files' ? (
+                                    fileList.length === 0 ?
+                                    React.createElement('div', { className: 'col-span-full ios-empty-state' },
+                                        React.createElement('i', { className: 'ph ph-folder-dashed ios-empty-state-icon' }),
+                                        React.createElement('h3', { className: 'ios-empty-state-title' }, 'هیچ فایلی آپلود نشده است'),
+                                        React.createElement('p', { className: 'ios-empty-state-subtitle' }, 'با استفاده از بخش آپلود، فایل‌های خود را شروع کنید')
+                                    ) :
+                                    fileList.map(renderFileCard)
+                                ) : 
+                                (
+                                    receivedFiles.length === 0 ?
+                                    React.createElement('div', { className: 'col-span-full ios-empty-state' },
+                                        React.createElement('i', { className: 'ph ph-inbox ios-empty-state-icon' }),
+                                        React.createElement('h3', { className: 'ios-empty-state-title' }, 'هیچ فایل دریافتی وجود ندارد'),
+                                        React.createElement('p', { className: 'ios-empty-state-subtitle' }, 'هنگامی که کاربران فایلی برای شما ارسال کنند، در اینجا نمایش داده می‌شود')
+                                    ) :
+                                    receivedFiles.map(renderReceivedFileCard)
+                                )
+                            )
+                        )
+                    )
+                ),
+                React.createElement('input', {
+                    ref: fileInputRef,
+                    type: 'file',
+                    multiple: true,
+                    accept: '*/*',
+                    style: { display: 'none' },
+                    onChange: function(e) {
+                        handleFiles(e.target.files);
+                        e.target.value = '';
+                    }
+                }),
+                React.createElement('input', {
+                    ref: folderInputRef,
+                    type: 'file',
+                    webkitdirectory: true,
+                    multiple: true,
+                    style: { display: 'none' },
+                    onChange: function(e) {
+                        handleFolder(e.target.files);
+                        e.target.value = '';
+                    }
+                }),
+                sendModalOpen ? React.createElement('div', { className: 'ios-modal-overlay modal-overlay open' },
+                    React.createElement('div', { className: 'ios-modal' },
+                        React.createElement('div', { className: 'ios-modal-handle' }),
+                        React.createElement('div', { className: 'ios-modal-title' },
+                            React.createElement('i', { className: 'ph ph-user-plus ios-text-blue text-3xl' }),
+                            React.createElement('span', null, 'ارسال فایل به کاربر')
+                        ),
+                        React.createElement('div', { className: 'flex flex-col gap-4' },
+                            React.createElement('label', { className: 'ios-text-muted font-semibold text-sm flex flex-col gap-1.5' },
+                                React.createElement('span', null, 'کاربر مقصد'),
+                                React.createElement('select', {
+                                    value: selectedUserId,
+                                    onChange: function(e) { setSelectedUserId(e.target.value); },
+                                    className: 'ios-select'
+                                },
+                                    React.createElement('option', { value: '' }, 'انتخاب کاربر...'),
+                                    isLoadingUsers ?
+                                    React.createElement('option', { value: '' }, 'در حال بارگذاری...') :
+                                    users.length === 0 ?
+                                    React.createElement('option', { value: '' }, 'هیچ کاربری یافت نشد') :
+                                    users.map(function(user) {
+                                        if (user.id === djangoData.user.id) return null;
+                                        return React.createElement('option', { key: user.id, value: user.id },
+                                            user.first_name + ' ' + user.last_name + ' (' + user.username + ')'
+                                        );
+                                    })
+                                )
+                            ),
+                            React.createElement('label', { className: 'ios-text-muted font-semibold text-sm flex flex-col gap-1.5' },
+                                React.createElement('span', null, 'فایل‌های انتخاب شده (' + selectedFiles.length + ')'),
+                                React.createElement('div', { className: 'bg-[#f2f2f7] p-3 rounded-xl border border-[#e5e5ea] max-h-[120px] overflow-y-auto text-xs ios-text-muted' },
+                                    selectedFiles.length === 0 ?
+                                    'هیچ فایلی انتخاب نشده است' :
+                                    selectedFiles.map(function(f, i) {
+                                        return React.createElement('div', { key: i, className: 'py-1 border-b border-[#e5e5ea] last:border-none' }, '• ' + f.name);
+                                    })
+                                )
+                            )
+                        ),
+                        React.createElement('div', { className: 'ios-btn-group justify-end mt-6 pt-4 border-t border-[#e5e5ea]' },
+                            React.createElement('button', {
+                                onClick: closeSendModal,
+                                disabled: isSending,
+                                className: 'ios-btn',
+                                style: { minWidth: '80px' }
+                            },
+                                React.createElement('i', { className: 'ph ph-x text-lg' }),
+                                React.createElement('span', null, 'لغو')
+                            ),
+                            React.createElement('button', {
+                                onClick: sendFiles,
+                                disabled: isSending || selectedFiles.length === 0 || !selectedUserId,
+                                className: 'ios-btn ios-btn-primary ' + ((isSending || selectedFiles.length === 0 || !selectedUserId) ? 'ios-btn-disabled' : ''),
+                                style: { minWidth: '120px' }
+                            },
+                                React.createElement('i', { className: 'ph ' + (isSending ? 'ph-spinner ios-spin' : 'ph-paper-plane-right') + ' text-lg' }),
+                                React.createElement('span', null, isSending ? 'در حال ارسال...' : 'ارسال')
+                            )
+                        )
+                    )
+                ) : null,
+                analyzeModalOpen ? React.createElement('div', { className: 'ios-modal-overlay modal-overlay open' },
+                    React.createElement('div', { className: 'ios-modal max-w-[750px]' },
+                        React.createElement('div', { className: 'ios-modal-handle' }),
+                        React.createElement('div', { className: 'ios-modal-title' },
+                            React.createElement('i', { className: 'ph ph-robot ios-text-blue text-3xl' }),
+                            React.createElement('span', null, 'تحلیل هوش مصنوعی')
+                        ),
+                        React.createElement('div', { className: 'flex flex-col gap-4' },
+                            React.createElement('div', { className: 'bg-[#f2f2f7] p-3 rounded-xl border border-[#e5e5ea]' },
+                                React.createElement('strong', { className: 'ios-text-blue text-sm' }, 'فایل:'),
+                                React.createElement('span', { className: 'text-[#1c1c1e] text-sm ml-2' }, currentFileName)
+                            ),
+                            React.createElement('div', { className: 'ios-btn-group' },
+                                React.createElement('button', {
+                                    onClick: function() { getAISummary('summary'); },
+                                    disabled: isAnalyzing,
+                                    className: 'ios-btn ios-btn-primary text-sm ' + (isAnalyzing ? 'ios-btn-disabled' : '')
+                                },
+                                    React.createElement('i', { className: 'ph ph-note-pencil text-lg' }),
+                                    React.createElement('span', null, 'خلاصه کوتاه')
+                                ),
+                                React.createElement('button', {
+                                    onClick: function() { getAISummary('detailed'); },
+                                    disabled: isAnalyzing,
+                                    className: 'ios-btn ios-btn-secondary text-sm ' + (isAnalyzing ? 'ios-btn-disabled' : '')
+                                },
+                                    React.createElement('i', { className: 'ph ph-file-text text-lg' }),
+                                    React.createElement('span', null, 'خلاصه کامل')
+                                ),
+                                React.createElement('button', {
+                                    onClick: function() { getAISummary('full'); },
+                                    disabled: isAnalyzing,
+                                    className: 'ios-btn ios-btn-secondary text-sm ' + (isAnalyzing ? 'ios-btn-disabled' : '')
+                                },
+                                    React.createElement('i', { className: 'ph ph-microscope text-lg' }),
+                                    React.createElement('span', null, 'تحلیل کامل')
+                                )
+                            ),
+                            React.createElement('div', {
+                                className: 'bg-[#f2f2f7] p-4 rounded-xl border border-[#e5e5ea] min-h-[120px] max-h-[300px] overflow-y-auto whitespace-pre-wrap font-mono text-sm leading-relaxed ios-text-muted',
+                                dangerouslySetInnerHTML: { __html: analysisResult }
+                            }),
+                            React.createElement('div', { className: 'border-t border-[#e5e5ea] pt-4' },
+                                React.createElement('label', { className: 'text-xs ios-text-muted font-semibold block mb-1.5' },
+                                    'سوال خود را از AI بپرسید'
+                                ),
+                                React.createElement('div', { className: 'flex gap-2' },
+                                    React.createElement('input', {
+                                        type: 'text',
+                                        value: aiQuestion,
+                                        onChange: function(e) { setAiQuestion(e.target.value); },
+                                        placeholder: 'مثلاً: این فایل درباره چیست؟',
+                                        className: 'ios-input flex-1 text-sm',
+                                        onKeyDown: function(e) { if (e.key === 'Enter') askAIQuestion(); },
+                                        disabled: isAnalyzing
+                                    }),
+                                    React.createElement('button', {
+                                        onClick: askAIQuestion,
+                                        disabled: isAnalyzing || !aiQuestion.trim(),
+                                        className: 'ios-btn ios-btn-primary text-sm ' + ((isAnalyzing || !aiQuestion.trim()) ? 'ios-btn-disabled' : ''),
+                                        style: { minWidth: '80px' }
+                                    },
+                                        React.createElement('i', { className: 'ph ' + (isAnalyzing ? 'ph-spinner ios-spin' : 'ph-chat') + ' text-lg' }),
+                                        React.createElement('span', null, isAnalyzing ? 'در حال...' : 'سوال')
+                                    )
+                                )
+                            )
+                        ),
+                        React.createElement('div', { className: 'ios-btn-group justify-end mt-6 pt-4 border-t border-[#e5e5ea]' },
+                            React.createElement('button', {
+                                onClick: closeAnalyzeModal,
+                                disabled: isAnalyzing,
+                                className: 'ios-btn',
+                                style: { minWidth: '80px' }
+                            },
+                                React.createElement('i', { className: 'ph ph-x text-lg' }),
+                                React.createElement('span', null, 'بستن')
+                            )
+                        )
+                    )
+                ) : null,
+                React.createElement(ToastContainer, { toasts: toasts, removeToast: removeToast })
+            );
+        }
+
+        var root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(Dashboard));
+    </script>
+
+    {% else %}
+    <!-- ========== LOGIN PAGE ========== -->
+    <div class="login-container">
+        <div class="login-card">
+            <div style="text-align:center;margin-bottom:32px;">
+                <div style="display:inline-flex;width:60px;height:60px;background:linear-gradient(135deg,#007aff,#5856d6);border-radius:14px;align-items:center;justify-content:center;color:#ffffff;font-size:28px;font-weight:700;box-shadow:0 4px 16px rgba(0,122,255,0.3);margin-bottom:16px;">
+                    <i class="ph ph-apple-logo"></i>
+                </div>
+                <h1 style="font-size:28px;font-weight:700;color:#1c1c1e;letter-spacing:-0.5px;">مدیریت فایل</h1>
+                <p style="font-size:15px;color:#8e8e93;margin-top:4px;">iOS 27 - ورود به سیستم</p>
+            </div>
+
+            <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;font-size:13px;font-weight:600;color:#8e8e93;margin-bottom:6px;">نام کاربری</label>
+                    <input type="text" name="username" placeholder="نام کاربری خود را وارد کنید" class="ios-input" required autofocus />
+                </div>
+                <div style="margin-bottom:24px;">
+                    <label style="display:block;font-size:13px;font-weight:600;color:#8e8e93;margin-bottom:6px;">رمز عبور</label>
+                    <input type="password" name="password" placeholder="رمز عبور خود را وارد کنید" class="ios-input" required />
+                </div>
+                <button type="submit" class="ios-btn ios-btn-primary ios-btn-block" style="min-height:48px;font-size:16px;">
+                    <i class="ph ph-sign-in text-lg"></i>
+                    <span>ورود</span>
+                </button>
+                {% if messages %}
+                    {% for message in messages %}
+                        <div style="margin-top:12px;padding:12px;background:rgba(255,59,48,0.08);border-radius:12px;border:1px solid rgba(255,59,48,0.15);color:#ff3b30;font-size:13px;text-align:center;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</body>
+</html>
