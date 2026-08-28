@@ -254,11 +254,15 @@
             </button>
         </form>
         
+<<<<<<< HEAD
         
+=======
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
         <div class="footer-text">
             سیستم مدیریت فایل پیشرفته
         </div>
     </div>
+<<<<<<< HEAD
 <script>
     function getCookie(name) {
         let cookieValue = null;
@@ -359,3 +363,108 @@
         }
     };
 </script>
+=======
+  
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function showToast(message, type = 'info') {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('submitBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            
+            const formData = new FormData();
+            formData.append('username', u);
+            formData.append('password', p);
+            
+            try {
+                const res = await fetch('/login/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    // ذخیره توکن در localStorage
+                    if (data.token) {
+                        localStorage.setItem('authToken', data.token);
+                        // همچنین در sessionStorage ذخیره کن
+                        sessionStorage.setItem('authToken', data.token);
+                        console.log('توکن با موفقیت ذخیره شد:', data.token.substring(0, 20) + '...');
+                    }
+                    
+                    showToast('ورود موفق! در حال انتقال به داشبورد...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/dashboard/';
+                    }, 500);
+                } else {
+                    showToast(data.msg || 'نام کاربری یا رمز عبور اشتباه است', 'error');
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('خطا در ارتباط با سرور', 'error');
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        });
+
+        // اگر کاربر قبلاً لاگین کرده و توکن دارد، به داشبورد برود
+        window.onload = function() {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                // توکن وجود دارد، اما چک کن که معتبر هست یا نه
+                fetch('/dashboard/', {
+                    headers: {
+                        'Authorization': `Token ${token}`
+                    }
+                }).then(res => {
+                    if (res.ok) {
+                        window.location.href = '/dashboard/';
+                    } else {
+                        // توکن نامعتبر، پاکش کن
+                        localStorage.removeItem('authToken');
+                        sessionStorage.removeItem('authToken');
+                    }
+                }).catch(() => {});
+            }
+        };
+    </script>
+</body>
+</html>
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77

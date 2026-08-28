@@ -1,5 +1,9 @@
 
+<<<<<<< HEAD
 #fale codeing ! , not good! 
+=======
+
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
 # core/services/file_analysis_service.py
 
 from django.contrib.auth.models import User
@@ -14,8 +18,12 @@ class FileAnalysisService:
     
     def __init__(self):
         self.llm = llm_service
+<<<<<<< HEAD
         print("🔧 [AI] FileAnalysisService مق
         داردهی اولیه شد")
+=======
+        print("🔧 [AI] FileAnalysisService مقداردهی اولیه شد")
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
     
     def analyze_uploaded_file(self, file_obj):
         """تحلیل خودکار فایل آپلود شده"""
@@ -25,12 +33,21 @@ class FileAnalysisService:
             # 1. خواندن محتوای فایل
             file_info = FileReader.read_file(file_obj.file)
             content = file_info.get('content', '')
+<<<<<<< HEAD
             print(f" [AI] محتوای فایل خوانده شد: {len(content)} کاراکتر")
             
             # 2. تحلیل با AI
             analysis_result = self._analyze_with_ai(content, file_obj.file.name)
             print(f" [AI] تحلیل انجام شد - طول پاسخ: {len(analysis_result)}")
              
+=======
+            print(f"📄 [AI] محتوای فایل خوانده شد: {len(content)} کاراکتر")
+            
+            # 2. تحلیل با AI
+            analysis_result = self._analyze_with_ai(content, file_obj.file.name)
+            print(f"🤖 [AI] تحلیل انجام شد - طول پاسخ: {len(analysis_result)}")
+            
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
             # 3. تعیین سطح تهدید
             threat_level = self._determine_threat_level(analysis_result)
             print(f"⚠️ [AI] سطح تهدید: {threat_level}")
@@ -44,7 +61,11 @@ class FileAnalysisService:
             if notification:
                 print(f"📬 [AI] نوتیفیکیشن ایجاد شد - ID: {notification.id}")
             else:
+<<<<<<< HEAD
                 print(f" [AI] نوتیفیکیشن ساخته نشد")
+=======
+                print(f"❌ [AI] نوتیفیکیشن ساخته نشد")
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
             
             return {
                 'success': True,

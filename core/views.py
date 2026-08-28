@@ -1821,6 +1821,10 @@ def delete_user_view(request, user_id):
     messages.success(request, f'کاربر {username} با موفقیت حذف شد')
     return redirect('super_admin_panel')
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
 @login_required
 def delete_user_modal_view(request, user_id):
     if not request.user.is_superuser:
@@ -2529,6 +2533,7 @@ def debug_files_view(request):
         'all_files': list(all_files),
         'user_id': request.user.id,
         'username': request.user.username
+<<<<<<< HEAD
     })
 
 
@@ -2673,3 +2678,6 @@ def extract_single_file(request, file_id, file_path):
                 
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=500)
+=======
+    })
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77

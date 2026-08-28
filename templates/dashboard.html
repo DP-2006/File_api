@@ -914,12 +914,20 @@
                         }
                         setAnalysisResult(html);
                     } else {
+<<<<<<< HEAD
                         setAnalysisResult(' خطا: ' + (data.error || 'تحلیل ناموفق'));
+=======
+                        setAnalysisResult('❌ خطا: ' + (data.error || 'تحلیل ناموفق'));
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
                     }
                 })
                 .catch(function(e) {
                     console.error('Analysis error:', e);
+<<<<<<< HEAD
                     setAnalysisResult(' خطا در ارتباط با سرور: ' + e.message);
+=======
+                    setAnalysisResult('❌ خطا در ارتباط با سرور: ' + e.message);
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
                 })
                 .finally(function() {
                     setIsAnalyzing(false);
@@ -936,7 +944,11 @@
                     return;
                 }
                 setIsAnalyzing(true);
+<<<<<<< HEAD
                 setAnalysisResult(' در حال پاسخ به سوال: "' + aiQuestion + '"...');
+=======
+                setAnalysisResult('⏳ در حال پاسخ به سوال: "' + aiQuestion + '"...');
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
                 fetch('/analyze-file/' + currentFileId + '/', {
                     method: 'POST',
                     headers: {
@@ -957,12 +969,20 @@
                             '<div>' + resultText.replace(/\n/g, '<br>') + '</div>'
                         );
                     } else {
+<<<<<<< HEAD
                         setAnalysisResult(' خطا: ' + (data.error || 'پاسخ ناموفق'));
+=======
+                        setAnalysisResult('❌ خطا: ' + (data.error || 'پاسخ ناموفق'));
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
                     }
                 })
                 .catch(function(e) {
                     console.error('Question error:', e);
+<<<<<<< HEAD
                     setAnalysisResult(' خطا در ارتباط با سرور: ' + e.message);
+=======
+                    setAnalysisResult('❌ خطا در ارتباط با سرور: ' + e.message);
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
                 })
                 .finally(function() {
                     setIsAnalyzing(false);

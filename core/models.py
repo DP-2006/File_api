@@ -13,7 +13,10 @@ class UserProfile(models.Model):
     
     def __str__(self):
         return self.user.username
+<<<<<<< HEAD
         
+=======
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
 
 
 class UserSettings(models.Model):
@@ -72,6 +75,38 @@ class UploadedFile(models.Model):
     def __str__(self):
         return self.file.name
 
+<<<<<<< HEAD
+=======
+
+# class FileActionLog(models.Model):
+#     ACTION_CHOICES = [
+#         ('download', 'دانلود'),
+#         ('delete', 'حذف'),
+#         ('upload', 'آپلود'),
+#         ('send', 'ارسال'),
+#     ]
+    
+#     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+#     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+#     file_name = models.CharField(max_length=255)
+#     file_size = models.BigIntegerField(null=True)
+#     ip_address = models.GenericIPAddressField(null=True)
+#     action_time = models.DateTimeField(auto_now_add=True)
+#     recipient_user = models.ForeignKey(
+#         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='received_file_logs'
+#     )
+#     details = models.TextField(blank=True, null=True)
+    
+#     class Meta:
+#         ordering = ['-action_time']
+    
+#     def __str__(self):
+#         return f"{self.user} - {self.action} - {self.file_name}"
+
+
+
+
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
 # core/models.py - به‌روزرسانی FileActionLog
 
 class FileActionLog(models.Model):
@@ -453,6 +488,18 @@ class FileSizeSettings(models.Model):
         return self.max_download_size_mb * 1024 * 1024
 
 
+<<<<<<< HEAD
+=======
+
+
+
+
+
+
+
+
+
+>>>>>>> c4d29634dd54f9d0cfd7766b2404a86e72ea1f77
 # core/models.py - اضافه کردن به انتهای فایل
 
 class RolePasswordPolicy(models.Model):
