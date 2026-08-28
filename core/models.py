@@ -13,6 +13,7 @@ class UserProfile(models.Model):
     
     def __str__(self):
         return self.user.username
+        
 
 
 class UserSettings(models.Model):
@@ -450,15 +451,6 @@ class FileSizeSettings(models.Model):
     def get_max_download_bytes(self):
         """دریافت حداکثر حجم دانلود به بایت"""
         return self.max_download_size_mb * 1024 * 1024
-
-
-
-
-
-
-
-
-
 
 
 # core/models.py - اضافه کردن به انتهای فایل

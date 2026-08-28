@@ -1821,7 +1821,6 @@ def delete_user_view(request, user_id):
     messages.success(request, f'کاربر {username} با موفقیت حذف شد')
     return redirect('super_admin_panel')
 
-
 @login_required
 def delete_user_modal_view(request, user_id):
     if not request.user.is_superuser:
@@ -2031,7 +2030,7 @@ def analyze_file_manual_api(request, file_id):
 
     analysis = llm_service._call_llm_stream(prompt)
 
-    threat_level = 'low',,,,,,,,,,,,,,,,,,,,,,
+    threat_level = 'low'
     analysis_lower = analysis.lower()
     if any(word in analysis_lower for word in ['بحرانی', 'خطرناک', 'ویروس', 'بدافزار']):
         threat_level = 'critical'

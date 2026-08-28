@@ -221,7 +221,7 @@ class FirewallService:
                 "description": description
             }
         except Exception as e:
-            print(f"⚠️ خطا در تحلیل AI: {e}")
+            print(f" خطا در تحلیل AI: {e}")
             return {"is_threat": False}
     
     def _create_threat_alert(self, uploaded_file, result):
@@ -244,7 +244,7 @@ class FirewallService:
             return alert
             
         except Exception as e:
-            print(f"⚠️ خطا در ایجاد هشدار: {e}")
+            print(f" خطا در ایجاد هشدار: {e}")
             return None
     
     def _create_notification(self, uploaded_file, result, alert=None):
@@ -261,13 +261,12 @@ class FirewallService:
             
             # عنوان نوتیفیکیشن
             if result["severity"] in ["high", "critical"]:
-                title = f"🚨 هشدار امنیتی بحرانی: {uploaded_file.file.name}"
+                title = f" هشدار امنیتی بحرانی: {uploaded_file.file.name}"
             else:
-                title = f"⚠️ هشدار امنیتی: {uploaded_file.file.name}"
+                title = f" هشدار امنیتی: {uploaded_file.file.name}"
             
             # ساخت پیام
             message = f"""
-🔴 **تهدید امنیتی شناسایی شد!**
 
 📄 **فایل:** {uploaded_file.file.name}
 👤 **کاربر:** {uploaded_file.uploaded_by.username}
@@ -279,7 +278,7 @@ class FirewallService:
 📝 **توضیحات:**
 {result['description']}
 
-💡 **اقدام پیشنهادی:** {('🚫 مسدود کردن فایل' if result['severity'] in ['high', 'critical'] else '🔍 بررسی دقیق')}
+💡 {(' مسدود کردن فایل' if result['severity'] in ['high', 'critical'] else '🔍 بررسی دقیق')}
 """
             
             # اضافه کردن جزئیات اضافی

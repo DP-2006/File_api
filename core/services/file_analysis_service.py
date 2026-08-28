@@ -25,11 +25,11 @@ class FileAnalysisService:
             # 1. خواندن محتوای فایل
             file_info = FileReader.read_file(file_obj.file)
             content = file_info.get('content', '')
-            print(f"📄 [AI] محتوای فایل خوانده شد: {len(content)} کاراکتر")
+            print(f" [AI] محتوای فایل خوانده شد: {len(content)} کاراکتر")
             
             # 2. تحلیل با AI
             analysis_result = self._analyze_with_ai(content, file_obj.file.name)
-            print(f"🤖 [AI] تحلیل انجام شد - طول پاسخ: {len(analysis_result)}")
+            print(f" [AI] تحلیل انجام شد - طول پاسخ: {len(analysis_result)}")
              
             # 3. تعیین سطح تهدید
             threat_level = self._determine_threat_level(analysis_result)
@@ -44,7 +44,7 @@ class FileAnalysisService:
             if notification:
                 print(f"📬 [AI] نوتیفیکیشن ایجاد شد - ID: {notification.id}")
             else:
-                print(f"❌ [AI] نوتیفیکیشن ساخته نشد")
+                print(f" [AI] نوتیفیکیشن ساخته نشد")
             
             return {
                 'success': True,
