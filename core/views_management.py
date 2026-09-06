@@ -185,10 +185,8 @@ def assign_role_to_users_bulk_api(request):
         for user_id in user_ids:
             try:
                 user = User.objects.get(id=user_id)
-                # اختصاص نقش به کاربر (می‌تواند چند نقش داشته باشد)
                 user.groups.add(role)
                 
-                # ثبت در RoleAssignment
                 RoleAssignment.objects.get_or_create(
                     user=user,
                     role=role,

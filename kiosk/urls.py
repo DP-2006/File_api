@@ -9,7 +9,7 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
 from django.contrib.auth import views as auth_views
-
+from rest_framework.authtoken.views import obtain_auth_token
 
 
 schema_view = get_schema_view(
@@ -30,6 +30,7 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
+    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),  
     # اضافه کردن URL لاگین برای Swagger
     path('accounts/', include('django.contrib.auth.urls')),
 ]
