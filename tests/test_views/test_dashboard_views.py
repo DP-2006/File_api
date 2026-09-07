@@ -84,7 +84,8 @@ class TestFileViews:
         assert response.status_code == status.HTTP_403_FORBIDDEN
     
     def test_delete_file(self, authenticated_client, normal_user, test_file):
-        url = reverse('delete_my_file_view')
+        # ✅ اصلاح: استفاده از نام درست URL
+        url = reverse('delete_my_file')  # قبلاً: delete_my_file_view
         data = {'file_id': test_file.id}
         response = authenticated_client.post(url, data, format='json')
         assert response.status_code == status.HTTP_200_OK
