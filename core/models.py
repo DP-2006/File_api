@@ -481,15 +481,6 @@ class FileSizeSettings(models.Model):
         return self.max_download_size_mb * 1024 * 1024
 
 
-
-
-
-
-
-
-
-
-
 # core/models.py - اضافه کردن به انتهای فایل
 
 class RolePasswordPolicy(models.Model):
