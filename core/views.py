@@ -61,54 +61,62 @@ def is_api_request(request):
 # ============ Auth Views ============
 # =============================================
 
-@api_view(['GET', 'POST'])
-@permission_classes([AllowAny])
-def login_view(request):
-    if request.method == 'POST':
-        if request.content_type == 'application/json':
-            username = request.data.get('username')
-            password = request.data.get('password')
-        else:
-            username = request.POST.get('username')
-            password = request.POST.get('password')
+# @api_view(['GET', 'POST'])
+# @permission_classes([AllowAny])
+# def login_view(request):
+#     if request.method == 'POST':
+#         if request.content_type == 'application/json':
+#             username = request.data.get('username')
+#             password = request.data.get('password')
+#         else:
+#             username = request.POST.get('username')
+#             password = request.POST.get('password')
             
-        user = authenticate(request, username=username, password=password)
-        success = user is not None
+#         user = authenticate(request, username=username, password=password)
+#         success = user is not None
 
-        LoginLog.objects.create(
-            user=user if user else None,
-            ip_address=request.META.get('REMOTE_ADDR'),
-            success=success
-        )
+#         LoginLog.objects.create(
+#             user=user if user else None,
+#             ip_address=request.META.get('REMOTE_ADDR'),
+#             success=success
+#         )
 
-        if user:
-            login(request, user)
-            role = 'superadmin' if user.is_superuser else 'admin' if user.is_staff else 'user'
+#         # if user:
+#         #     login(request, user)
+#         #     role = 'superadmin' if user.is_superuser else 'admin' if user.is_staff else 'user'
             
-            token, created = Token.objects.get_or_create(user=user)
-            
-            if request.content_type == 'application/json' or is_api_request(request):
-                return Response({
-                    'success': True,
-                    'uid': user.id,
-                    'role': role,
-                    'token': token.key,
-                    'username': user.username,
-                    'is_staff': user.is_staff,
-                    'is_superuser': user.is_superuser
-                })
-            else:
-                return JsonResponse({'success': True, 'uid': user.id, 'role': role})
-        else:
-            if request.content_type == 'application/json' or is_api_request(request):
-                return Response({
-                    'success': False,
-                    'msg': 'نام کاربری یا رمز عبور اشتباه است'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            else:
-                return JsonResponse({'success': False, 'msg': 'نام کاربری یا رمز عبور اشتباه است'})
+#         #     token, created = Token.objects.get_or_create(user=user)
+
+#         if user:
+#             role = 'superadmin' if user.is_superuser else 'admin' if user.is_staff else 'user'
     
-    return render(request, 'login.html')
+#             Token.objects.filter(user=user).delete()
+#             token = Token.objects.create(user=user)
+
+
+#             if request.content_type == 'application/json' or is_api_request(request):
+#                 return Response({
+#                     'success': True,
+#                     'uid': user.id,
+#                     'role': role,
+#                     'token': token.key,
+#                     'username': user.username,
+#                     'is_staff': user.is_staff,
+#                     'is_superuser': user.is_superuser
+#                 })
+#             else:
+#                 return JsonResponse({'success': True, 'uid': user.id, 'role': role})
+            
+#         else:
+#             if request.content_type == 'application/json' or is_api_request(request):
+#                 return Response({
+#                     'success': False,
+#                     'msg': 'نام کاربری یا رمز عبور اشتباه است'
+#                 }, status=status.HTTP_401_UNAUTHORIZED)
+#             else:
+#                 return JsonResponse({'success': False, 'msg': 'نام کاربری یا رمز عبور اشتباه است'})
+    
+#     return render(request, 'login.html')
 
 
 @api_view(['GET', 'POST'])
@@ -127,6 +135,60 @@ def log_out_view(request):
     if is_api_request(request):
         return Response({'success': True, 'msg': 'successfully exit System'})    
     return redirect('login')
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    if request.method == 'POST':
+        if request.content_type == 'application/json':
+            username = request.data.get('username')
+            password = request.data.get('password')
+        else:
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+
+        user = authenticate(request, username=username, password=password)
+        success = user is not None
+
+        LoginLog.objects.create(
+            user=user if user else None,
+            ip_address=request.META.get('REMOTE_ADDR'),
+            success=success
+        )
+
+        if user:
+            role = 'superadmin' if user.is_superuser else 'admin' if user.is_staff else 'user'
+
+            Token.objects.filter(user=user).delete()
+            token = Token.objects.create(user=user)
+
+            response = JsonResponse({
+                'success': True,
+                'uid': user.id,
+                'role': role,
+                'token': token.key,
+                'username': user.username,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser
+            })
+            response.set_cookie(
+                'authToken',
+                token.key,
+                httponly=True,
+                secure=False,
+                samesite='Lax',
+                path='/',
+            )
+            return response
+        else:
+            return JsonResponse({
+                'success': False,
+                'msg': 'نام کاربری یا رمز عبور اشتباه است'
+            }, status=401)
+
+    return render(request, 'login.html')
+
 
 
 # =============================================
