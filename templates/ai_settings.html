@@ -697,7 +697,6 @@
 <body>
 
 <div id="root"></div>
-
 <script src="{% static 'js/react.production.min.js' %}"></script>
 <script src="{% static 'js/react-dom.production.min.js' %}"></script>
 
@@ -705,10 +704,10 @@
   const { useState, useEffect, useCallback, createContext, useContext, useRef } = React;
 
   // ============================================
-  // مدیریت احراز هویت و Token
+  // مدیریت احراز هویت (بر پایه Session Cookie)
   // ============================================
   function getAuthToken() {
-    return localStorage.getItem('authToken') || '';
+    return '';
   }
 
   function getCookie(name) {
@@ -727,34 +726,29 @@
   }
 
   async function fetchWithAuth(url, options = {}) {
-    const token = getAuthToken();
     const csrfToken = getCookie('csrftoken');
-    
     options.headers = options.headers || {};
-    
-    if (token) {
-      options.headers['Authorization'] = `Token ${token}`;
-    }
-    
+    options.credentials = 'same-origin';
+
     if (csrfToken) {
       options.headers['X-CSRFToken'] = csrfToken;
     }
-    
+
     if (!options.headers['Content-Type'] && !(options.body instanceof FormData)) {
       options.headers['Content-Type'] = 'application/json';
     }
-    
+
     try {
       const response = await fetch(url, options);
-      
-      if (response.status === 401) {
+
+      if (response.status === 401 || response.status === 403) {
         showToast('لطفاً مجدداً وارد سیستم شوید', 'error');
         setTimeout(() => {
           window.location.href = '/login/';
         }, 1500);
         throw new Error('Unauthorized');
       }
-      
+
       return response;
     } catch (error) {
       if (error.message !== 'Unauthorized') {
@@ -770,7 +764,7 @@
     const el = document.getElementById('toast');
     const icon = document.getElementById('toastIcon');
     const msg = document.getElementById('toastMsg');
-    
+
     msg.textContent = message;
     icon.className = 'toast-icon' + (type === 'error' ? ' error' : '');
     el.classList.add('show');
@@ -788,19 +782,7 @@
   const useToast = () => useContext(ToastContext);
 
   function getUsernameFromToken() {
-    const token = getAuthToken();
-    if (!token) return null;
-    try {
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        const payload = JSON.parse(atob(parts[1]));
-        return payload.username || payload.sub || payload.user || payload.email || null;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error parsing JWT:', error);
-      return null;
-    }
+    return null;
   }
 
   // ============================================
@@ -814,7 +796,7 @@
           React.createElement('div', { className: 'panel-sub' }, 'در حال بارگذاری...')
         ),
         React.createElement('div', { className: 'grid-2col' },
-          [1,2,3,4,5].map(i => 
+          [1,2,3,4,5].map(i =>
             React.createElement('div', { key: i, className: 'card' },
               React.createElement('div', { className: 'k' }, '•••'),
               React.createElement('div', { className: 'v' }, '---')
@@ -823,7 +805,7 @@
         )
       );
     }
-    
+
     const items = [
       ['Hostname', data?.hostname || 'نامشخص'],
       ['OS', data?.os || 'نامشخص'],
@@ -831,14 +813,14 @@
       ['RAM', data?.ram_total || 'نامشخص'],
       ['Python', data?.python_version || 'نامشخص']
     ];
-    
+
     return React.createElement('div', { className: 'panel active' },
       React.createElement('div', { className: 'panel-header' },
         React.createElement('div', { className: 'panel-title' }, 'System Information'),
         React.createElement('div', { className: 'panel-sub' }, 'اطلاعات سیستم از <code>/network-info/</code>')
       ),
       React.createElement('div', { className: 'grid-2col' },
-        items.map(([label, value]) => 
+        items.map(([label, value]) =>
           React.createElement('div', { key: label, className: 'card' },
             React.createElement('div', { className: 'k' }, label),
             React.createElement('div', { className: 'v' }, value)
@@ -859,7 +841,7 @@
           React.createElement('div', { className: 'panel-sub' }, 'در حال بارگذاری...')
         ),
         React.createElement('div', { className: 'grid-2col' },
-          [1,2,3,4,5,6].map(i => 
+          [1,2,3,4,5,6].map(i =>
             React.createElement('div', { key: i, className: 'card' },
               React.createElement('div', { className: 'k' }, '•••'),
               React.createElement('div', { className: 'v' }, '---')
@@ -868,7 +850,7 @@
         )
       );
     }
-    
+
     const items = [
       ['IP Address', data?.ip_address || 'نامشخص'],
       ['Subnet Mask', data?.subnet_mask || 'نامشخص'],
@@ -877,14 +859,14 @@
       ['Secondary DNS', data?.secondary_dns || 'نامشخص'],
       ['MAC Address', data?.mac_address || 'نامشخص']
     ];
-    
+
     return React.createElement('div', { className: 'panel active' },
       React.createElement('div', { className: 'panel-header' },
         React.createElement('div', { className: 'panel-title' }, 'Network Information'),
         React.createElement('div', { className: 'panel-sub' }, 'اطلاعات شبکه از <code>/network-info/</code>')
       ),
       React.createElement('div', { className: 'grid-2col' },
-        items.map(([label, value]) => 
+        items.map(([label, value]) =>
           React.createElement('div', { key: label, className: 'card' },
             React.createElement('div', { className: 'k' }, label),
             React.createElement('div', { className: 'v' }, value)
@@ -948,7 +930,7 @@
       ),
       React.createElement('form', { onSubmit: handleSubmit, className: 'form-card' },
         React.createElement('div', { className: 'form-grid' },
-          fields.map(f => 
+          fields.map(f =>
             React.createElement('div', { key: f.name, className: 'field' },
               React.createElement('label', null, f.label),
               React.createElement('input', {
@@ -964,9 +946,9 @@
           React.createElement('button', { type: 'submit', className: 'btn btn-primary', disabled: loading },
             loading ? React.createElement('span', { className: 'loading-spinner' }) : '💾 Save'
           ),
-          React.createElement('button', { 
-            type: 'button', 
-            className: 'btn btn-secondary', 
+          React.createElement('button', {
+            type: 'button',
+            className: 'btn btn-secondary',
             onClick: () => onApply(form),
             disabled: loading
           },
@@ -1068,9 +1050,9 @@
           React.createElement('button', { type: 'submit', className: 'btn btn-primary', disabled: loading },
             loading ? React.createElement('span', { className: 'loading-spinner' }) : '💾 Save'
           ),
-          React.createElement('button', { 
-            type: 'button', 
-            className: 'btn btn-ghost', 
+          React.createElement('button', {
+            type: 'button',
+            className: 'btn btn-ghost',
             onClick: onReset,
             disabled: loading
           },
@@ -1195,7 +1177,7 @@
               placeholder: 'llama3.1:8b'
             }),
             models.length > 0 && React.createElement('div', { className: 'model-tags' },
-              models.map(m => 
+              models.map(m =>
                 React.createElement('span', {
                   key: m,
                   className: 'model-tag' + (m === form.model ? ' active' : ''),
@@ -1241,25 +1223,25 @@
           )
         ),
         React.createElement('div', { className: 'btn-row' },
-          React.createElement('button', { 
-            type: 'button', 
-            className: 'btn btn-secondary', 
+          React.createElement('button', {
+            type: 'button',
+            className: 'btn btn-secondary',
             onClick: testConnection,
             disabled: loading
           },
             loading ? React.createElement('span', { className: 'loading-spinner' }) : '🔌 Test'
           ),
-          React.createElement('button', { 
-            type: 'button', 
-            className: 'btn btn-secondary', 
+          React.createElement('button', {
+            type: 'button',
+            className: 'btn btn-secondary',
             onClick: getModels,
             disabled: loading
           },
             loading ? React.createElement('span', { className: 'loading-spinner' }) : '📥 Get Models'
           ),
-          React.createElement('button', { 
-            type: 'button', 
-            className: 'btn btn-danger', 
+          React.createElement('button', {
+            type: 'button',
+            className: 'btn btn-danger',
             onClick: onRestart,
             disabled: loading
           },
@@ -1359,13 +1341,13 @@
   // ============================================
   // COMPONENT: Edit Role Modal
   // ============================================
-  const EditRoleModal = ({ 
-    role, 
-    allPermissions, 
-    isOpen, 
-    onClose, 
-    onSave, 
-    loading 
+  const EditRoleModal = ({
+    role,
+    allPermissions,
+    isOpen,
+    onClose,
+    onSave,
+    loading
   }) => {
     const [form, setForm] = useState({
       name: role?.name || '',
@@ -1396,7 +1378,7 @@
     return React.createElement('div', { className: 'modal-overlay open' },
       React.createElement('div', { className: 'modal-box' },
         React.createElement('h3', null, '✏️ ویرایش نقش: ', role?.name),
-        
+
         React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
           React.createElement('label', null, 'نام نقش'),
           React.createElement('input', {
@@ -1406,7 +1388,7 @@
             placeholder: 'نام نقش را وارد کنید'
           })
         ),
-        
+
         React.createElement('div', { className: 'field', style: { marginBottom: '12px' } },
           React.createElement('label', null, 'دسترسی‌ها'),
           React.createElement('div', { className: 'checkbox-grid' },
@@ -1434,7 +1416,7 @@
             )
           )
         ),
-        
+
         React.createElement('div', { className: 'modal-actions' },
           React.createElement('button', {
             className: 'btn btn-secondary btn-sm',
@@ -1462,7 +1444,7 @@
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [activeTab, setActiveTab] = useState('users');
-    
+
     const [newRoleName, setNewRoleName] = useState('');
     const [newRolePerms, setNewRolePerms] = useState([]);
     const [newRolePolicy, setNewRolePolicy] = useState({
@@ -1475,19 +1457,20 @@
       max_attempts: 5
     });
     const [showCreateRoleModal, setShowCreateRoleModal] = useState(false);
-    
+
     const [editRole, setEditRole] = useState(null);
     const [showEditRoleModal, setShowEditRoleModal] = useState(false);
     const [editLoading, setEditLoading] = useState(false);
-    
+
     const [selectedRoleId, setSelectedRoleId] = useState('');
     const [selectedUserIds, setSelectedUserIds] = useState([]);
     const [bulkBlockUsers, setBulkBlockUsers] = useState([]);
     const [bulkPassword, setBulkPassword] = useState('');
-    
+
     const [multiRoleUserId, setMultiRoleUserId] = useState(null);
     const [multiRoleIds, setMultiRoleIds] = useState([]);
     const [showMultiRoleModal, setShowMultiRoleModal] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState(null);
 
     const toast = useToast();
 
@@ -1502,6 +1485,17 @@
     useEffect(() => {
       setPermissionsList(allPermissions || []);
     }, [allPermissions]);
+
+    useEffect(() => {
+      fetchWithAuth('/users/me/permissions/')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.user_id) {
+            setCurrentUserId(data.user_id);
+          }
+        })
+        .catch(() => {});
+    }, []);
 
     const handleCreateUser = async (username, password, roleId) => {
       if (!username || !password) {
@@ -1596,7 +1590,6 @@
       }
     };
 
-    // ========== Unassign Role (بدون محدودیت آخرین نقش) ==========
     const handleUnassignRole = async (userId, roleId) => {
       if (!confirm('آیا از حذف این نقش از کاربر اطمینان دارید؟')) return;
       try {
@@ -1619,7 +1612,6 @@
       }
     };
 
-    // ========== Edit Role ==========
     const handleEditRole = async (roleId, formData) => {
       setEditLoading(true);
       try {
@@ -2121,11 +2113,11 @@
                 'هیچ کاربری یافت نشد'
               ) :
               filteredUsers.map(user => {
-                const isCurrentUser = user.id === parseInt(localStorage.getItem('userId') || '0');
+                const isCurrentUser = currentUserId !== null && user.id === currentUserId;
                 const userRole = user.is_superuser ? 'super' : user.is_staff ? 'admin' : 'user';
                 const roleLabel = user.is_superuser ? 'سوپر ادمین' : user.is_staff ? 'ادمین' : 'کاربر';
                 const userRoles = user.roles || [];
-                
+
                 return React.createElement('div', { key: user.id, className: 'user-row' },
                   React.createElement('div', { className: 'user-info' },
                     React.createElement('div', { className: 'user-avatar' }, (user.username || 'U')[0].toUpperCase()),
@@ -2401,19 +2393,18 @@
     const toast = useToast();
 
     useEffect(() => {
-      const token = getAuthToken();
-      if (!token) {
-        toast('لطفاً ابتدا وارد سیستم شوید', 'error');
-        setTimeout(() => { window.location.href = '/login/'; }, 1500);
-        return;
-      }
-      
-      const user = getUsernameFromToken();
-      if (user) {
-        setUsername(user);
-      } else {
-        setUsername('کاربر');
-      }
+      fetchWithAuth('/users/me/permissions/')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.username) {
+            setUsername(data.username);
+          } else {
+            setUsername('کاربر');
+          }
+        })
+        .catch(() => {
+          setUsername('کاربر');
+        });
     }, []);
 
     const loadAllData = useCallback(async () => {
@@ -2462,11 +2453,7 @@
       try {
         const response = await fetchWithAuth('/api/users-list/');
         const data = await response.json();
-        if (Array.isArray(data)) {
-          setUsers(data);
-          const currentUser = data.find(u => u.username === username);
-          if (currentUser) localStorage.setItem('userId', currentUser.id);
-        }
+        if (Array.isArray(data)) setUsers(data);
       } catch (error) {
         if (error.message !== 'Unauthorized') toast('خطا در بارگذاری کاربران', 'error');
       } finally {
@@ -2488,7 +2475,7 @@
       } catch (error) {
         if (error.message !== 'Unauthorized') console.error('Error loading permissions:', error);
       }
-    }, [toast, username]);
+    }, [toast]);
 
     useEffect(() => {
       loadAllData();
@@ -2683,13 +2670,13 @@
         if (Array.isArray(data)) {
           setUsers(data);
         }
-        
+
         const rolesResponse = await fetchWithAuth('/api/roles/');
         const rolesData = await rolesResponse.json();
         if (Array.isArray(rolesData)) {
           setRoles(rolesData);
         }
-        
+
         toast('لیست به‌روزرسانی شد', 'success');
       } catch (error) {
         if (error.message !== 'Unauthorized') toast('خطا در بارگذاری داده‌ها', 'error');
@@ -2794,7 +2781,7 @@
           ' Settings'
         )
       ),
-      
+
       React.createElement('div', { className: 'titlebar' },
         React.createElement('div', { className: 'titlebar-left' },
           React.createElement('div', { className: 'back-btn' },
@@ -2806,8 +2793,8 @@
         ),
         React.createElement('div', { className: 'titlebar-title' }, 'سیستم و مدیریت'),
         React.createElement('div', { className: 'titlebar-actions' },
-          React.createElement('div', { 
-            className: 'theme-toggle', 
+          React.createElement('div', {
+            className: 'theme-toggle',
             id: 'themeToggle',
             onClick: function() {
               const html = document.documentElement;
@@ -2821,11 +2808,11 @@
           React.createElement('div', { className: 'profile-btn' }, username.charAt(0).toUpperCase() || '👤')
         )
       ),
-      
+
       React.createElement('div', { className: 'body' },
         React.createElement('div', { className: 'sidebar' },
           React.createElement('div', { className: 'sidebar-section-label' }, 'Overview'),
-          tabs.map(tab => 
+          tabs.map(tab =>
             React.createElement('button', {
               key: tab.id,
               className: 'nav-item' + (activeTab === tab.id ? ' active' : ''),
@@ -2836,12 +2823,12 @@
             )
           )
         ),
-        
+
         React.createElement('div', { className: 'main' },
           renderPanel()
         )
       ),
-      
+
       React.createElement('div', { className: 'toast-container', id: 'toastContainer' },
         React.createElement('div', { className: 'toast', id: 'toast' },
           React.createElement('span', { className: 'toast-icon', id: 'toastIcon' }),
@@ -2868,6 +2855,3 @@
   updateIslandTime();
   setInterval(updateIslandTime, 10000);
 </script>
-
-</body>
-</html>
