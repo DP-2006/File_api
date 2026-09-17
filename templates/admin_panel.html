@@ -357,9 +357,9 @@ color: #991b1b;
 </a>
 </li>
 <li>
-<a href="/super-admin/">
-<i>⚙️</i>
-سوپر ادمین
+<!-- <a href="/super-admin/"> -->
+<!-- <i>⚙️</i> -->
+<!-- سوپر ادمین -->
 </a>
 </li>
 </ul>
@@ -392,7 +392,7 @@ color: #991b1b;
 <h1>🛡️ پنل مدیریت</h1>
 <div>
 <span style="color: #7f8c8d; margin-left: 15px;">خوش آمدید، <strong>{{ request.user.username }}</strong></span>
-<a href="/super-admin/" class="btn btn-purple">سوپر ادمین</a>
+<!-- <a href="/super-admin/" class="btn btn-purple">سوپر ادمین</a> -->
 <a href="/dashboard/" class="btn btn-blue">بازگشت</a>
 </div>
 </div>
@@ -519,7 +519,7 @@ color: #991b1b;
 <td>{{ f.uploaded_at|date:"Y-m-d H:i" }}</td>
   
 <td>
-<a href="/api/download-file/{{ f.id }}/" class="btn btn-green" style="padding: 5px 10px; font-size: 0.85em;">⬇️ دانلود</a>
+<a href="{% url 'download_file' f.id %}" class="btn btn-green" style="padding: 5px 10px; font-size: 0.85em;">⬇️ دانلود</a>
 <button onclick="confirmDeleteFile({{ f.id }}, '{{ f.file.name }}')" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.85em;">🗑️ حذف</button>
 </td>
 </tr>
@@ -659,10 +659,10 @@ if(data.success) location.reload();
 async function deleteFile(id) {
 if(!confirm("آیا می‌خواهید این فایل را حذف کنید؟")) return;
   
-const res = await fetch('/api/admin-delete-file/', {
+const res = await fetch('/api/admin-action/', {
 method: 'POST',
 headers: { "Content-Type":"application/json", 'X-CSRFToken': getCookie('csrftoken') },
-body: JSON.stringify({ file_id:id })
+body: JSON.stringify({ action:"delete_file", file_id:id })
     });
   
 const data = await res.json();
@@ -730,8 +730,9 @@ async function executeDelete() {
                 user_id: deleteTargetId
             };
         } else if (deleteTargetType === 'file') {
-            url = '/api/admin-delete-file/';
+            url = '/api/admin-action/';
             body = {
+                action: 'delete_file',
                 file_id: deleteTargetId
             };
         }
