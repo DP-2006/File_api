@@ -388,7 +388,6 @@
         }
     </style>
 </head>
-
 <body>
     {% if user.is_authenticated %}
     <!-- ========== DASHBOARD ========== -->
@@ -406,48 +405,18 @@
     </script>
 
     <script type="text/babel">
-        // ---- توابع جدید احراز هویت و مدیریت توکن ----
-        function getAuthToken() {
-            return localStorage.getItem('authToken');
-        }
-
-        function setAuthToken(token) {
-            localStorage.setItem('authToken', token);
-        }
-
-        function removeAuthToken() {
-            localStorage.removeItem('authToken');
-        }
-
         // ---- Wrapper امن برای درخواست‌ها ----
-        function apiRequest(url, options, publicRequest) {
-            var token = getAuthToken();
+        function apiRequest(url, options) {
             if (!options) options = {};
             if (!options.headers) options.headers = {};
-
-            // اگر درخواست عمومی نباشد و توکن وجود داشته باشد، هدر Authorization را اضافه می‌کنیم
-            if (!publicRequest && token) {
-                options.headers['Authorization'] = 'Token ' + token;
-            }
-
-            // برای درخواست‌های عمومی یا زمانی که توکن نداریم، X-CSRFToken را از کوکی می‌گیریم
-            if (publicRequest || !token) {
-                var csrfToken = getCookie('csrftoken');
-                if (csrfToken) {
-                    options.headers['X-CSRFToken'] = csrfToken;
-                }
-            }
-
-            // تنظیم Content-Type در صورت عدم وجود
+            options.headers['X-CSRFToken'] = getCookie('csrftoken');
+            options.credentials = 'same-origin';
             if (options.body && !(options.body instanceof FormData) && !options.headers['Content-Type']) {
                 options.headers['Content-Type'] = 'application/json';
             }
-
             return fetch(url, options)
                 .then(function(res) {
                     if (res.status === 401) {
-                        removeAuthToken();
-                        // جلوگیری از حلقه بی‌نهایت با setTimeout
                         setTimeout(function() {
                             window.location.href = '/login/';
                         }, 100);
@@ -788,12 +757,7 @@
 
             // بررسی توکن در ابتدای بارگذاری
             React.useEffect(function() {
-                var token = getAuthToken();
-                if (!token) {
-                    window.location.href = '/login/';
-                } else {
-                    setIsCheckingToken(false);
-                }
+                setIsCheckingToken(false);
             }, []);
 
             React.useEffect(function() {
@@ -962,7 +926,7 @@
             var openSendModal = React.useCallback(function() {
                 setSendModalOpen(true);
                 setIsLoadingUsers(true);
-                apiRequest('/api/users/', { method: 'GET' }, true) // public request
+                apiRequest('/api/users/', { method: 'GET' })
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
                     setUsers(data || []);
@@ -1037,11 +1001,10 @@
                     open: true,
                     message: 'آیا از خروج از حساب اطمینان دارید؟',
                     onConfirm: function() {
-                        removeAuthToken();
                         apiRequest('/logout/', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' }
-                        }, true)
+                        })
                         .catch(function(e) { console.error('Logout error:', e); })
                         .finally(function() {
                             window.location.href = '/login/';
@@ -1800,7 +1763,7 @@
         root.render(React.createElement(Dashboard));
     </script>
 
-    {% else %}
+{% else %}
     <!-- ========== LOGIN PAGE ========== -->
     <div class="login-container">
         <div class="login-card">
@@ -1837,23 +1800,39 @@
         </div>
     </div>
 
-    <!-- اسکریپت برای ذخیره توکن پس از ورود موفق -->
     <script>
         (function() {
+            function getCookie(name) {
+                var cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    var cookies = document.cookie.split(';');
+                    for (var i = 0; i < cookies.length; i++) {
+                        var cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
             var form = document.querySelector('form[action="/api-token-auth/"]');
             if (form) {
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
                     var formData = new FormData(form);
-                    fetch('/api-token-auth/', {
+                    fetch('/login/', {
                         method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
                         body: formData
                     })
                     .then(function(res) { return res.json(); })
                     .then(function(data) {
-                        if (data.token) {
-                            localStorage.setItem('authToken', data.token);
-                            window.location.href = '/';
+                        if (data.success) {
+                            document.location.replace('/');
                         } else {
                             var errorDiv = document.createElement('div');
                             errorDiv.style.marginTop = '12px';
@@ -1864,7 +1843,7 @@
                             errorDiv.style.color = '#ff3b30';
                             errorDiv.style.fontSize = '13px';
                             errorDiv.style.textAlign = 'center';
-                            errorDiv.textContent = 'نام کاربری یا رمز عبور اشتباه است.';
+                            errorDiv.textContent = data.msg || 'نام کاربری یا رمز عبور اشتباه است.';
                             var existing = form.querySelector('.error-msg');
                             if (existing) existing.remove();
                             errorDiv.className = 'error-msg';

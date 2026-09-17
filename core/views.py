@@ -118,6 +118,81 @@ def is_api_request(request):
     
 #     return render(request, 'login.html')
 
+# #part 2
+# @api_view(['GET', 'POST'])
+# def logout_view(request):
+#     logout(request)
+#     if is_api_request(request):
+#         return Response({'success': True, 'msg': 'خروج موفقیت‌آمیز'})
+#     return redirect('login')
+
+
+# @api_view(['GET', 'POST'])
+# def log_out_view(request):  
+#     if request.user.is_authenticated:
+#         Token.objects.filter(user=request.user).delete()  
+#     logout(request)
+#     if is_api_request(request):
+#         return Response({'success': True, 'msg': 'successfully exit System'})    
+#     return redirect('login')
+
+
+# @api_view(['GET', 'POST'])
+# @permission_classes([AllowAny])
+# def login_view(request):
+#     if request.method == 'POST':
+#         if request.content_type == 'application/json':
+#             username = request.data.get('username')
+#             password = request.data.get('password')
+#         else:
+#             username = request.POST.get('username')
+#             password = request.POST.get('password')
+
+#         user = authenticate(request, username=username, password=password)
+#         success = user is not None
+
+#         LoginLog.objects.create(
+#             user=user if user else None,
+#             ip_address=request.META.get('REMOTE_ADDR'),
+#             success=success
+#         )
+
+#         if user:
+#             role = 'superadmin' if user.is_superuser else 'admin' if user.is_staff else 'user'
+
+#             Token.objects.filter(user=user).delete()
+#             token = Token.objects.create(user=user)
+
+#             response = JsonResponse({
+#                 'success': True,
+#                 'uid': user.id,
+#                 'role': role,
+#                 'token': token.key,
+#                 'username': user.username,
+#                 'is_staff': user.is_staff,
+#                 'is_superuser': user.is_superuser
+#             })
+#             response.set_cookie(
+#                 'authToken',
+#                 token.key,
+#                 httponly=True,
+#                 secure=False,
+#                 samesite='Lax',
+#                 path='/',
+#             )
+#             return response
+#         else:
+#             return JsonResponse({
+#                 'success': False,
+#                 'msg': 'نام کاربری یا رمز عبور اشتباه است'
+#             }, status=401)
+
+#     return render(request, 'login.html')
+
+
+# =============================================
+# ============ Auth Views ============
+# =============================================
 
 @api_view(['GET', 'POST'])
 def logout_view(request):
@@ -128,15 +203,13 @@ def logout_view(request):
 
 
 @api_view(['GET', 'POST'])
-def log_out_view(request):  
+def log_out_view(request):
     if request.user.is_authenticated:
-        Token.objects.filter(user=request.user).delete()  
+        Token.objects.filter(user=request.user).delete()
     logout(request)
     if is_api_request(request):
-        return Response({'success': True, 'msg': 'successfully exit System'})    
+        return Response({'success': True, 'msg': 'successfully exit System'})
     return redirect('login')
-
-
 @api_view(['GET', 'POST'])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -159,26 +232,22 @@ def login_view(request):
 
         if user:
             role = 'superadmin' if user.is_superuser else 'admin' if user.is_staff else 'user'
-
-            Token.objects.filter(user=user).delete()
-            token = Token.objects.create(user=user)
-
+            login(request, user)
+            request.session.save()
             response = JsonResponse({
                 'success': True,
                 'uid': user.id,
                 'role': role,
-                'token': token.key,
                 'username': user.username,
                 'is_staff': user.is_staff,
                 'is_superuser': user.is_superuser
             })
             response.set_cookie(
-                'authToken',
-                token.key,
+                'sessionid',
+                request.session.session_key,
                 httponly=True,
-                secure=False,
                 samesite='Lax',
-                path='/',
+                path='/'
             )
             return response
         else:
@@ -187,9 +256,11 @@ def login_view(request):
                 'msg': 'نام کاربری یا رمز عبور اشتباه است'
             }, status=401)
 
+    # GET: اگر کاربر قبلاً لاگین است، برود داشبورد
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
     return render(request, 'login.html')
-
-
 
 # =============================================
 # ============ Dashboard Views ============
@@ -228,8 +299,14 @@ def login_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def dashboard_view(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    # if not request.user.is_authenticated:
+    #     return redirect('login')
+    settings = get_or_create_settings(request.user)
+
     settings = get_or_create_settings(request.user)
     
     # دیباگ - چاپ تعداد فایل‌ها
@@ -274,24 +351,24 @@ def dashboard_view(request):
         for f in all_files:
             print(f"  - ID: {f.id}, نام: {f.file.name}, آپلود کننده: {f.uploaded_by.username}, ارسال به: {f.sent_to_user.username if f.sent_to_user else 'هیچ‌کس'}")
     
-    if is_api_request(request):
-        serializer = UploadedFileSerializer(my_files, many=True, context={'request': request})
-        received_serializer = UploadedFileSerializer(received_files, many=True, context={'request': request})
-        return Response({
-            'settings': {
-                'font_size': settings.font_size,
-                'menu_size': settings.menu_size,
-                'button_size': settings.button_size
-            },
-            'files': serializer.data,
-            'received_files': received_serializer.data,
-            'user': {
-                'id': request.user.id,
-                'username': request.user.username,
-                'is_staff': request.user.is_staff,
-                'is_superuser': request.user.is_superuser
-            }
-        })
+    # if is_api_request(request):
+    #     serializer = UploadedFileSerializer(my_files, many=True, context={'request': request})
+    #     received_serializer = UploadedFileSerializer(received_files, many=True, context={'request': request})
+    #     return Response({
+    #         'settings': {
+    #             'font_size': settings.font_size,
+    #             'menu_size': settings.menu_size,
+    #             'button_size': settings.button_size
+    #         },
+    #         'files': serializer.data,
+    #         'received_files': received_serializer.data,
+    #         'user': {
+    #             'id': request.user.id,
+    #             'username': request.user.username,
+    #             'is_staff': request.user.is_staff,
+    #             'is_superuser': request.user.is_superuser
+    #         }
+    #     })
     
     django_data = {
         'user': {

@@ -183,17 +183,25 @@ from .views_management import (
     get_users_by_role_api,
     bulk_block_users_api,
     bulk_change_password_api,
-    update_role_api,  # <--- این خط را اضافه کنید
+    update_role_api,  
 )
 
 urlpatterns = [
     
     # ========== Auth ==========
-    path('', views.login_view, name='login'),
-    path('login/', csrf_exempt(views.login_view), name='login_view'),
+    #path('', views.dashboard_view, name='dashboard'),
+    # path('login/', csrf_exempt(views.login_view), name='login'),
+    # path('', views.login_view, name='login'),
+    # path('login/', csrf_exempt(views.login_view), name='login_view'),
+    # path('logout/', views.logout_view, name='logout'),
+    # path('logout-token/', views.log_out_view, name='logout_token'),
+    
+    # ========== Auth ==========
+    path('', views.dashboard_view, name='dashboard'),
+    path('login/', csrf_exempt(views.login_view), name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('logout-token/', views.log_out_view, name='logout_token'),
-    
+
     # ========== Dashboard ==========
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('upload/', views.upload_files_view, name='upload_files'),

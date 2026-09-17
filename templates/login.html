@@ -528,7 +528,6 @@
 
         </section>
     </main>
-
 <script>
     /* --- YOUR ORIGINAL SCRIPT START --- */
     function getCookie(name) {
@@ -584,23 +583,19 @@
                     'X-CSRFToken': getCookie('csrftoken'),
                     'X-Requested-With': 'XMLHttpRequest'
                 },
+                credentials: 'same-origin',
                 body: formData
             });
 
             const data = await res.json();
 
             if (data.success) {
-                if (data.token) {
-                    // ✅ ذخیره توکن در کوکی session (بدون max-age → با بستن تب پاک می‌شه)
-                    document.cookie = `authToken=${encodeURIComponent(data.token)}; path=/; SameSite=Lax`;
-                }
-
                 showToast('ورود موفق! در حال انتقال به داشبورد...', 'success');
 
                 updateActivity("✨ Access Granted!", "😊", "The door is open! Welcome aboard!");
 
                 setTimeout(() => {
-                    window.location.href = '/dashboard/';
+                    window.location.href = '/';
                 }, 500);
             } else {
                 handleLoginFailure(u);
@@ -615,25 +610,6 @@
             btn.disabled = false;
         }
     });
-
-    window.onload = function() {
-        // ✅ خوندن توکن از کوکی
-        const token = getCookie('authToken');
-        if (token) {
-            fetch('/dashboard/', {
-                headers: {
-                    'Authorization': `Token ${token}`
-                }
-            }).then(res => {
-                if (res.ok) {
-                    window.location.href = '/dashboard/';
-                } else {
-                    // توکن نامعتبر → پاکش کن
-                    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                }
-            }).catch(() => {});
-        }
-    };
     /* --- YOUR ORIGINAL SCRIPT END --- */
 
     /* --- NEW FEATURES: Animations & Security Logic --- */
