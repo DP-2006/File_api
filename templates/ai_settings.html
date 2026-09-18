@@ -699,6 +699,9 @@
 <div id="root"></div>
 <script src="{% static 'js/react.production.min.js' %}"></script>
 <script src="{% static 'js/react-dom.production.min.js' %}"></script>
+<div id="root"></div>
+<script src="{% static 'js/react.production.min.js' %}"></script>
+<script src="{% static 'js/react-dom.production.min.js' %}"></script>
 
 <script>
   const { useState, useEffect, useCallback, createContext, useContext, useRef } = React;
@@ -1567,27 +1570,90 @@
       }
     };
 
-    const handleChangePassword = async (userId) => {
-      const newPass = prompt('رمز عبور جدید را وارد کنید:');
-      if (!newPass) return;
-      try {
-        const response = await fetchWithAuth('/api/admin-action/', {
-          method: 'POST',
-          body: JSON.stringify({
-            action: 'change_password',
-            user_id: userId,
-            new_password: newPass
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          toast('رمز عبور با موفقیت تغییر کرد', 'success');
-        } else {
-          toast(data.msg || 'خطا در تغییر رمز', 'error');
+    const handleChangePassword = async (userId, username) => {
+      const existingModal = document.getElementById('changePasswordModal');
+      if (existingModal) existingModal.remove();
+
+      const modal = document.createElement('div');
+      modal.id = 'changePasswordModal';
+      modal.className = 'modal-overlay open';
+      modal.innerHTML = `
+        <div class="modal-box">
+          <h3>🔑 تغییر رمز عبور</h3>
+          <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">
+            کاربر: <strong>${username || 'نامشخص'}</strong>
+          </p>
+          <div class="field" style="margin-bottom: 12px;">
+            <label>رمز عبور جدید</label>
+            <input type="password" id="cpNewPassword" placeholder="حداقل ۸ کاراکتر" />
+          </div>
+          <div class="field" style="margin-bottom: 12px;">
+            <label>تکرار رمز عبور جدید</label>
+            <input type="password" id="cpConfirmPassword" placeholder="تکرار رمز عبور" />
+          </div>
+          <div id="cpError" style="color: var(--red); font-size: 13px; margin-bottom: 10px; display: none;"></div>
+          <div class="modal-actions">
+            <button class="btn btn-secondary btn-sm" id="cpCancelBtn">لغو</button>
+            <button class="btn btn-primary btn-sm" id="cpSubmitBtn">💾 تغییر رمز</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const closeModal = () => {
+        const m = document.getElementById('changePasswordModal');
+        if (m) m.remove();
+      };
+
+      document.getElementById('cpCancelBtn').onclick = closeModal;
+
+      document.getElementById('cpSubmitBtn').onclick = async () => {
+        const newPass = document.getElementById('cpNewPassword').value.trim();
+        const confirmPass = document.getElementById('cpConfirmPassword').value.trim();
+        const errorEl = document.getElementById('cpError');
+
+        if (!newPass) {
+          errorEl.textContent = 'رمز عبور جدید را وارد کنید.';
+          errorEl.style.display = 'block';
+          return;
         }
-      } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
-      }
+        if (newPass.length < 8) {
+          errorEl.textContent = 'رمز عبور باید حداقل ۸ کاراکتر باشد.';
+          errorEl.style.display = 'block';
+          return;
+        }
+        if (newPass !== confirmPass) {
+          errorEl.textContent = 'رمز عبور و تکرار آن یکسان نیستند.';
+          errorEl.style.display = 'block';
+          return;
+        }
+
+        errorEl.style.display = 'none';
+
+        try {
+          const response = await fetchWithAuth('/api/admin-action/', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'change_password',
+              user_id: userId,
+              new_password: newPass
+            })
+          });
+          const data = await response.json();
+          if (data.success) {
+            toast('رمز عبور با موفقیت تغییر کرد', 'success');
+            closeModal();
+          } else {
+            errorEl.textContent = data.msg || 'خطا در تغییر رمز';
+            errorEl.style.display = 'block';
+          }
+        } catch (error) {
+          if (error.message !== 'Unauthorized') {
+            errorEl.textContent = 'خطا در ارتباط با سرور';
+            errorEl.style.display = 'block';
+          }
+        }
+      };
     };
 
     const handleUnassignRole = async (userId, roleId) => {
@@ -2162,7 +2228,7 @@
                       }, '🎯 نقش‌ها'),
                       !isCurrentUser && React.createElement('button', {
                         className: 'btn btn-secondary btn-sm',
-                        onClick: () => handleChangePassword(user.id)
+                        onClick: () => handleChangePassword(user.id, user.username)
                       }, '🔑 رمز'),
                       !isCurrentUser && React.createElement('button', {
                         className: `btn ${user.is_active ? 'btn-danger' : 'btn-success'} btn-sm`,

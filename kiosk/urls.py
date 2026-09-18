@@ -47,6 +47,6 @@ if settings.DEBUG:
 
 from django.urls import path, include
 
-urlpatterns = [
+urlpatterns += [
     path('api/multi-av/', include('multi_av.urls')),
 ]
