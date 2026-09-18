@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>{% if user.is_authenticated %}داشبورد مدیریت فایل - iOS 27{% else %}ورود - iOS 27{% endif %}</title>
+    <title>{% if user.is_authenticated %}إFile Drive  - {% else %}ورود - 2.0.0{% endif %}</title>
     
     <!-- فونت وزیرمتن لوکال -->
     <link rel="stylesheet" href="{% static 'fonts/Vazirmatn/Vazirmatn-font-face.css' %}" />
@@ -396,7 +396,6 @@
     {{ django_data|json_script:"django-data" }}
     
     <script>
-        // دریافت دیتا از json_script به صورت امن
         var dataElement = document.getElementById('django-data');
         if (dataElement) {
             var djangoData = JSON.parse(dataElement.textContent);
@@ -405,7 +404,6 @@
     </script>
 
     <script type="text/babel">
-        // ---- Wrapper امن برای درخواست‌ها ----
         function apiRequest(url, options) {
             if (!options) options = {};
             if (!options.headers) options.headers = {};
@@ -436,7 +434,6 @@
                 });
         }
 
-        // ---- پالایش HTML برای جلوگیری از XSS ----
         function sanitizeHTML(html) {
             if (!html) return '';
             var temp = document.createElement('div');
@@ -472,7 +469,6 @@
             }
         }
 
-        // ---- توابع موجود با اصلاحات ----
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -564,7 +560,6 @@
             return { toasts: toasts, showToast: showToast, removeToast: removeToast };
         }
 
-        // ---- کامپوننت‌های memoized ----
         const FileCard = React.memo(function FileCard({ file, isStaff, downloadFile, analyzeFile, deleteFile }) {
             var fileIcon = getFileIcon(file.extension || '');
             var fileSize = formatFileSize(file.file_size_bytes || 0);
