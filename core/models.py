@@ -308,9 +308,6 @@ class SystemSettings(models.Model):
 
 
 
-
-# ==================== مدل نوتیفیکیشن ====================
-
 class AINotification(models.Model):
     NOTIFICATION_TYPES = [
         ('file_analysis', 'تحلیل فایل'),

@@ -2901,4 +2901,54 @@ def settings_router_view(request):
 
 
 # # =============================================
+# # ============ SMART SETTINGS ROUTER ============
+# # =============================================
+
+# @login_required
+# def settings_router_view(request):
+#     """
+#     تصمیم می‌گیرد کاربر بر اساس نقش و دسترسی‌هایش به کدام پنل برود:
+#       - سوپرادمین / staff → /ai-settings/
+#       - کاربر دارای حداقل یک دسترسی مدیریتی → /ai-settings/
+#       - کاربر عادی → /my-settings/
+#     """
+#     user = request.user
+
+#     # ۱. سوپرادمین و staff قطعاً پنل ادمین
+#     if user.is_superuser or user.is_staff:
+#         return redirect('ai_settings')
+
+    # ۲. بررسی دسترسی‌های مدیریتی از طریق گروه‌ها
+    ADMIN_PERMISSIONS = {
+        'view_users', 'create_user', 'edit_user', 'delete_user',
+        'block_user', 'change_password', 'assign_role',
+        'create_role', 'edit_role', 'delete_role',
+        'assign_group_leader',
+        'view_ai_alerts', 'resolve_ai_alerts',
+        'ai_analyze_user', 'ai_analyze_file',
+        'super_admin_access',
+    }
+
+    user_perms = set()
+
+    # دسترسی‌های مستقیم کاربر
+    try:
+        for perm in user.user_permissions.all():
+            user_perms.add(perm.codename)
+    except Exception:
+        pass
+
+    # دسترسی‌های از طریق گروه‌ها
+    try:
+        for group in user.groups.all():
+            for perm in group.permissions.all():
+                user_perms.add(perm.codename)
+    except Exception:
+        pass
+
+    # اگر اشتراکی بین دسترسی‌های کاربر و دسترسی‌های مدیریتی وجود داشت → پنل ادمین
+    if user_perms & ADMIN_PERMISSIONS:
+        return redirect('ai_settings')
+
+    # ۳. در غیر این صورت → پنل کاربری ساده
     return redirect('settings_panel')

@@ -327,11 +327,5 @@ urlpatterns = [
     path('api/me/profile/',         views.me_profile_api,         name='me_profile_api'),
     path('api/me/change-password/', views.me_change_password_api, name='me_change_password_api'),
     path('api/me/change-username/', views.me_change_username_api, name='me_change_username_api'),
-    #path('settings/', views.settings_router_view, name='settings_router'),
-        # Router — داشبورد به اینجا لینک می‌دهد
-    path('settings/',    views.settings_router_view, name='settings_router'),
-
-    # پنل ساده کاربری (Account Management) — فقط برای کاربران عادی
-    path('my-settings/', views.settings_panel_view,  name='settings_panel'),
 ]
 
