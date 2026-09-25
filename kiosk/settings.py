@@ -268,3 +268,17 @@ MULTI_AV = {
     },
     'ENGINE_TIMEOUT': 300,
 }
+
+# Override DB for Docker
+import os as _os
+if _os.environ.get('DB_HOST'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _os.environ.get('DB_NAME', 'fileapi'),
+            'USER': _os.environ.get('DB_USER', 'fileapi'),
+            'PASSWORD': _os.environ.get('DB_PASSWORD', 'fileapi123'),
+            'HOST': _os.environ.get('DB_HOST', 'db'),
+            'PORT': _os.environ.get('DB_PORT', '5432'),
+        }
+    }

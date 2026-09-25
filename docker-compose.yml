@@ -1,0 +1,132 @@
+version: '3.9'
+
+networks:
+  av_network:
+    driver: bridge
+
+volumes:
+  rabbitmq_data:
+  clamav_data:
+  ollama_data:
+  media_data:
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: av_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-admin123}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks: [av_network]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  clamav:
+    build: ./docker/clamav
+    container_name: av_clamav
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+    networks: [av_network]
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  yara:
+    build: ./docker/yara
+    container_name: av_yara
+    ports:
+      - "8001:8001"
+    networks: [av_network]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: av_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks: [av_network]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  web:
+    build: .
+    container_name: av_web
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    env_file: [.env]
+    environment:
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-admin123}@rabbitmq:5672//
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
+      - YARA_API_URL=http://yara:8001
+      - OLLAMA_HOST=ollama
+      - OLLAMA_PORT=11434
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks: [av_network]
+
+  celery-worker:
+    build: .
+    container_name: av_celery
+    command: celery -A kiosk worker -Q av_orchestrator,av_clamav,av_yara,av_virustotal,av_heuristic,av_ai --loglevel=info --concurrency=4
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    env_file: [.env]
+    environment:
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-admin123}@rabbitmq:5672//
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
+      - YARA_API_URL=http://yara:8001
+      - OLLAMA_HOST=ollama
+      - OLLAMA_PORT=11434
+    depends_on:
+      - rabbitmq
+      - clamav
+      - yara
+      - ollama
+      - web
+    networks: [av_network]
+
+  flower:
+    build: .
+    container_name: av_flower
+    command: celery -A kiosk flower --port=5555
+    ports:
+      - "5555:5555"
+    env_file: [.env]
+    environment:
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-admin123}@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+    networks: [av_network]
