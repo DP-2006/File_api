@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+
+    <style>
+        :root {
+            --blue: #2563eb;
+            --blue-dark: #1d4ed8;
+            --blue-light: #3b82f6;
+            --text: #151515;
+            --muted: #9b9b9b;
+            --light: #f5f6f7;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            font-family: Arial, Helvetica, sans-serif;
+            background:
+                radial-gradient(circle at 10% 20%, #ffffff 0, transparent 35%),
+                linear-gradient(135deg, #f2f5f7, #e9edf0);
+            color: var(--text);
+        }
+
+        .login-wrapper {
+            width: min(100%, 900px);
+            min-height: 560px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 25px;
+            gap: 28px;
+            background: rgba(255, 255, 255, .92);
+            border-radius: 24px;
+            box-shadow: 0 25px 55px rgba(37, 48, 56, .16);
+        }
+
+        /* Left promotional panel */
+
+        .promo-panel {
+            position: relative;
+            min-height: 510px;
+            overflow: hidden;
+            padding: 35px 32px;
+            border-radius: 28px;
+            color: white;
+            background:
+                linear-gradient(145deg, rgba(37, 99, 235, .96), rgba(29, 78, 216, .98)),
+                var(--blue);
+        }
+
+        .promo-panel::before {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            right: -100px;
+            top: -100px;
+            border-radius: 50%;
+            background: rgba(147, 197, 253, .25);
+        }
+
+        .promo-panel::after {
+            content: "";
+            position: absolute;
+            width: 190px;
+            height: 190px;
+            left: -80px;
+            bottom: -80px;
+            border-radius: 50%;
+            background: rgba(191, 219, 254, .18);
+        }
+
+        .promo-panel h1 {
+            position: relative;
+            z-index: 1;
+            max-width: 270px;
+            margin: 0;
+            font-size: 29px;
+            line-height: 1.22;
+            letter-spacing: -.8px;
+        }
+
+        .promo-panel p {
+            position: relative;
+            z-index: 1;
+            max-width: 280px;
+            margin-top: 25px;
+            font-size: 10px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, .87);
+        }
+
+        /* Activity Feed */
+
+        .activity-feed {
+            position: relative;
+            z-index: 2;
+            margin-top: 22px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .15);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, .2);
+            max-height: 140px;
+            overflow: hidden;
+        }
+
+        .activity-feed h3 {
+            margin: 0 0 8px;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: .3px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: white;
+        }
+
+        .activity-feed #statusEmoji {
+            font-size: 14px;
+            display: inline-block;
+            transition: transform .3s ease;
+        }
+
+        .feed-item {
+            font-size: 9px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, .12);
+            color: rgba(255, 255, 255, .9);
+            animation: feedIn .35s ease;
+        }
+
+        .feed-item:last-child {
+            border-bottom: 0;
+        }
+
+        @keyframes feedIn {
+            from {
+                opacity: 0;
+                transform: translateX(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .people {
+            position: absolute;
+            left: 15%;
+            right: 10%;
+            bottom: 0;
+            height: 235px;
+        }
+
+        .person {
+            position: absolute;
+            bottom: 0;
+            width: 105px;
+            height: 175px;
+            border-radius: 48% 48% 15px 15px;
+        }
+
+        .person::before {
+            content: "";
+            position: absolute;
+            left: 29px;
+            top: -48px;
+            width: 50px;
+            height: 58px;
+            border-radius: 50%;
+            background: #f1b48e;
+            box-shadow: inset -7px -2px rgba(0, 0, 0, .08);
+        }
+
+        .person::after {
+            content: "";
+            position: absolute;
+            left: 28px;
+            top: -55px;
+            width: 53px;
+            height: 24px;
+            border-radius: 50% 50% 30% 30%;
+            background: #3d3028;
+        }
+
+        .person-one {
+            left: 4%;
+            background: #c5c9c6;
+            transform: rotate(4deg);
+        }
+
+        .person-one::before {
+            background: #dda47e;
+        }
+
+        .person-two {
+            right: 3%;
+            width: 98px;
+            height: 165px;
+            background: #d7c839;
+            transform: rotate(-3deg);
+        }
+
+        .person-two::before {
+            background: #bd7957;
+        }
+
+        .person-two::after {
+            background: #202020;
+            height: 40px;
+            top: -53px;
+        }
+
+        .person-arm {
+            position: absolute;
+            width: 18px;
+            height: 100px;
+            border-radius: 20px;
+            background: inherit;
+            top: 42px;
+        }
+
+        .person-arm.left {
+            left: -8px;
+            transform: rotate(22deg);
+        }
+
+        .person-arm.right {
+            right: -8px;
+            transform: rotate(-20deg);
+        }
+
+        /* Right login panel */
+
+        .login-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 22px 35px;
+        }
+
+        .login-panel h2 {
+            margin: 0;
+            text-align: center;
+            font-size: 21px;
+            letter-spacing: -.5px;
+        }
+
+        .subtitle {
+            margin: 5px 0 28px;
+            text-align: center;
+            color: #aaa;
+            font-size: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 7px;
+            color: #999;
+            font-size: 9px;
+        }
+
+        .form-group input {
+            width: 100%;
+            height: 39px;
+            padding: 0 13px;
+            border: 1px solid #f0f1f2;
+            border-radius: 6px;
+            outline: none;
+            color: #333;
+            font-size: 11px;
+            background: #f7f8f8;
+            transition: .25s ease;
+        }
+
+        .form-group input:focus {
+            border-color: var(--blue);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 40px;
+        }
+
+        .show-password {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            border: 0;
+            padding: 0;
+            color: #888;
+            cursor: pointer;
+            background: transparent;
+            transform: translateY(-50%);
+        }
+
+        .forgot-password {
+            display: block;
+            margin: -4px 0 19px;
+            text-align: right;
+            color: #aaa;
+            font-size: 8px;
+            text-decoration: none;
+        }
+
+        #submitBtn {
+            width: 100%;
+            height: 39px;
+            border: 0;
+            border-radius: 7px;
+            color: white;
+            cursor: pointer;
+            font-size: 10px;
+            background: var(--blue);
+            box-shadow: 0 6px 14px rgba(37, 99, 235, .2);
+            transition: .25s ease;
+        }
+
+        #submitBtn:hover {
+            background: var(--blue-dark);
+            transform: translateY(-1px);
+        }
+
+        #submitBtn:disabled {
+            cursor: not-allowed;
+            opacity: .6;
+        }
+
+        .signup-text {
+            margin-top: 24px;
+            text-align: center;
+            color: #aaa;
+            font-size: 8px;
+        }
+
+        .signup-text a {
+            color: var(--blue);
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        /* Toast messages */
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            padding: 14px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            animation: toastIn .3s ease;
+        }
+
+        .toast-success {
+            background: #22c55e;
+        }
+
+        .toast-error {
+            background: #ef4444;
+        }
+
+        .toast-info {
+            background: var(--blue);
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateY(-15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 760px) {
+            body {
+                padding: 15px;
+            }
+
+            .login-wrapper {
+                grid-template-columns: 1fr;
+                padding: 15px;
+                gap: 20px;
+            }
+
+            .promo-panel {
+                min-height: 400px;
+            }
+
+            .login-panel {
+                padding: 20px 15px 30px;
+            }
+        }
+
+        @media (max-width: 430px) {
+            .promo-panel h1 {
+                font-size: 25px;
+            }
+
+            .promo-panel {
+                min-height: 380px;
+            }
+
+            .people {
+                transform: scale(.85);
+                transform-origin: bottom center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="login-wrapper">
+
+        <!-- Promotional side -->
+        <section class="promo-panel">
+            <h1>Simplify<br>management with<br>our dashboard.</h1>
+
+            <p>
+                Simplify your e-commerce management with our
+                user-friendly admin dashboard.
+            </p>
+
+            <!-- Activity Feed -->
+            <div class="activity-feed">
+                <h3>
+                    <span id="statusEmoji">🌐</span>
+                    <span id="activityTitle">Live Network</span>
+                </h3>
+                <div id="feed"></div>
+            </div>
+
+            <div class="people">
+                <div class="person person-one">
+                    <span class="person-arm left"></span>
+                    <span class="person-arm right"></span>
+                </div>
+
+                <div class="person person-two">
+                    <span class="person-arm left"></span>
+                    <span class="person-arm right"></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Login side -->
+        <section class="login-panel">
+
+            <h2>Welcome Back</h2>
+            <p class="subtitle">Please login to your account</p>
+
+            <form id="loginForm">
+
+                <div class="form-group">
+                    <label for="username">Email address</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Enter your email"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+
+                    <div class="password-wrapper">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            class="show-password"
+                            onclick="togglePassword()"
+                            aria-label="Show password"
+                        >
+                            ◉
+                        </button>
+                    </div>
+                </div>
+
+                <a href="#" class="forgot-password">Forgot password?</a>
+
+                <button type="submit" id="submitBtn">
+                    Login
+                </button>
+            </form>
+
+            <div class="signup-text">
+                Don't have an account?
+                <a href="#">Sign up</a>
+            </div>
+
+        </section>
+    </main>
+<script>
+    /* --- YOUR ORIGINAL SCRIPT START --- */
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function showToast(message, type = 'info') {
+        const existing = document.querySelector('.toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+    }
+
+    /* --- Show / Hide password --- */
+    function togglePassword() {
+        const pw = document.getElementById('password');
+        if (!pw) return;
+        pw.type = pw.type === 'password' ? 'text' : 'password';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const btn = document.getElementById('submitBtn');
+        btn.classList.add('loading');
+        btn.disabled = true;
+
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+
+        const formData = new FormData();
+        formData.append('username', u);
+        formData.append('password', p);
+
+        try {
+            const res = await fetch('/login/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                showToast('ورود موفق! در حال انتقال به داشبورد...', 'success');
+
+                updateActivity("✨ Access Granted!", "😊", "The door is open! Welcome aboard!");
+
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 500);
+            } else {
+                handleLoginFailure(u);
+                showToast(data.msg || 'نام کاربری یا رمز عبور اشتباه است', 'error');
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('خطا در ارتباط با سرور', 'error');
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+    });
+    /* --- YOUR ORIGINAL SCRIPT END --- */
+
+    /* --- NEW FEATURES: Animations & Security Logic --- */
+    let attemptCount = 0;
+
+    function updateActivity(title, emoji, message) {
+        const titleEl = document.getElementById('activityTitle');
+        const emojiEl = document.getElementById('statusEmoji');
+        const feed = document.getElementById('feed');
+
+        if (titleEl) titleEl.innerText = title;
+
+        if (emojiEl) {
+            emojiEl.innerText = emoji;
+            emojiEl.style.transform = 'scale(1.4)';
+            setTimeout(() => {
+                emojiEl.style.transform = 'scale(1)';
+            }, 300);
+        }
+
+        if (feed) {
+            const item = document.createElement('div');
+            item.className = 'feed-item';
+            item.innerText = message;
+            feed.prepend(item);
+
+            while (feed.children.length > 4) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+    }
+
+    function handleLoginFailure(username) {
+        attemptCount++;
+
+        if (attemptCount < 3) {
+            updateActivity("Security Alert", "😢", `Login failed for ${username}. Please try again!`);
+            showToast(`Wrong credentials. Try again in 3... 2... 1...`, 'error');
+        } else if (attemptCount === 3) {
+            updateActivity("Warning", "🤨", `Too many attempts for ${username}.`);
+            showToast(`Wait! Please try again in a moment.`, 'error');
+        } else {
+            updateActivity("Hacker Detected!", "🚫", "System Lock Activated!");
+
+            const lockoutMsg = "Are you a junk hacker???  Please try again in 4 minutes later!";
+            showToast(lockoutMsg, 'error');
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = "Locked (4m)";
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerText = "Login";
+                attemptCount = 0;
+                updateActivity("System Reset", "🔓", "You may try again now.");
+            }, 240000);
+        }
+    }
+
+    const randomMessages = [
+        "User 'Alice' just logged in from London",
+        "System update completed successfully",
+        "Secure tunnel established to Server-04",
+        "Admin 'Bob' is monitoring the traffic",
+        "New session started in New York"
+    ];
+
+    setInterval(() => {
+        const msg = randomMessages[Math.floor(Math.random() * randomMessages.length)];
+        updateActivity("Live Network", "🌐", msg);
+    }, 8000);
+
+</script>

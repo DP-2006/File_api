@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تحلیل فایل - {{ file.file.name }}</title>
+    <style>
+        body {
+            font-family: Tahoma, sans-serif;
+            background: #f4f4f4;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .file-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .analysis-content {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            min-height: 100px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            text-decoration: none;
+            transition: 0.3s;
+            display: inline-block;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-blue { background: #3498db; }
+        .btn-green { background: #2ecc71; }
+        .btn-orange { background: #e67e22; }
+        .btn-red { background: #e74c3c; }
+        
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .badge-critical { background: #e74c3c; color: white; }
+        .badge-warning { background: #f39c12; color: white; }
+        .badge-info { background: #3498db; color: white; }
+        .badge-success { background: #2ecc71; color: white; }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-success { background: #10b981; }
+        .toast-error { background: #ef4444; }
+        .toast-warning { background: #f59e0b; }
+        .toast-info { background: #3b82f6; }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            animation: progress 2s ease-in-out infinite;
+        }
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="header">
+            <h2>📄 تحلیل فایل</h2>
+            <a href="/notifications/" class="btn btn-blue">🔙 بازگشت</a>
+        </div>
+        
+        <div class="file-info">
+            <h3>{{ file.file.name }}</h3>
+            <p><strong>👤 کاربر:</strong> {{ file.uploaded_by.username }}</p>
+            <p><strong>📅 تاریخ آپلود:</strong> {{ file.uploaded_at|date:"Y-m-d H:i" }}</p>
+            <p><strong>📁 پوشه:</strong> {{ file.folder_name|default:"بدون پوشه" }}</p>
+        </div>
+        
+        <h3>🤖 تحلیل هوش مصنوعی</h3>
+        <div id="analysisContent" class="analysis-content">
+            {% if analysis %}
+                {{ analysis|linebreaks }}
+            {% else %}
+                <span style="color: #888;">تحلیلی برای این فایل ثبت نشده است.</span>
+            {% endif %}
+        </div>
+        
+        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button onclick="reAnalyze()" class="btn btn-orange" id="analyzeBtn">🔄 تحلیل مجدد با AI</button>
+            <button onclick="reAnalyzeWithTimeout(180)" class="btn btn-green" id="longTimeoutBtn">⏰ تحلیل با زمان بیشتر (3 دقیقه)</button>
+            <a href="{% url 'dashboard' %}" class="btn btn-blue">🏠 بازگشت به داشبورد</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+function reAnalyze() {
+    // استفاده از timeout پیش‌فرض 60 ثانیه
+    reAnalyzeWithTimeout(60);
+}
+
+function reAnalyzeWithTimeout(timeoutSeconds) {
+    const content = document.getElementById('analysisContent');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const longTimeoutBtn = document.getElementById('longTimeoutBtn');
+    
+    if (!confirm('آیا می‌خواهید فایل را مجدداً با AI تحلیل کنید؟')) return;
+    
+    // غیرفعال کردن دکمه‌ها
+    analyzeBtn.disabled = true;
+    longTimeoutBtn.disabled = true;
+    analyzeBtn.style.opacity = '0.5';
+    longTimeoutBtn.style.opacity = '0.5';
+    
+    // نمایش وضعیت بارگذاری
+    content.innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+            <div class="loading"></div>
+            <div style="margin-top: 15px; font-weight: bold;">🤖 در حال تحلیل فایل...</div>
+            <div style="font-size: 0.9rem; color: #6c757d; margin-top: 5px;">
+                ⏱️ زمان انتظار: ${timeoutSeconds} ثانیه
+            </div>
+            <div style="font-size: 0.8rem; color: #6c757d; margin-top: 10px;">
+                مدل gemma3:27b در حال پردازش است. این فرآیند ممکن است 2-3 دقیقه طول بکشد.
+            </div>
+            <div class="progress-bar">
+                <div class="progress-bar-inner"></div>
+            </div>
+        </div>
+    `;
+    
+    // ایجاد AbortController برای کنترل Timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+        controller.abort();
+    }, timeoutSeconds * 1000);
+    
+    const url = window.location.origin + '/api/file-analyze/{{ file.id }}/';
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        signal: controller.signal  // اضافه کردن signal برای کنترل Timeout
+    })
+    .then(response => {
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+            throw new Error(`خطا: ${response.status} - ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        // فعال کردن دکمه‌ها
+        analyzeBtn.disabled = false;
+        longTimeoutBtn.disabled = false;
+        analyzeBtn.style.opacity = '1';
+        longTimeoutBtn.style.opacity = '1';
+        
+        if (data.success) {
+            // نمایش تحلیل با فرمت زیبا
+            let html = data.analysis.replace(/\n/g, '<br>');
+            
+            // نمایش سطح تهدید
+            if (data.threat_level) {
+                const levelMap = {
+                    'low': '✅ سالم',
+                    'medium': '⚠️ متوسط',
+                    'high': '🔴 بالا',
+                    'critical': '🚨 بحرانی',
+                    'warning': '⚠️ هشدار'
+                };
+                const bgColors = {
+                    'low': '#d1fae5',
+                    'medium': '#fef3c7',
+                    'high': '#fee2e2',
+                    'critical': '#fee2e2',
+                    'warning': '#fef3c7'
+                };
+                const borderColors = {
+                    'low': '#10b981',
+                    'medium': '#f59e0b',
+                    'high': '#ef4444',
+                    'critical': '#ef4444',
+                    'warning': '#f59e0b'
+                };
+                const textColors = {
+                    'low': '#065f46',
+                    'medium': '#92400e',
+                    'high': '#991b1b',
+                    'critical': '#991b1b',
+                    'warning': '#92400e'
+                };
+                
+                const threatDisplay = data.threat_level in levelMap ? levelMap[data.threat_level] : data.threat_level;
+                html = `
+                    <div style="margin-bottom: 15px; padding: 12px 18px; border-radius: 8px; background: ${bgColors[data.threat_level] || '#f8f9fa'}; border-right: 4px solid ${borderColors[data.threat_level] || '#6c757d'}; color: ${textColors[data.threat_level] || '#000'};">
+                        <strong>🔒 سطح تهدید:</strong> ${threatDisplay}
+                        ${data.threat_level === 'critical' ? ' 🚨 نیاز به اقدام فوری!' : ''}
+                        ${data.threat_level === 'high' ? ' ⚡ نیاز به بررسی!' : ''}
+                    </div>
+                ` + html;
+            }
+            
+            content.innerHTML = html;
+            showToast('✅ تحلیل با موفقیت انجام شد', 'success');
+        } else {
+            content.innerHTML = `<div style="color: red; padding: 15px;">❌ خطا: ${data.error || 'تحلیل ناموفق'}</div>`;
+            showToast('❌ خطا در تحلیل', 'error');
+        }
+    })
+    .catch(error => {
+        clearTimeout(timeoutId);
+        
+        // فعال کردن دکمه‌ها
+        analyzeBtn.disabled = false;
+        longTimeoutBtn.disabled = false;
+        analyzeBtn.style.opacity = '1';
+        longTimeoutBtn.style.opacity = '1';
+        
+        if (error.name === 'AbortError') {
+            content.innerHTML = `
+                <div style="color: #f59e0b; padding: 15px; background: #fef3c7; border-radius: 8px; border-right: 4px solid #f59e0b;">
+                    <strong>⏰ زمان تحلیل به پایان رسید!</strong>
+                    <br><br>
+                    مدل gemma3:27b برای تحلیل این فایل به زمان بیشتری نیاز دارد.
+                    <br><br>
+                    💡 <strong>راهکارها:</strong>
+                    <ul style="margin-top: 10px; padding-right: 20px;">
+                        <li>روی دکمه <strong>"تحلیل با زمان بیشتر (3 دقیقه)"</strong> کلیک کنید</li>
+                        <li>یا از مدل سبک‌تر استفاده کنید (gemma3:4b)</li>
+                    </ul>
+                </div>
+            `;
+            showToast('⏰ زمان تحلیل به پایان رسید', 'warning');
+        } else if (error.message.includes('500')) {
+            content.innerHTML = `
+                <div style="color: #ef4444; padding: 15px; background: #fee2e2; border-radius: 8px; border-right: 4px solid #ef4444;">
+                    <strong>❌ خطای سرور (500)</strong>
+                    <br><br>
+                    ${error.message}
+                    <br><br>
+                    💡 لطفاً مطمئن شوید که:
+                    <ul style="margin-top: 10px; padding-right: 20px;">
+                        <li>Ollama در حال اجرا است</li>
+                        <li>مدل gemma3:27b نصب شده است</li>
+                        <li>اتصال به اینترنت برقرار است</li>
+                    </ul>
+                </div>
+            `;
+            showToast('❌ خطای سرور', 'error');
+        } else {
+            content.innerHTML = `
+                <div style="color: #ef4444; padding: 15px; background: #fee2e2; border-radius: 8px; border-right: 4px solid #ef4444;">
+                    <strong>❌ خطا در ارتباط با سرور</strong>
+                    <br><br>
+                    ${error.message}
+                </div>
+            `;
+            showToast('❌ خطا در ارتباط با سرور', 'error');
+        }
+    });
+}
+
+// اضافه کردن event listener برای دکمه تحلیل با زمان بیشتر
+document.addEventListener('DOMContentLoaded', function() {
+    const longTimeoutBtn = document.getElementById('longTimeoutBtn');
+    if (longTimeoutBtn) {
+        longTimeoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            reAnalyzeWithTimeout(180);
+        });
+    }
+});
+</script>
+</body>
+</html>

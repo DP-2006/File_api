@@ -1,0 +1,326 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>تنظیمات و حساب کاربری</title>
+<link rel="stylesheet" href="{% static 'fonts/Vazirmatn/Vazirmatn-font-face.css' %}" />
+<link rel="stylesheet" href="{% static 'vendor/phosphor/src/regular/style.css' %}" />
+<style>
+  :root {
+    --bg: #f2f2f7;
+    --card: rgba(255,255,255,0.85);
+    --text: #1c1c1e;
+    --text-muted: #8e8e93;
+    --accent: #007aff;
+    --border: rgba(60,60,67,0.12);
+    --input-bg: rgba(118,118,128,0.08);
+    --green: #34c759;
+    --red: #ff3b30;
+    --orange: #ff9500;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Vazirmatn', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    direction: rtl;
+    padding: 24px;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  .header .sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .btn {
+    border: none; cursor: pointer; padding: 10px 20px; min-height: 44px;
+    border-radius: 12px; font-size: 15px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: transform .1s, filter .15s;
+    font-family: inherit; text-decoration: none;
+  }
+  .btn:active { transform: scale(.96); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-secondary { background: rgba(60,60,67,0.06); color: var(--accent); }
+  .btn-danger { background: rgba(255,59,48,0.08); color: var(--red); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 20px;
+    border-bottom: 1px solid var(--border); padding-bottom: 8px;
+    overflow-x: auto;
+  }
+  .tab {
+    background: transparent; border: none; padding: 10px 18px;
+    color: var(--text-muted); font-weight: 600; font-size: 14px;
+    cursor: pointer; border-radius: 10px; white-space: nowrap;
+    font-family: inherit;
+  }
+  .tab.active { background: var(--accent); color: #fff; }
+  .tab:hover:not(.active) { background: rgba(60,60,67,0.05); }
+
+  .card {
+    background: var(--card);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-radius: 16px;
+    border: 0.5px solid var(--border);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  }
+  .card h3 { font-size: 17px; margin-bottom: 16px; font-weight: 700; }
+  .card .hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .grid-info {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .info-item {
+    background: var(--input-bg); border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .info-item .k { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+  .info-item .v { font-size: 15px; font-weight: 600; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .field label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+  .field input {
+    background: var(--input-bg); border: 0.5px solid var(--border);
+    border-radius: 12px; padding: 12px 16px; min-height: 44px;
+    font-size: 15px; color: var(--text); outline: none;
+    font-family: inherit; width: 100%; transition: border-color .15s;
+  }
+  .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,122,255,.1); }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .row-2 { grid-template-columns: 1fr; } }
+
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(30,30,35,0.95); color: #fff;
+    padding: 14px 24px; border-radius: 14px; font-size: 14px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: all .3s cubic-bezier(.2,.8,.2,1);
+    z-index: 9999; box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.error { border-right: 3px solid var(--red); }
+  .toast.success { border-right: 3px solid var(--green); }
+  .toast .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .toast.error .dot { background: var(--red); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px;
+    background: rgba(0,122,255,.12); color: var(--accent);
+  }
+  .badge.super { background: rgba(255,204,0,.15); color: #b8860b; }
+  .badge.admin { background: rgba(0,122,255,.12); color: var(--accent); }
+  .badge.user { background: rgba(60,60,67,.08); color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div>
+      <h1>⚙️ تنظیمات</h1>
+      <div class="sub">کاربر: <strong>{{ username }}</strong>
+        {% if is_superuser %}<span class="badge super" style="margin-right:8px;">سوپر ادمین</span>
+        {% elif is_staff %}<span class="badge admin" style="margin-right:8px;">ادمین</span>
+        {% else %}<span class="badge user" style="margin-right:8px;">کاربر</span>{% endif %}
+      </div>
+    </div>
+    <a href="/" class="btn btn-secondary">↩︎ بازگشت به داشبورد</a>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="account">👤 حساب کاربری</button>
+    {% if is_staff %}
+    <button class="tab" data-tab="system">🖥️ سیستم</button>
+    <button class="tab" data-tab="network">🌐 شبکه</button>
+    <button class="tab" data-tab="ai">🤖 هوش مصنوعی</button>
+    <button class="tab" data-tab="files">📁 فایل‌ها</button>
+    {% endif %}
+  </div>
+
+  <!-- ============ تب حساب کاربری (همه کاربران) ============ -->
+  <div class="panel active" id="panel-account">
+
+    <div class="card">
+      <h3>📋 اطلاعات حساب</h3>
+      <div class="grid-info">
+        <div class="info-item"><div class="k">نام کاربری</div><div class="v" id="acc-username">---</div></div>
+        <div class="info-item"><div class="k">ایمیل</div><div class="v" id="acc-email">---</div></div>
+        <div class="info-item"><div class="k">نام و نام خانوادگی</div><div class="v" id="acc-name">---</div></div>
+        <div class="info-item"><div class="k">تاریخ عضویت</div><div class="v" id="acc-date">---</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>✏️ تغییر نام کاربری</h3>
+      <div class="field">
+        <label>نام کاربری جدید</label>
+        <input type="text" id="new-username" placeholder="نام کاربری جدید" />
+        <div class="hint">حداقل ۳ کاراکتر. باید یکتا باشد.</div>
+      </div>
+      <button class="btn btn-primary" id="btn-change-username">💾 ذخیره نام کاربری</button>
+    </div>
+
+    <div class="card">
+      <h3>🔑 تغییر رمز عبور</h3>
+      <div class="field">
+        <label>رمز عبور فعلی</label>
+        <input type="password" id="old-password" placeholder="رمز فعلی" />
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>رمز عبور جدید</label>
+          <input type="password" id="new-password" placeholder="حداقل ۸ کاراکتر" />
+        </div>
+        <div class="field">
+          <label>تکرار رمز جدید</label>
+          <input type="password" id="confirm-password" placeholder="تکرار رمز جدید" />
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-change-password">🔑 تغییر رمز عبور</button>
+    </div>
+
+  </div>
+
+  {% if is_staff %}
+  <div class="panel" id="panel-system">
+    <div class="card"><h3>🖥️ اطلاعات سیستم</h3><div class="grid-info" id="sys-info"></div></div>
+  </div>
+  <div class="panel" id="panel-network">
+    <div class="card"><h3>🌐 اطلاعات شبکه</h3><div class="grid-info" id="net-info"></div></div>
+  </div>
+  <div class="panel" id="panel-ai">
+    <div class="card"><h3>🤖 تنظیمات AI</h3>
+      <p class="hint">برای تنظیمات کامل AI به <a href="/" style="color:var(--accent)">صفحه AI Settings</a> مراجعه کنید.</p>
+    </div>
+  </div>
+  <div class="panel" id="panel-files">
+    <div class="card"><h3>📁 حجم فایل</h3>
+      <p class="hint">برای تنظیمات کامل به <a href="/" style="color:var(--accent)">صفحه تنظیمات</a> مراجعه کنید.</p>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<div class="toast" id="toast"><span class="dot"></span><span id="toast-msg"></span></div>
+
+<script>
+(function() {
+  function getCookie(name) {
+    var v = null;
+    if (document.cookie && document.cookie !== '') {
+      document.cookie.split(';').forEach(function(c) {
+        c = c.trim();
+        if (c.substring(0, name.length + 1) === (name + '=')) {
+          v = decodeURIComponent(c.substring(name.length + 1));
+        }
+      });
+    }
+    return v;
+  }
+
+  function api(url, options) {
+    options = options || {};
+    options.headers = options.headers || {};
+    var csrf = getCookie('csrftoken');
+    if (csrf) options.headers['X-CSRFToken'] = csrf;
+    options.credentials = 'same-origin';
+    if (!options.headers['Content-Type'] && options.body && !(options.body instanceof FormData)) {
+      options.headers['Content-Type'] = 'application/json';
+    }
+    return fetch(url, options);
+  }
+
+  var toastTimer;
+  function showToast(msg, type) {
+    type = type || 'success';
+    var t = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    t.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { t.className = 'toast ' + type; }, 3500);
+  }
+
+  // تب‌ها
+  document.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+      tab.classList.add('active');
+      var panel = document.getElementById('panel-' + tab.dataset.tab);
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  // بارگذاری اطلاعات
+  api('/api/me/profile/').then(function(r) { return r.json(); }).then(function(d) {
+    if (d.success && d.user) {
+      document.getElementById('acc-username').textContent = d.user.username || '---';
+      document.getElementById('acc-email').textContent = d.user.email || '---';
+      var fullname = ((d.user.first_name || '') + ' ' + (d.user.last_name || '')).trim();
+      document.getElementById('acc-name').textContent = fullname || '---';
+      document.getElementById('acc-date').textContent = d.user.date_joined || '---';
+      document.getElementById('new-username').value = d.user.username || '';
+    }
+  }).catch(function() {});
+
+  // تغییر نام کاربری
+  document.getElementById('btn-change-username').addEventListener('click', function() {
+    var u = document.getElementById('new-username').value.trim();
+    if (!u || u.length < 3) { showToast('نام کاربری باید حداقل ۳ کاراکتر باشد', 'error'); return; }
+    this.disabled = true;
+    api('/api/me/change-username/', {
+      method: 'POST',
+      body: JSON.stringify({ username: u })
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      showToast(d.msg || (d.success ? 'تغییر کرد' : 'خطا'), d.success ? 'success' : 'error');
+      if (d.success) {
+        document.getElementById('acc-username').textContent = d.new_username;
+        setTimeout(function() { window.location.reload(); }, 1200);
+      }
+    }).catch(function() { showToast('خطا در ارتباط با سرور', 'error'); })
+    .finally(function() { document.getElementById('btn-change-username').disabled = false; });
+  });
+
+  // تغییر رمز
+  document.getElementById('btn-change-password').addEventListener('click', function() {
+    var oldP = document.getElementById('old-password').value;
+    var newP = document.getElementById('new-password').value;
+    var conf = document.getElementById('confirm-password').value;
+    if (!oldP || !newP || !conf) { showToast('همه فیلدها را پر کنید', 'error'); return; }
+    if (newP.length < 8) { showToast('رمز جدید باید حداقل ۸ کاراکتر باشد', 'error'); return; }
+    if (newP !== conf) { showToast('رمز جدید و تکرار آن یکسان نیستند', 'error'); return; }
+    this.disabled = true;
+    api('/api/me/change-password/', {
+      method: 'POST',
+      body: JSON.stringify({ old_password: oldP, new_password: newP })
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      showToast(d.msg || (d.success ? 'تغییر کرد' : 'خطا'), d.success ? 'success' : 'error');
+      if (d.success) {
+        document.getElementById('old-password').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('confirm-password').value = '';
+      }
+    }).catch(function() { showToast('خطا در ارتباط با سرور', 'error'); })
+    .finally(function() { document.getElementById('btn-change-password').disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>
