@@ -1661,15 +1661,17 @@
       try {
         const response = await fetchWithAuth('/api/users/remove-role/', {
           method: 'POST',
-          body: JSON.stringify({
-            user_id: userId,
-            role_id: roleId
-          })
+          body: JSON.stringify({ user_id: userId, role_id: roleId })
         });
         const data = await response.json();
         if (data.success) {
           toast(data.msg, 'success');
-          await onRefresh();
+          setUsersList(prev => prev.map(u => {
+            if (u.id === userId) {
+              return { ...u, roles: (u.roles || []).filter(r => r.id !== roleId) };
+            }
+            return u;
+          }));
         } else {
           toast(data.msg || 'خطا در حذف نقش', 'error');
         }
@@ -2758,6 +2760,7 @@
       { id: 'filesize', label: 'Files', icon: 'file' },
       { id: 'ai', label: 'AI', icon: 'ai' },
       { id: 'logs', label: 'Logs', icon: 'logs' },
+      { id: 'reports', label: 'Reports', icon: 'logs' },
       { id: 'users', label: 'Users', icon: 'users' }
     ];
 
@@ -2824,6 +2827,13 @@
             onRefresh: handleRefreshLogs,
             onClear: handleClearLogs
           });
+        case 'reports':
+          return React.createElement('div', {className: 'panel active'},
+            React.createElement('iframe', {
+              src: '/behavior-analysis-panel/',
+              style: { width: '100%', height: 'calc(100vh - 120px)', border: 'none', borderRadius: '16px' }
+            })
+          );
         case 'users':
           return React.createElement(UserManagement, {
             users: users,
@@ -2921,3 +2931,5 @@
   updateIslandTime();
   setInterval(updateIslandTime, 10000);
 </script>
+</body>
+</html>

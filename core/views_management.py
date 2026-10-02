@@ -1,5 +1,5 @@
 # core/views_management.py
-
+from .models import RoleAssignment
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User, Group, Permission
 from django.contrib.auth.decorators import login_required
@@ -308,39 +308,40 @@ def get_user_roles_with_permissions_api(request, user_id):
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def remove_role_from_user_api(request):
-    """حذف یک نقش از کاربر"""
+    """حذف یک نقش از کاربر؛ در صورت خالی شدن، به نقش پیش‌فرض user منتقل می‌شود"""
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
-    
+
     try:
         data = request.data
         user_id = data.get('user_id')
         role_id = data.get('role_id')
-        
+
         user = get_object_or_404(User, id=user_id)
         role = get_object_or_404(Group, id=role_id)
-        
-        # جلوگیری از حذف آخرین نقش کاربر
-        if user.groups.count() <= 1:
-            return Response({
-                'success': False,
-                'msg': 'کاربر حداقل باید یک نقش داشته باشد'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        print(f"DEBUG: user={user.username}, role_id={role_id}, role_name={role.name}, current_groups={list(user.groups.values_list('id', 'name'))}")
+
         user.groups.remove(role)
         RoleAssignment.objects.filter(user=user, role=role).delete()
-        
+
+        fallback_applied = False
+
+        print(f"DEBUG: user={user.username}, groups_after_remove={list(user.groups.values_list('name', flat=True))}")
+
         return Response({
             'success': True,
-            'msg': f'نقش {role.name} از کاربر {user.username} حذف شد'
+            'msg': f'نقش {role.name} از کاربر {user.username} حذف شد' +
+                   (' و کاربر به نقش پیش‌فرض user منتقل شد' if fallback_applied else ''),
+            'fallback_applied': fallback_applied
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -497,8 +498,6 @@ def bulk_change_password_api(request):
         })
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
 
 
 

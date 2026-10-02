@@ -2,7 +2,12 @@
 from django.db import models
 from django.contrib.auth.models import User, Group, Permission
 from django.utils import timezone
-
+from .models_ai_conversation import AIConversation
+from .models_file_analysis import FileAIAnalysis
+from .models_user_behavior import UserBehaviorAnalysis
+from .models_report_chat import ReportChatSession, ReportChatMessage
+from .models_user_behavior import UserBehaviorAnalysis
+from .models_report_chat import ReportChatSession, ReportChatMessage
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     first_name = models.CharField(max_length=100, verbose_name="نام")
@@ -247,7 +252,6 @@ class UserPermission(models.Model):
 
 
 class AISettings(models.Model):
-    """تنظیمات هوش مصنوعی"""
     ollama_host = models.CharField(max_length=255, default='localhost', verbose_name='آدرس Host')
     ollama_port = models.IntegerField(default=11434, verbose_name='پورت')
     ollama_model = models.CharField(max_length=100, default='gemma3:27b', verbose_name='مدل')

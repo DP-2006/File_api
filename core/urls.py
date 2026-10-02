@@ -231,7 +231,21 @@ urlpatterns = [
     path('api/users-list/', views.get_users_list_api, name='get_users_list_api'),
     path('api/toggle-block/<int:user_id>/', views.toggle_block_user, name='toggle_block_user_api'),
     path('api/delete-user/<int:user_id>/', views.delete_user_by_id, name='delete_user_by_id_api'),
-    
+    path('api/users/<int:user_id>/detail/', views.user_detail_api, name='user_detail_api'),
+    path('api/users/<int:user_id>/update/', views.user_update_api, name='user_update_api'),
+    # ========== AI Conversations ==========
+    path('api/ai-conversations/', views.ai_conversations_list_api, name='ai_conversations_list'),
+    path('api/ai-conversations/stats/', views.ai_conversations_stats_api, name='ai_conversations_stats'),
+    path('api/ai-conversations/by-user/<int:user_id>/', views.ai_conversations_by_user_api, name='ai_conversations_by_user'),    
+
+
+    path('api/behavior-analysis/', views.behavior_analysis_list_api, name='behavior_analysis_list'),
+    path('api/behavior-analysis/<int:user_id>/', views.behavior_analysis_detail_api, name='behavior_analysis_detail'),
+
+    path('behavior-analysis-panel/', views.behavior_analysis_panel_view, name='behavior_analysis_panel'),
+
+
+
     # ========== Roles & Permissions ==========
     path('roles/', views.get_all_roles, name='get_all_roles'),
     path('roles/create/', views.create_new_role, name='create_new_role'),

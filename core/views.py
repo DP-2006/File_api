@@ -43,9 +43,11 @@ from .models import (
     AIThreatAlert, SystemPermission, UserPermission, AISettings, 
     SystemSettings, FileSizeSettings
 )
+from .models_ai_conversation import AIConversation
 
 from .permissions import has_permission, can_modify_user, check_permission, get_user_permissions_list
-
+from .models_file_analysis import FileAIAnalysis
+from .models_user_behavior import UserBehaviorAnalysis
 
 def get_or_create_settings(user):
     settings, created = UserSettings.objects.get_or_create(user=user)
@@ -55,139 +57,6 @@ def get_or_create_settings(user):
 def is_api_request(request):
     """بررسی اینکه درخواست API هست یا HTML"""
     return request.accepted_renderer.format == 'json' if hasattr(request, 'accepted_renderer') else False
-
-
-# =============================================
-# ============ Auth Views ============
-# =============================================
-
-# @api_view(['GET', 'POST'])
-# @permission_classes([AllowAny])
-# def login_view(request):
-#     if request.method == 'POST':
-#         if request.content_type == 'application/json':
-#             username = request.data.get('username')
-#             password = request.data.get('password')
-#         else:
-#             username = request.POST.get('username')
-#             password = request.POST.get('password')
-            
-#         user = authenticate(request, username=username, password=password)
-#         success = user is not None
-
-#         LoginLog.objects.create(
-#             user=user if user else None,
-#             ip_address=request.META.get('REMOTE_ADDR'),
-#             success=success
-#         )
-
-#         # if user:
-#         #     login(request, user)
-#         #     role = 'superadmin' if user.is_superuser else 'admin' if user.is_staff else 'user'
-            
-#         #     token, created = Token.objects.get_or_create(user=user)
-
-#         if user:
-#             role = 'superadmin' if user.is_superuser else 'admin' if user.is_staff else 'user'
-    
-#             Token.objects.filter(user=user).delete()
-#             token = Token.objects.create(user=user)
-
-
-#             if request.content_type == 'application/json' or is_api_request(request):
-#                 return Response({
-#                     'success': True,
-#                     'uid': user.id,
-#                     'role': role,
-#                     'token': token.key,
-#                     'username': user.username,
-#                     'is_staff': user.is_staff,
-#                     'is_superuser': user.is_superuser
-#                 })
-#             else:
-#                 return JsonResponse({'success': True, 'uid': user.id, 'role': role})
-            
-#         else:
-#             if request.content_type == 'application/json' or is_api_request(request):
-#                 return Response({
-#                     'success': False,
-#                     'msg': 'نام کاربری یا رمز عبور اشتباه است'
-#                 }, status=status.HTTP_401_UNAUTHORIZED)
-#             else:
-#                 return JsonResponse({'success': False, 'msg': 'نام کاربری یا رمز عبور اشتباه است'})
-    
-#     return render(request, 'login.html')
-
-# #part 2
-# @api_view(['GET', 'POST'])
-# def logout_view(request):
-#     logout(request)
-#     if is_api_request(request):
-#         return Response({'success': True, 'msg': 'خروج موفقیت‌آمیز'})
-#     return redirect('login')
-
-
-# @api_view(['GET', 'POST'])
-# def log_out_view(request):  
-#     if request.user.is_authenticated:
-#         Token.objects.filter(user=request.user).delete()  
-#     logout(request)
-#     if is_api_request(request):
-#         return Response({'success': True, 'msg': 'successfully exit System'})    
-#     return redirect('login')
-
-
-# @api_view(['GET', 'POST'])
-# @permission_classes([AllowAny])
-# def login_view(request):
-#     if request.method == 'POST':
-#         if request.content_type == 'application/json':
-#             username = request.data.get('username')
-#             password = request.data.get('password')
-#         else:
-#             username = request.POST.get('username')
-#             password = request.POST.get('password')
-
-#         user = authenticate(request, username=username, password=password)
-#         success = user is not None
-
-#         LoginLog.objects.create(
-#             user=user if user else None,
-#             ip_address=request.META.get('REMOTE_ADDR'),
-#             success=success
-#         )
-
-#         if user:
-#             role = 'superadmin' if user.is_superuser else 'admin' if user.is_staff else 'user'
-
-#             Token.objects.filter(user=user).delete()
-#             token = Token.objects.create(user=user)
-
-#             response = JsonResponse({
-#                 'success': True,
-#                 'uid': user.id,
-#                 'role': role,
-#                 'token': token.key,
-#                 'username': user.username,
-#                 'is_staff': user.is_staff,
-#                 'is_superuser': user.is_superuser
-#             })
-#             response.set_cookie(
-#                 'authToken',
-#                 token.key,
-#                 httponly=True,
-#                 secure=False,
-#                 samesite='Lax',
-#                 path='/',
-#             )
-#             return response
-#         else:
-#             return JsonResponse({
-#                 'success': False,
-#                 'msg': 'نام کاربری یا رمز عبور اشتباه است'
-#             }, status=401)
-
-#     return render(request, 'login.html')
 
 
 # =============================================
@@ -262,38 +131,6 @@ def login_view(request):
 
     return render(request, 'login.html')
 
-# =============================================
-# ============ Dashboard Views ============
-# =============================================
-
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def dashboard_view(request):
-#     settings = get_or_create_settings(request.user)
-    
-#     my_files = UploadedFile.objects.filter(
-#         Q(uploaded_by=request.user, is_deleted=False) |
-#         Q(sent_to_user=request.user, is_deleted=False)
-#     ).order_by('-uploaded_at')
-    
-#     if is_api_request(request):
-#         serializer = UploadedFileSerializer(my_files, many=True, context={'request': request})
-#         return Response({
-#             'settings': {
-#                 'font_size': settings.font_size,
-#                 'menu_size': settings.menu_size,
-#                 'button_size': settings.button_size
-#             },
-#             'files': serializer.data,
-#             'user': {
-#                 'id': request.user.id,
-#                 'username': request.user.username,
-#                 'is_staff': request.user.is_staff,
-#                 'is_superuser': request.user.is_superuser
-#             }
-#         })
-    
-#     return render(request, 'dashboard.html', {'settings': settings, 'my_files': my_files})
 
 
 @api_view(['GET'])
@@ -394,24 +231,6 @@ def dashboard_view(request):
         'django_data': django_data
     })
     
-    # if is_api_request(request):
-    #     serializer = UploadedFileSerializer(my_files, many=True, context={'request': request})
-    #     received_serializer = UploadedFileSerializer(received_files, many=True, context={'request': request})
-    #     return Response({
-    #         'settings': {
-    #             'font_size': settings.font_size,
-    #             'menu_size': settings.menu_size,
-    #             'button_size': settings.button_size
-    #         },
-    #         'files': serializer.data,
-    #         'received_files': received_serializer.data,
-    #         'user': {
-    #             'id': request.user.id,
-    #             'username': request.user.username,
-    #             'is_staff': request.user.is_staff,
-    #             'is_superuser': request.user.is_superuser
-    #         }
-    #     })
     
     django_data = {
         'user': {
@@ -457,8 +276,6 @@ def dashboard_view(request):
         'received_files': received_files,
         'django_data': django_data
     })
-
-
 
 
 
@@ -520,6 +337,14 @@ def upload_files_view(request):
             folder_name=folder_name
         )
         uploaded_count += 1
+
+        # ===== تحلیل خودکار AI =====
+        try:
+            from .services.file_analysis_auto_service import analyze_and_save, refresh_user_behavior
+            analyze_and_save(uploaded_file)
+            refresh_user_behavior(request.user.id)
+        except Exception as e:
+            print(f"[AUTO-ANALYSIS] Failed for {f.name}: {e}")
 
         try:
             from .services.file_analysis_service import file_analysis_service
@@ -1053,6 +878,133 @@ def delete_user_by_id(request, user_id):
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_detail_api(request, user_id):
+    """دریافت اطلاعات کامل یک کاربر برای پنل ویرایش شبیه Django Admin"""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        user = get_object_or_404(User, id=user_id)
+
+        user_groups_ids = list(user.groups.values_list('id', flat=True))
+        user_perms_ids = list(user.user_permissions.values_list('id', flat=True))
+
+        groups = [{'id': g.id, 'name': g.name} for g in Group.objects.all().order_by('name')]
+        permissions = [
+            {
+                'id': p.id,
+                'name': p.name,
+                'codename': p.codename,
+                'app_label': p.content_type.app_label,
+                'model': p.content_type.model,
+            }
+            for p in Permission.objects.select_related('content_type').order_by('content_type__app_label', 'codename')
+        ]
+
+        return Response({
+            'success': True,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email or '',
+                'first_name': user.first_name or '',
+                'last_name': user.last_name or '',
+                'is_active': user.is_active,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+                'last_login': user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else None,
+                'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M:%S') if user.date_joined else None,
+                'groups_ids': user_groups_ids,
+                'user_permissions_ids': user_perms_ids,
+            },
+            'all_groups': groups,
+            'all_permissions': permissions,
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def user_update_api(request, user_id):
+    """ذخیره تغییرات کاربر از پنل ویرایش شبیه Django Admin"""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        user = get_object_or_404(User, id=user_id)
+        data = request.data
+
+        if user.id == request.user.id:
+            if 'is_active' in data and not data.get('is_active'):
+                return Response({'success': False, 'msg': 'نمی‌توانید خودتان را غیرفعال کنید'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # فیلدهای پایه
+        new_username = (data.get('username') or '').strip()
+        if new_username and new_username != user.username:
+            if User.objects.filter(username=new_username).exclude(id=user.id).exists():
+                return Response({'success': False, 'msg': 'نام کاربری تکراری است'}, status=status.HTTP_400_BAD_REQUEST)
+            user.username = new_username
+
+        user.email = data.get('email', user.email) or ''
+        user.first_name = data.get('first_name', user.first_name) or ''
+        user.last_name = data.get('last_name', user.last_name) or ''
+
+        # پرچم‌ها
+        if 'is_active' in data:
+            user.is_active = bool(data.get('is_active'))
+        if 'is_staff' in data:
+            user.is_staff = bool(data.get('is_staff'))
+        if 'is_superuser' in data:
+            if user.id == request.user.id and not data.get('is_superuser'):
+                return Response({'success': False, 'msg': 'نمی‌توانید وضعیت سوپرادمین خودتان را حذف کنید'}, status=status.HTTP_400_BAD_REQUEST)
+            user.is_superuser = bool(data.get('is_superuser'))
+
+        # گروه‌ها
+        if 'groups_ids' in data:
+            groups_ids = data.get('groups_ids') or []
+            user.groups.set(Group.objects.filter(id__in=groups_ids))
+
+        # دسترسی‌های مستقیم کاربر
+        if 'user_permissions_ids' in data:
+            perms_ids = data.get('user_permissions_ids') or []
+            user.user_permissions.set(Permission.objects.filter(id__in=perms_ids))
+
+        # رمز عبور (اختیاری)
+        new_password = data.get('new_password')
+        if new_password:
+            if len(new_password) < 8:
+                return Response({'success': False, 'msg': 'رمز عبور باید حداقل ۸ کاراکتر باشد'}, status=status.HTTP_400_BAD_REQUEST)
+            user.set_password(new_password)
+
+        user.save()
+
+        return Response({
+            'success': True,
+            'msg': f'اطلاعات کاربر {user.username} با موفقیت ذخیره شد',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'is_active': user.is_active,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+                'groups_ids': list(user.groups.values_list('id', flat=True)),
+                'user_permissions_ids': list(user.user_permissions.values_list('id', flat=True)),
+            }
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_permissions_view(request):
@@ -1171,6 +1123,34 @@ def create_role_view(request):
         return redirect('super_admin_panel')
 
     return redirect('super_admin_panel')
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def remove_role_from_user_api(request):
+    if not request.user.is_staff:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        data = request.data
+        user_id = data.get('user_id')
+        role_id = data.get('role_id')
+
+        user = get_object_or_404(User, id=user_id)
+        role = get_object_or_404(Group, id=role_id)
+
+        user.groups.remove(role)
+        RoleAssignment.objects.filter(user=user, role=role).delete()
+
+        return Response({
+            'success': True,
+            'msg': f'نقش {role.name} از کاربر {user.username} حذف شد'
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 # =============================================
@@ -2148,6 +2128,14 @@ def analyze_file_with_ai(request, file_id):
                 filename=file_obj.file.name,
                 question=question
             )
+            AIConversation.objects.create(
+                user=request.user,
+                file=file_obj,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                conversation_type='file_question',
+                question=question,
+                answer=result
+            )
             return Response({
                 'success': True,
                 'result': result,
@@ -2167,6 +2155,15 @@ def analyze_file_with_ai(request, file_id):
                 if keyword in content_lower:
                     threat_status = {'severity': 'high', 'threat_type': keyword}
                     break
+
+            AIConversation.objects.create(
+                user=request.user,
+                file=file_obj,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                conversation_type='file_summary',
+                question=None,
+                answer=result
+            )
 
             return Response({
                 'success': True,
@@ -2698,9 +2695,6 @@ def my_permissions_view(request):
 
 
 
-
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def debug_files_view(request):
@@ -2940,8 +2934,287 @@ def settings_router_view(request):
     return redirect('settings_panel')
 
 
-
-
-
-# # =============================================
     return redirect('settings_panel')
+
+
+
+
+
+
+
+
+
+
+
+# =============================================
+# ============ AI CONVERSATIONS API ============
+# =============================================
+
+from .models_ai_conversation import AIConversation as _AIConvModel  # noqa
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ai_conversations_list_api(request):
+    """لیست گفتگوهای AI با فیلتر بر اساس کاربر، نوع، جستجو"""
+    if not request.user.is_staff:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        qs = AIConversation.objects.select_related('user', 'file').all()
+
+        user_id = request.GET.get('user_id')
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+
+        conv_type = request.GET.get('type')
+        if conv_type:
+            qs = qs.filter(conversation_type=conv_type)
+
+        search = request.GET.get('search')
+        if search:
+            qs = qs.filter(
+                models.Q(question__icontains=search) |
+                models.Q(answer__icontains=search) |
+                models.Q(user__username__icontains=search)
+            )
+
+        total = qs.count()
+        qs = qs[:500]
+
+        items = []
+        for c in qs:
+            items.append({
+                'id': c.id,
+                'user_id': c.user.id,
+                'username': c.user.username,
+                'file_id': c.file.id if c.file else None,
+                'file_name': c.file.file.name.split('/')[-1] if c.file and c.file.file else None,
+                'ip_address': c.ip_address or '',
+                'conversation_type': c.conversation_type,
+                'conversation_type_display': c.get_conversation_type_display(),
+                'question': c.question or '',
+                'answer': c.answer or '',
+                'created_at': c.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+
+        return Response({
+            'success': True,
+            'total': total,
+            'items': items,
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ai_conversations_stats_api(request):
+    """آمار گفتگوها به تفکیک کاربر و نوع"""
+    if not request.user.is_staff:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        by_user = (
+            AIConversation.objects
+            .values('user__id', 'user__username')
+            .annotate(count=models.Count('id'))
+            .order_by('-count')
+        )
+        by_type = (
+            AIConversation.objects
+            .values('conversation_type')
+            .annotate(count=models.Count('id'))
+            .order_by('-count')
+        )
+        total = AIConversation.objects.count()
+
+        return Response({
+            'success': True,
+            'total': total,
+            'by_user': [
+                {'user_id': r['user__id'], 'username': r['user__username'], 'count': r['count']}
+                for r in by_user
+            ],
+            'by_type': [
+                {'type': r['conversation_type'], 'count': r['count']}
+                for r in by_type
+            ],
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ai_conversations_by_user_api(request, user_id):
+    """گفتگوهای یک کاربر خاص"""
+    if not request.user.is_staff:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        user = get_object_or_404(User, id=user_id)
+        qs = AIConversation.objects.filter(user=user).select_related('file').order_by('-created_at')[:200]
+
+        items = []
+        for c in qs:
+            items.append({
+                'id': c.id,
+                'file_id': c.file.id if c.file else None,
+                'file_name': c.file.file.name.split('/')[-1] if c.file and c.file.file else None,
+                'ip_address': c.ip_address or '',
+                'conversation_type': c.conversation_type,
+                'conversation_type_display': c.get_conversation_type_display(),
+                'question': c.question or '',
+                'answer': c.answer or '',
+                'created_at': c.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+
+        return Response({
+            'success': True,
+            'user': {'id': user.id, 'username': user.username},
+            'total': len(items),
+            'items': items,
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+
+
+
+
+# =============================================
+# ============ BEHAVIOR ANALYSIS API ==========
+# =============================================
+
+# from .models_file_analysis import FileAIAnalysis as _FAA  # noqa
+# from .models_user_behavior import UserBehaviorAnalysis as _UBA  # noqa
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def behavior_analysis_list_api(request):
+    """لیست تحلیل رفتار همه کاربران — برای ادمین"""
+    if not request.user.is_staff:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        users = User.objects.all().order_by('username')
+        items = []
+
+        for u in users:
+            b = UserBehaviorAnalysis.objects.filter(user=u).first()
+            if b:
+                items.append({
+                    'user_id': u.id,
+                    'username': u.username,
+                    'total_files': b.total_files,
+                    'related_files_count': b.related_files_count,
+                    'unrelated_files_count': b.unrelated_files_count,
+                    'suspicious_files_count': b.suspicious_files_count,
+                    'relevance_avg': b.relevance_avg,
+                    'related_percent': b.related_percent,
+                    'suspicious_percent': b.suspicious_percent,
+                    'top_topics': b.top_topics or [],
+                    'file_types_distribution': b.file_types_distribution or {},
+                    'ai_summary': b.ai_summary or '',
+                    'last_analyzed_at': b.last_analyzed_at.strftime('%Y-%m-%d %H:%M') if b.last_analyzed_at else '',
+                })
+            else:
+                items.append({
+                    'user_id': u.id,
+                    'username': u.username,
+                    'total_files': 0,
+                    'related_files_count': 0,
+                    'unrelated_files_count': 0,
+                    'suspicious_files_count': 0,
+                    'relevance_avg': 0.0,
+                    'related_percent': 0.0,
+                    'suspicious_percent': 0.0,
+                    'top_topics': [],
+                    'file_types_distribution': {},
+                    'ai_summary': 'هنوز فایلی تحلیل نشده',
+                    'last_analyzed_at': '',
+                })
+
+        return Response({'success': True, 'total': len(items), 'items': items})
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def behavior_analysis_detail_api(request, user_id):
+    """جزئیات تحلیل رفتار یک کاربر + لیست فایل‌هایش"""
+    if not request.user.is_staff:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        user = get_object_or_404(User, id=user_id)
+
+        behavior = UserBehaviorAnalysis.objects.filter(user=user).first()
+        analyses = FileAIAnalysis.objects.filter(user=user).select_related('file').order_by('-analyzed_at')[:200]
+
+        files = []
+        for a in analyses:
+            files.append({
+                'id': a.id,
+                'file_id': a.file.id if a.file else None,
+                'file_name': a.file.file.name.split('/')[-1] if a.file and a.file.file else '—',
+                'category': a.category,
+                'threat_level': a.threat_level,
+                'relevance_score': a.relevance_score,
+                'is_related': a.is_related,
+                'top_topic': a.top_topic or '',
+                'summary': a.summary or '',
+                'analyzed_at': a.analyzed_at.strftime('%Y-%m-%d %H:%M'),
+            })
+
+        # روند آپلود روزانه (30 روز اخیر)
+        from datetime import timedelta
+        from django.db.models.functions import TruncDate
+        since = timezone.now() - timedelta(days=30)
+        trend = (
+            FileAIAnalysis.objects
+            .filter(user=user, analyzed_at__gte=since)
+            .annotate(day=TruncDate('analyzed_at'))
+            .values('day')
+            .annotate(count=models.Count('id'))
+            .order_by('day')
+        )
+
+        return Response({
+            'success': True,
+            'user': {'id': user.id, 'username': user.username},
+            'behavior': {
+                'total_files': behavior.total_files if behavior else 0,
+                'related_files_count': behavior.related_files_count if behavior else 0,
+                'unrelated_files_count': behavior.unrelated_files_count if behavior else 0,
+                'suspicious_files_count': behavior.suspicious_files_count if behavior else 0,
+                'relevance_avg': behavior.relevance_avg if behavior else 0.0,
+                'related_percent': behavior.related_percent if behavior else 0.0,
+                'suspicious_percent': behavior.suspicious_percent if behavior else 0.0,
+                'top_topics': behavior.top_topics if behavior else [],
+                'file_types_distribution': behavior.file_types_distribution if behavior else {},
+                'ai_summary': behavior.ai_summary if behavior else '',
+            },
+            'files': files,
+            'trend': [
+                {'date': t['day'].strftime('%Y-%m-%d'), 'count': t['count']}
+                for t in trend
+            ],
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@login_required
+def behavior_analysis_panel_view(request):
+    """صفحه پنل گزارشات تحلیل رفتار"""
+    if not request.user.is_staff:
+        messages.error(request, "دسترسی غیرمجاز")
+        return redirect('dashboard')
+    return render(request, 'behavior_analysis_panel.html')
