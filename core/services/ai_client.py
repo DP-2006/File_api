@@ -16,8 +16,7 @@ from django.conf import settings
 
 class AIServiceClient:
     """کلاینت HMAC برای سرویس FastAPI ai-service"""
-
-    def __init__(self, base_url: str = None, secret: str = None, timeout: int = 120):
+    def __init__(self, base_url: str = None, secret: str = None, timeout: int = 600):
         self.base_url = (base_url or getattr(settings, 'AI_SERVICE_URL', 'http://127.0.0.1:9000')).rstrip('/')
         self.secret = (secret or getattr(settings, 'AI_SERVICE_SECRET', '')).encode('utf-8')
         self.timeout = timeout

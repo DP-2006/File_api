@@ -11,7 +11,7 @@ from django.contrib.auth.models import User, Group, Permission
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -2857,8 +2857,6 @@ def me_profile_api(request):
             'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M') if user.date_joined else '',
         }
     })
-
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def me_change_password_api(request):
@@ -2875,8 +2873,6 @@ def me_change_password_api(request):
     request.user.save()
     update_session_auth_hash(request, request.user)
     return Response({'success': True, 'msg': 'رمز عبور با موفقیت تغییر کرد'})
-
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def me_change_username_api(request):
@@ -2892,12 +2888,9 @@ def me_change_username_api(request):
     request.user.username = new_username
     request.user.save()
     return Response({'success': True, 'msg': 'نام کاربری با موفقیت تغییر کرد', 'new_username': new_username})
-
-
 # =============================================
 # ============ SMART SETTINGS ROUTER ============
 # =============================================
-
 @login_required
 def settings_router_view(request):
     """
@@ -2906,11 +2899,9 @@ def settings_router_view(request):
     - سایر کاربران → /settings/
     """
     user = request.user
-
     # سوپرادمین یا استف → پنل کامل AI
     if user.is_superuser or user.is_staff:
         return redirect('ai_settings')
-
     # کاربری که از طریق گروه دسترسی لازم را دارد
     try:
         from .permissions import has_permission
@@ -2929,48 +2920,27 @@ def settings_router_view(request):
                     return redirect('ai_settings')
     except Exception:
         pass
-
     # کاربر عادی → پنل تنظیمات کاربری
     return redirect('settings_panel')
-
-
     return redirect('settings_panel')
-
-
-
-
-
-
-
-
-
-
-
 # =============================================
 # ============ AI CONVERSATIONS API ============
 # =============================================
-
 from .models_ai_conversation import AIConversation as _AIConvModel  # noqa
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def ai_conversations_list_api(request):
     """لیست گفتگوهای AI با فیلتر بر اساس کاربر، نوع، جستجو"""
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
-
     try:
         qs = AIConversation.objects.select_related('user', 'file').all()
-
         user_id = request.GET.get('user_id')
         if user_id:
             qs = qs.filter(user_id=user_id)
-
         conv_type = request.GET.get('type')
         if conv_type:
             qs = qs.filter(conversation_type=conv_type)
-
         search = request.GET.get('search')
         if search:
             qs = qs.filter(
@@ -2978,10 +2948,8 @@ def ai_conversations_list_api(request):
                 models.Q(answer__icontains=search) |
                 models.Q(user__username__icontains=search)
             )
-
         total = qs.count()
         qs = qs[:500]
-
         items = []
         for c in qs:
             items.append({
@@ -2997,7 +2965,6 @@ def ai_conversations_list_api(request):
                 'answer': c.answer or '',
                 'created_at': c.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             })
-
         return Response({
             'success': True,
             'total': total,
@@ -3005,15 +2972,12 @@ def ai_conversations_list_api(request):
         })
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def ai_conversations_stats_api(request):
     """آمار گفتگوها به تفکیک کاربر و نوع"""
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
-
     try:
         by_user = (
             AIConversation.objects
@@ -3043,15 +3007,12 @@ def ai_conversations_stats_api(request):
         })
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def ai_conversations_by_user_api(request, user_id):
     """گفتگوهای یک کاربر خاص"""
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
-
     try:
         user = get_object_or_404(User, id=user_id)
         qs = AIConversation.objects.filter(user=user).select_related('file').order_by('-created_at')[:200]
@@ -3069,7 +3030,6 @@ def ai_conversations_by_user_api(request, user_id):
                 'answer': c.answer or '',
                 'created_at': c.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             })
-
         return Response({
             'success': True,
             'user': {'id': user.id, 'username': user.username},
@@ -3078,23 +3038,11 @@ def ai_conversations_by_user_api(request, user_id):
         })
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
-
-
-
-
-
-
 # =============================================
 # ============ BEHAVIOR ANALYSIS API ==========
 # =============================================
-
 # from .models_file_analysis import FileAIAnalysis as _FAA  # noqa
 # from .models_user_behavior import UserBehaviorAnalysis as _UBA  # noqa
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def behavior_analysis_list_api(request):
@@ -3149,7 +3097,6 @@ def behavior_analysis_list_api(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def behavior_analysis_detail_api(request, user_id):
-    """جزئیات تحلیل رفتار یک کاربر + لیست فایل‌هایش"""
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -3174,7 +3121,6 @@ def behavior_analysis_detail_api(request, user_id):
                 'analyzed_at': a.analyzed_at.strftime('%Y-%m-%d %H:%M'),
             })
 
-        # روند آپلود روزانه (30 روز اخیر)
         from datetime import timedelta
         from django.db.models.functions import TruncDate
         since = timezone.now() - timedelta(days=30)
@@ -3212,9 +3158,139 @@ def behavior_analysis_detail_api(request, user_id):
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @login_required
+@ensure_csrf_cookie
 def behavior_analysis_panel_view(request):
     """صفحه پنل گزارشات تحلیل رفتار"""
     if not request.user.is_staff:
         messages.error(request, "دسترسی غیرمجاز")
         return redirect('dashboard')
     return render(request, 'behavior_analysis_panel.html')
+
+
+
+
+
+
+# =============================================
+# ============ Report Chat API ================
+# =============================================
+
+from .models_report_chat import ReportChatSession, ReportChatMessage
+from .services.report_chat_service import ReportChatService
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def report_chat_start_api(request):
+    """ساخت جلسه چت جدید روی فایل‌های انتخاب‌شده + کاربر هدف"""
+    if not request.user.is_staff:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'},
+                        status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        data = request.data
+        file_ids = data.get('file_ids', []) or []
+        target_user_id = data.get('target_user_id')
+        title = (data.get('title') or '').strip()
+
+        session = ReportChatSession.objects.create(
+            admin=request.user,
+            title=title or 'جلسه چت گزارشات',
+            target_user_id=target_user_id or None,
+        )
+        if file_ids:
+            session.files.set(UploadedFile.objects.filter(id__in=file_ids))
+
+        svc = ReportChatService()
+        session.context_text = svc.build_context(session)
+        session.save(update_fields=['context_text'])
+
+        return Response({
+            'success': True,
+            'session_id': session.id,
+            'title': session.title,
+            'file_count': session.files.count(),
+            'context_chars': len(session.context_text),
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def report_chat_ask_api(request, session_id):
+    """ارسال سوال به جلسه چت"""
+    if not request.user.is_staff:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'},
+                        status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        session = get_object_or_404(ReportChatSession, id=session_id)
+
+        if session.admin_id != request.user.id and not request.user.is_superuser:
+            return Response({'success': False, 'msg': 'دسترسی غیرمجاز'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        question = (request.data.get('question') or '').strip()
+        if not question:
+            return Response({'success': False, 'msg': 'سوال خالی است'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        svc = ReportChatService()
+        result = svc.ask(session, question)
+
+        if not result.get('success'):
+            return Response({
+                'success': False,
+                'msg': result.get('error', 'خطا در ارتباط با سرویس AI'),
+            }, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response({
+            'success': True,
+            'answer': result.get('answer', ''),
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def report_chat_detail_api(request, session_id):
+    """دریافت پیام‌های یک جلسه چت"""
+    if not request.user.is_staff:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'},
+                        status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        session = get_object_or_404(ReportChatSession, id=session_id)
+        if session.admin_id != request.user.id and not request.user.is_superuser:
+            return Response({'success': False, 'msg': 'دسترسی غیرمجاز'},
+                            status=status.HTTP_403_FORBIDDEN)  
+
+        messages = [
+            {
+                'id': m.id,
+                'role': m.role,
+                'content': m.content,
+                'created_at': m.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+            for m in session.messages.all()
+        ]
+
+        return Response({
+            'success': True,
+            'session': {
+                'id': session.id,
+                'title': session.title,
+                'admin': session.admin.username,
+                'target_user': session.target_user.username if session.target_user else None,
+                'file_count': session.files.count(),
+                'created_at': session.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            },
+            'messages': messages,
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)

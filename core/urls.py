@@ -238,11 +238,20 @@ urlpatterns = [
     path('api/ai-conversations/stats/', views.ai_conversations_stats_api, name='ai_conversations_stats'),
     path('api/ai-conversations/by-user/<int:user_id>/', views.ai_conversations_by_user_api, name='ai_conversations_by_user'),    
 
-
     path('api/behavior-analysis/', views.behavior_analysis_list_api, name='behavior_analysis_list'),
     path('api/behavior-analysis/<int:user_id>/', views.behavior_analysis_detail_api, name='behavior_analysis_detail'),
-
     path('behavior-analysis-panel/', views.behavior_analysis_panel_view, name='behavior_analysis_panel'),
+
+
+    
+
+    # ========== Report Chat (Chatbot) ==========
+    path('api/report-chat/start/',              views.report_chat_start_api,   name='report_chat_start'),
+    path('api/report-chat/<int:session_id>/',   views.report_chat_detail_api,  name='report_chat_detail'),
+    path('api/report-chat/<int:session_id>/ask/', views.report_chat_ask_api,   name='report_chat_ask'),
+
+
+
 
 
 
