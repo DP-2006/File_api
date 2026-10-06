@@ -15,7 +15,6 @@ from django.conf import settings
 
 
 class AIServiceClient:
-    """کلاینت HMAC برای سرویس FastAPI ai-service"""
     def __init__(self, base_url: str = None, secret: str = None, timeout: int = 600):
         self.base_url = (base_url or getattr(settings, 'AI_SERVICE_URL', 'http://127.0.0.1:9000')).rstrip('/')
         self.secret = (secret or getattr(settings, 'AI_SERVICE_SECRET', '')).encode('utf-8')
@@ -45,7 +44,6 @@ class AIServiceClient:
             return {'error': str(e), 'path': path}
 
     def health(self) -> dict:
-        """تست اتصال به FastAPI (بدون HMAC)"""
         try:
             r = requests.get(f"{self.base_url}/health", timeout=10)
             if r.status_code == 200:
@@ -64,11 +62,6 @@ class AIServiceClient:
     # ---------- Chat with context ----------
     def chat_with_context(self, question, context_text="", file_ids=None,
                           history=None, user_id=None) -> dict:
-        """
-        چت با context دلخواه (بدون RAG).
-        payload: {question, context_text, file_ids, history[{role,content}], user_id}
-        output:  {answer, model, file_ids, user_id}
-        """
         return self._post("/chat/with-context", {
             "question": question,
             "context_text": context_text or "",
@@ -83,7 +76,7 @@ if not _is_management:
     try:
         ai_client = AIServiceClient()
     except Exception as e:
-        print(f"⚠️ خطا در ایجاد AIServiceClient: {e}")
+        print(f" خطا در ایجاد AIServiceClient: {e}")
         ai_client = None
 else:
     ai_client = None

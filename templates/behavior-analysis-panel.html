@@ -695,7 +695,7 @@
     const btn = chatEl('chatNewSession'), status = chatEl('chatStatus');
     if(!btn) return;
     btn.disabled = true;
-    if(status) status.textContent = '⏳ در حال ساخت جلسه...';
+    if(status) status.textContent = ' در حال ساخت جلسه...';
 
     try{
       const r = await fetch('/api/report-chat/start/', {
@@ -709,17 +709,17 @@
       });
       const d = await r.json();
       if(!d.success){
-        if(status) status.textContent = '❌ ' + (d.msg || 'خطا');
+        if(status) status.textContent = ' ' + (d.msg || 'خطا');
         return;
       }
       chatState.sessionId = d.session_id;
-      if(status) status.textContent = `✅ جلسه #${d.session_id} — ${d.file_count} فایل`;
+      if(status) status.textContent = ` جلسه #${d.session_id} — ${d.file_count} فایل`;
       const wrap = chatEl('chatMessages');
       if(wrap) wrap.innerHTML = '';
       chatSetEnabled(true);
       chatEl('chatInput')?.focus();
     }catch(e){
-      if(status) status.textContent = '❌ خطای شبکه';
+      if(status) status.textContent = ' خطای شبکه';
     }finally{
       btn.disabled = false;
     }
@@ -753,15 +753,15 @@
       if(typing) typing.remove();
       if(d.success){
         chatAppend('assistant', d.answer);
-        if(status) status.textContent = '✅ آماده';
+        if(status) status.textContent = ' آماده';
       }else{
-        chatAppend('assistant', '❌ ' + (d.msg || 'خطا در دریافت پاسخ'));
-        if(status) status.textContent = '❌ خطا';
+        chatAppend('assistant', ' ' + (d.msg || 'خطا در دریافت پاسخ'));
+        if(status) status.textContent = ' خطا';
       }
     }catch(e){
       if(typing) typing.remove();
-      chatAppend('assistant', '❌ خطای شبکه');
-      if(status) status.textContent = '❌ خطای شبکه';
+      chatAppend('assistant', ' خطای شبکه');
+      if(status) status.textContent = ' خطای شبکه';
     }finally{
       chatState.sending = false;
       chatSetEnabled(true);

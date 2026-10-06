@@ -3160,7 +3160,7 @@ def behavior_analysis_detail_api(request, user_id):
 @login_required
 @ensure_csrf_cookie
 def behavior_analysis_panel_view(request):
-    """صفحه پنل گزارشات تحلیل رفتار"""
+    return render (request, 'behavior-analysis-panel.html')
     if not request.user.is_staff:
         messages.error(request, "دسترسی غیرمجاز")
         return redirect('dashboard')

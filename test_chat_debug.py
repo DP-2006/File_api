@@ -13,14 +13,14 @@ def main():
     admin = User.objects.filter(is_staff=True).first()
     uploaded = UploadedFile.objects.filter(is_deleted=False, file__icontains='Ordi').first()
 
-    print(f"👤 ادمین: {admin.username} (id={admin.id})")
-    print(f"📄 فایل: {uploaded.id} - {uploaded.file.name}")
+    print(f" ادمین: {admin.username} (id={admin.id})")
+    print(f" فایل: {uploaded.id} - {uploaded.file.name}")
 
     client = Client()
     client.force_login(admin)
 
     # شبیه‌سازی دقیق درخواست JS مرورگر
-    print("\n▶ POST /api/report-chat/start/")
+    print("\n POST /api/report-chat/start/")
     r = client.post(
         '/api/report-chat/start/',
         data={

@@ -4,28 +4,72 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>{% if user.is_authenticated %}إFile Drive  - {% else %}ورود - 2.0.0{% endif %}</title>
-    
+    <title>File Drive - iOS 27</title>
+
     <!-- فونت وزیرمتن لوکال -->
     <link rel="stylesheet" href="{% static 'fonts/Vazirmatn/Vazirmatn-font-face.css' %}" />
-    
+
     <!-- Phosphor Icons لوکال -->
     <link rel="stylesheet" href="{% static 'vendor/phosphor/src/regular/style.css' %}" />
     <link rel="stylesheet" href="{% static 'vendor/phosphor/src/fill/style.css' %}" />
     <link rel="stylesheet" href="{% static 'vendor/phosphor/src/bold/style.css' %}" />
-    
+
     <!-- Tailwind لوکال -->
     <script src="{% static 'vendor/tailwind/tailwind.min.js' %}"></script>
-    
-    {% if user.is_authenticated %}
+
     <script src="{% static 'js/react.production.min.js' %}"></script>
     <script src="{% static 'js/react-dom.production.min.js' %}"></script>
     <script src="{% static 'vendor/babel/babel.min.js' %}"></script>
-    {% endif %}
-    
+
     <meta name="csrf-token" content="{{ csrf_token }}" />
-    
+
     <style>
+        /* ---------- تم روشن (پیش‌فرض) ---------- */
+        :root {
+            --bg-primary: #f2f2f7;
+            --bg-secondary: rgba(255, 255, 255, 0.78);
+            --bg-tertiary: rgba(255, 255, 255, 0.55);
+            --bg-glass: rgba(255, 255, 255, 0.62);
+            --bg-glass-heavy: rgba(255, 255, 255, 0.82);
+            --text-primary: #1c1c1e;
+            --text-secondary: #8e8e93;
+            --text-blue: #007aff;
+            --border-glass: rgba(255, 255, 255, 0.7);
+            --border-light: rgba(60, 60, 67, 0.08);
+            --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.02);
+            --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.03);
+            --divider: rgba(60, 60, 67, 0.08);
+            --input-bg: rgba(118, 118, 128, 0.08);
+            --input-border: rgba(60, 60, 67, 0.06);
+            --modal-bg: rgba(255, 255, 255, 0.92);
+            --toast-bg: rgba(30, 30, 35, 0.92);
+            --toast-text: #ffffff;
+            --icon-muted: #8e8e93;
+        }
+
+        /* ---------- تم تیره ---------- */
+        [data-theme="dark"] {
+            --bg-primary: #0b0b0f;
+            --bg-secondary: rgba(28, 28, 32, 0.78);
+            --bg-tertiary: rgba(40, 40, 45, 0.55);
+            --bg-glass: rgba(28, 28, 32, 0.62);
+            --bg-glass-heavy: rgba(28, 28, 32, 0.85);
+            --text-primary: #f2f2f7;
+            --text-secondary: #98989e;
+            --text-blue: #0a84ff;
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --border-light: rgba(255, 255, 255, 0.06);
+            --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+            --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.25);
+            --divider: rgba(255, 255, 255, 0.08);
+            --input-bg: rgba(118, 118, 128, 0.18);
+            --input-border: rgba(255, 255, 255, 0.08);
+            --modal-bg: rgba(28, 28, 32, 0.95);
+            --toast-bg: rgba(44, 44, 48, 0.95);
+            --toast-text: #f2f2f7;
+            --icon-muted: #98989e;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -33,17 +77,34 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        body {
-            font-family: -apple-system, 'Vazirmatn', 'SF Pro Display', 'SF Pro Text', sans-serif;
-            background: #f2f2f7;
-            color: #000000;
-            height: 100vh;
+        html, body {
+            height: 100%;
             overflow: hidden;
-            direction: rtl;
-            -webkit-font-smoothing: antialiased;
         }
 
-        ::-webkit-scrollbar { width: 0px; height: 0px; }
+        body {
+            font-family: -apple-system, 'Vazirmatn', 'SF Pro Display', 'SF Pro Text', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            direction: rtl;
+            -webkit-font-smoothing: antialiased;
+            transition: background 0.4s ease, color 0.3s ease;
+        }
+
+        /* اسکرول‌بار نازک و زیبا برای سایدبار */
+        .ios-sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .ios-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .ios-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(118, 118, 128, 0.25);
+            border-radius: 10px;
+        }
+        .ios-sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(118, 118, 128, 0.4);
+        }
 
         @keyframes iosFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes iosSpringIn { from { opacity: 0; transform: scale(0.92) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
@@ -52,54 +113,121 @@
         .ios-spring-in { animation: iosSpringIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .ios-spin { animation: iosSpin 0.8s linear infinite; }
 
+        /* ---------- Liquid Glass Components ---------- */
+        .liquid-glass {
+            background: var(--bg-glass);
+            backdrop-filter: blur(40px) saturate(200%);
+            -webkit-backdrop-filter: blur(40px) saturate(200%);
+            border: 0.5px solid var(--border-glass);
+            box-shadow: var(--shadow-glass);
+            position: relative;
+            overflow: hidden;
+        }
+        .liquid-glass::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.25) 0%,
+                rgba(255,255,255,0.02) 40%,
+                rgba(255,255,255,0.06) 60%,
+                rgba(255,255,255,0.18) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        [data-theme="dark"] .liquid-glass::before {
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.08) 0%,
+                rgba(255,255,255,0.01) 40%,
+                rgba(255,255,255,0.02) 60%,
+                rgba(255,255,255,0.06) 100%);
+        }
+        .liquid-glass > * {
+            position: relative;
+            z-index: 2;
+        }
+
         .ios-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-radius: 14px;
-            border: 0.5px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.03);
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            background: var(--bg-glass);
+            backdrop-filter: blur(36px) saturate(200%);
+            -webkit-backdrop-filter: blur(36px) saturate(200%);
+            border-radius: 18px;
+            border: 0.5px solid var(--border-glass);
+            box-shadow: var(--shadow-card);
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+        }
+        .ios-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.22) 0%,
+                rgba(255,255,255,0.01) 45%,
+                rgba(255,255,255,0.05) 65%,
+                rgba(255,255,255,0.15) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        [data-theme="dark"] .ios-card::before {
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.06) 0%,
+                rgba(255,255,255,0.005) 45%,
+                rgba(255,255,255,0.015) 65%,
+                rgba(255,255,255,0.05) 100%);
+        }
+        .ios-card > * {
+            position: relative;
+            z-index: 1;
         }
 
-        .ios-btn {
-            background: transparent;
-            border: none;
-            border-radius: 12px;
-            color: #007aff;
-            font-weight: 600;
-            font-size: 15px;
-            padding: 8px 16px;
-            min-height: 44px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            user-select: none;
-            min-width: 60px;
-            text-decoration: none;
-            font-family: inherit;
-        }
-        .ios-btn:hover { background: rgba(0, 122, 255, 0.06); }
-        .ios-btn:active { transform: scale(0.96); background: rgba(0, 122, 255, 0.12); }
-        .ios-btn-primary { background: #007aff; color: #ffffff; box-shadow: 0 2px 12px rgba(0, 122, 255, 0.25); }
-        .ios-btn-secondary { background: rgba(60, 60, 67, 0.06); color: #007aff; }
-        .ios-btn-danger { background: rgba(255, 59, 48, 0.06); color: #ff3b30; }
-        .ios-btn-success { background: rgba(52, 199, 89, 0.08); color: #34c759; }
-        .ios-btn-disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
-        .ios-btn-block { width: 100%; justify-content: center; }
-
+        /* ---------- Sidebar با اسکرول ---------- */
         .ios-sidebar {
-            background: rgba(242, 242, 247, 0.92);
-            backdrop-filter: saturate(180%) blur(30px);
-            -webkit-backdrop-filter: saturate(180%) blur(30px);
-            border-left: 0.5px solid rgba(60, 60, 67, 0.08);
+            background: var(--bg-glass-heavy);
+            backdrop-filter: blur(50px) saturate(200%);
+            -webkit-backdrop-filter: blur(50px) saturate(200%);
+            border-left: 0.5px solid var(--border-light);
             padding: 16px 12px;
             display: flex;
             flex-direction: column;
             gap: 2px;
+            position: relative;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 100vh;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(118, 118, 128, 0.25) transparent;
+        }
+        .ios-sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .ios-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .ios-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(118, 118, 128, 0.25);
+            border-radius: 10px;
+        }
+        .ios-sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(118, 118, 128, 0.4);
+        }
+        .ios-sidebar::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.1) 0%,
+                transparent 30%,
+                transparent 70%,
+                rgba(255,255,255,0.05) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .ios-sidebar > * {
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
         }
 
         .ios-sidebar-item {
@@ -107,10 +235,10 @@
             align-items: center;
             gap: 12px;
             padding: 10px 14px;
-            border-radius: 10px;
+            border-radius: 14px;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            color: #1c1c1e;
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            color: var(--text-primary);
             font-size: 15px;
             font-weight: 500;
             min-height: 44px;
@@ -121,9 +249,13 @@
             font-family: inherit;
             text-decoration: none;
         }
-        .ios-sidebar-item:hover { background: rgba(60, 60, 67, 0.04); }
-        .ios-sidebar-item:active { transform: scale(0.97); background: rgba(60, 60, 67, 0.08); }
-        .ios-sidebar-item.active { background: rgba(0, 122, 255, 0.08); color: #007aff; }
+        .ios-sidebar-item:hover { background: rgba(118, 118, 128, 0.08); }
+        .ios-sidebar-item:active { transform: scale(0.97); background: rgba(118, 118, 128, 0.12); }
+        .ios-sidebar-item.active {
+            background: rgba(0, 122, 255, 0.12);
+            color: var(--text-blue);
+            box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.15);
+        }
         .ios-sidebar-item .ph { font-size: 20px; opacity: 0.7; }
         .ios-sidebar-item.active .ph { opacity: 1; }
 
@@ -138,55 +270,113 @@
             width: 36px;
             height: 36px;
             background: linear-gradient(135deg, #007aff, #5856d6);
-            border-radius: 9px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #ffffff;
             font-weight: 700;
             font-size: 18px;
-            box-shadow: 0 2px 12px rgba(0, 122, 255, 0.25);
+            box-shadow: 0 2px 12px rgba(0, 122, 255, 0.3);
         }
-        .ios-brand-title { font-size: 18px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.3px; }
-        .ios-brand-subtitle { font-size: 11px; color: #8e8e93; font-weight: 400; }
+        .ios-brand-title { font-size: 18px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.3px; }
+        .ios-brand-subtitle { font-size: 11px; color: var(--text-secondary); font-weight: 400; }
 
-        .ios-divider { border: none; height: 0.5px; background: rgba(60, 60, 67, 0.08); margin: 4px 0; }
-        .ios-section-header { font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.3px; padding: 6px 14px; }
-        .ios-section { padding: 4px 0; }
+        .ios-divider { border: none; height: 0.5px; background: var(--divider); margin: 4px 0; flex-shrink: 0; }
+        .ios-section-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 6px 14px;
+        }
+        .ios-section { padding: 4px 0; flex-shrink: 0; }
         .ios-btn-group-vertical { display: flex; flex-direction: column; gap: 6px; width: 100%; }
         .ios-btn-group-vertical .ios-btn { width: 100%; justify-content: center; }
 
-        .ios-text-muted { color: #8e8e93; }
-        .ios-text-blue { color: #007aff; }
+        .ios-text-muted { color: var(--text-secondary); }
+        .ios-text-blue { color: var(--text-blue); }
 
+        /* ---------- Grid & File Cards ---------- */
         .ios-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 14px;
             padding: 4px 0;
         }
 
         .ios-file-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-radius: 14px;
-            border: 0.5px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-            padding: 16px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(32px) saturate(200%);
+            -webkit-backdrop-filter: blur(32px) saturate(200%);
+            border-radius: 18px;
+            border: 0.5px solid var(--border-glass);
+            box-shadow: var(--shadow-card);
+            padding: 16px 12px 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
             justify-content: space-between;
             gap: 8px;
-            min-height: 180px;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            min-height: 200px;
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
-        .ios-file-card:hover { transform: translateY(-2px); box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 12px 48px rgba(0,0,0,0.04); }
+        .ios-file-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.2) 0%,
+                rgba(255,255,255,0.01) 45%,
+                rgba(255,255,255,0.04) 65%,
+                rgba(255,255,255,0.12) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        [data-theme="dark"] .ios-file-card::before {
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.05) 0%,
+                rgba(255,255,255,0.005) 45%,
+                rgba(255,255,255,0.01) 65%,
+                rgba(255,255,255,0.04) 100%);
+        }
+        .ios-file-card > * {
+            position: relative;
+            z-index: 1;
+        }
+        .ios-file-card:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.06);
+        }
         .ios-file-card:active { transform: scale(0.97); }
-        .ios-received-card { border-right: 3px solid #007aff; }
+        .ios-received-card { border-right: 3px solid var(--text-blue); }
+
+        .ios-card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            padding-top: 8px;
+            border-top: 0.5px solid var(--divider);
+        }
+        .ios-card-actions .ios-btn {
+            width: 100%;
+            justify-content: center;
+            min-height: 34px;
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 10px;
+            min-width: unset;
+            flex: unset;
+        }
+        .ios-card-actions .ios-btn .ph {
+            font-size: 15px;
+        }
 
         .ios-empty-state {
             display: flex;
@@ -195,43 +385,101 @@
             justify-content: center;
             min-height: 300px;
             gap: 12px;
-            color: #8e8e93;
+            color: var(--text-secondary);
         }
         .ios-empty-state-icon { font-size: 56px; opacity: 0.2; }
-        .ios-empty-state-title { font-size: 20px; font-weight: 600; color: #8e8e93; }
-        .ios-empty-state-subtitle { font-size: 15px; color: #8e8e93; }
+        .ios-empty-state-title { font-size: 20px; font-weight: 600; color: var(--text-secondary); }
+        .ios-empty-state-subtitle { font-size: 15px; color: var(--text-secondary); }
 
+        /* ---------- Drop Zone ---------- */
         .ios-drop-zone {
-            border: 2px dashed rgba(60, 60, 67, 0.12);
-            border-radius: 14px;
+            border: 2px dashed var(--border-light);
+            border-radius: 18px;
             padding: 28px;
             text-align: center;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             cursor: pointer;
             min-height: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 16px;
-            background: rgba(255, 255, 255, 0.4);
+            background: var(--bg-tertiary);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
         }
-        .ios-drop-zone:hover { border-color: rgba(0, 122, 255, 0.3); background: rgba(0, 122, 255, 0.02); }
-        .ios-drop-zone.drag-over { border-color: #007aff; background: rgba(0, 122, 255, 0.04); }
+        .ios-drop-zone:hover {
+            border-color: rgba(0, 122, 255, 0.4);
+            background: rgba(0, 122, 255, 0.04);
+        }
+        .ios-drop-zone.drag-over {
+            border-color: var(--text-blue);
+            background: rgba(0, 122, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.08);
+            transform: scale(1.01);
+        }
+        .ios-drop-zone.drag-over::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 18px;
+            border: 2px solid var(--text-blue);
+            animation: iosFadeIn 0.3s ease-out;
+        }
+
+        /* ---------- Global Drag Overlay ---------- */
+        .global-drag-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 122, 255, 0.08);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            animation: iosFadeIn 0.2s ease-out;
+        }
+        .global-drag-overlay-inner {
+            background: var(--bg-glass-heavy);
+            backdrop-filter: blur(48px) saturate(200%);
+            -webkit-backdrop-filter: blur(48px) saturate(200%);
+            border-radius: 24px;
+            border: 2px dashed var(--text-blue);
+            padding: 48px 64px;
+            text-align: center;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.15);
+            animation: iosSpringIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .global-drag-overlay-icon {
+            font-size: 64px;
+            color: var(--text-blue);
+            margin-bottom: 16px;
+        }
+        .global-drag-overlay-text {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
 
         .ios-staged-file {
             display: inline-flex;
             align-items: center;
             gap: 8px;
             padding: 6px 14px 6px 10px;
-            background: rgba(118, 118, 128, 0.08);
-            border: 0.5px solid rgba(60, 60, 67, 0.04);
+            background: var(--input-bg);
+            border: 0.5px solid var(--input-border);
             border-radius: 20px;
             font-size: 13px;
             white-space: nowrap;
             flex-shrink: 0;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
-        .ios-staged-file-remove { cursor: pointer; color: #8e8e93; padding: 4px; font-size: 16px; border-radius: 50%; }
-        .ios-staged-file-remove:hover { color: #ff3b30; background: rgba(255, 59, 48, 0.06); }
+        .ios-staged-file-remove { cursor: pointer; color: var(--text-secondary); padding: 4px; font-size: 16px; border-radius: 50%; transition: all 0.2s; }
+        .ios-staged-file-remove:hover { color: #ff3b30; background: rgba(255, 59, 48, 0.08); }
 
         .ios-header {
             display: flex;
@@ -241,8 +489,8 @@
             gap: 12px;
             padding-bottom: 16px;
         }
-        .ios-header-title { font-size: 28px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.5px; }
-        .ios-header-subtitle { font-size: 13px; color: #8e8e93; margin-top: 2px; }
+        .ios-header-title { font-size: 28px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.5px; }
+        .ios-header-subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
         .ios-header-stats { display: flex; gap: 8px; flex-wrap: wrap; }
 
         .ios-stat {
@@ -250,20 +498,70 @@
             align-items: center;
             gap: 6px;
             padding: 6px 14px;
-            background: rgba(118, 118, 128, 0.06);
+            background: var(--input-bg);
             border-radius: 20px;
             font-size: 13px;
-            color: #8e8e93;
+            color: var(--text-secondary);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 0.5px solid var(--input-border);
         }
-        .ios-stat-value { font-weight: 600; color: #1c1c1e; font-size: 15px; }
+        .ios-stat-value { font-weight: 600; color: var(--text-primary); font-size: 15px; }
 
         .ios-btn-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
+        /* ---------- Buttons ---------- */
+        .ios-btn {
+            background: transparent;
+            border: none;
+            border-radius: 14px;
+            color: var(--text-blue);
+            font-weight: 600;
+            font-size: 15px;
+            padding: 8px 16px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            user-select: none;
+            min-width: 60px;
+            text-decoration: none;
+            font-family: inherit;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .ios-btn:hover { background: rgba(0, 122, 255, 0.08); }
+        .ios-btn:active { transform: scale(0.96); background: rgba(0, 122, 255, 0.15); }
+        .ios-btn-primary { background: #007aff; color: #ffffff; box-shadow: 0 2px 16px rgba(0, 122, 255, 0.3); }
+        .ios-btn-primary:hover { background: #0066d6; }
+        .ios-btn-secondary {
+            background: var(--input-bg);
+            color: var(--text-blue);
+            border: 0.5px solid var(--input-border);
+        }
+        .ios-btn-danger {
+            background: rgba(255, 59, 48, 0.1);
+            color: #ff3b30;
+            border: 0.5px solid rgba(255, 59, 48, 0.15);
+        }
+        .ios-btn-success {
+            background: rgba(52, 199, 89, 0.1);
+            color: #34c759;
+            border: 0.5px solid rgba(52, 199, 89, 0.15);
+        }
+        .ios-btn-disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+        .ios-btn-block { width: 100%; justify-content: center; }
+
+        /* ---------- Modals ---------- */
         .ios-modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(20px);
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             display: flex;
             align-items: flex-end;
             justify-content: center;
@@ -272,61 +570,104 @@
             animation: iosFadeIn 0.3s ease-out;
         }
         .ios-modal {
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: saturate(180%) blur(40px);
-            border-radius: 20px;
-            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            background: var(--modal-bg);
+            backdrop-filter: blur(48px) saturate(200%);
+            -webkit-backdrop-filter: blur(48px) saturate(200%);
+            border-radius: 24px;
+            border: 0.5px solid var(--border-glass);
             padding: 24px 20px 28px;
             max-width: 600px;
             width: 100%;
             max-height: 85vh;
             overflow-y: auto;
             animation: iosSpringIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+            position: relative;
         }
-        .ios-modal-title { font-size: 22px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; color: #1c1c1e; }
-        .ios-modal-handle { width: 36px; height: 5px; background: rgba(60, 60, 67, 0.2); border-radius: 10px; margin: 0 auto 16px; }
+        .ios-modal::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.15) 0%,
+                rgba(255,255,255,0.01) 50%,
+                rgba(255,255,255,0.08) 100%);
+            pointer-events: none;
+            border-radius: 24px;
+        }
+        .ios-modal > * { position: relative; z-index: 1; }
+        .ios-modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-primary);
+        }
+        .ios-modal-handle {
+            width: 36px;
+            height: 5px;
+            background: rgba(118, 118, 128, 0.3);
+            border-radius: 10px;
+            margin: 0 auto 16px;
+        }
 
+        /* ---------- Inputs ---------- */
         .ios-input {
-            background: rgba(118, 118, 128, 0.08);
-            border: 0.5px solid rgba(60, 60, 67, 0.06);
-            border-radius: 12px;
-            color: #1c1c1e;
+            background: var(--input-bg);
+            border: 0.5px solid var(--input-border);
+            border-radius: 14px;
+            color: var(--text-primary);
             padding: 12px 16px;
             font-size: 15px;
             width: 100%;
-            transition: all 0.2s ease;
+            transition: all 0.25s ease;
             min-height: 44px;
             font-family: inherit;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
-        .ios-input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1); outline: none; background: rgba(255, 255, 255, 0.6); }
-        .ios-input::placeholder { color: #8e8e93; }
+        .ios-input:focus {
+            border-color: var(--text-blue);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12);
+            outline: none;
+            background: var(--bg-secondary);
+        }
+        .ios-input::placeholder { color: var(--text-secondary); }
 
         .ios-select {
-            background: rgba(118, 118, 128, 0.08);
-            border: 0.5px solid rgba(60, 60, 67, 0.06);
-            border-radius: 12px;
-            color: #1c1c1e;
+            background: var(--input-bg);
+            border: 0.5px solid var(--input-border);
+            border-radius: 14px;
+            color: var(--text-primary);
             padding: 12px 16px;
             font-size: 15px;
             width: 100%;
             min-height: 44px;
             font-family: inherit;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
-        .ios-select:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1); outline: none; }
+        .ios-select:focus {
+            border-color: var(--text-blue);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12);
+            outline: none;
+        }
 
         .ios-sender-info {
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 11px;
-            color: #8e8e93;
+            color: var(--text-secondary);
             margin-top: 4px;
             padding: 2px 8px;
-            background: rgba(0, 122, 255, 0.04);
+            background: rgba(0, 122, 255, 0.06);
             border-radius: 12px;
         }
 
+        /* ---------- Icons ---------- */
         .ios-icon-pdf { color: #ff3b30; }
         .ios-icon-video { color: #5856d6; }
         .ios-icon-zip { color: #ff9500; }
@@ -334,12 +675,14 @@
         .ios-icon-xls { color: #34c759; }
         .ios-icon-ppt { color: #ff9500; }
         .ios-icon-image { color: #5856d6; }
-        .ios-icon-default { color: #8e8e93; }
+        .ios-icon-default { color: var(--icon-muted); }
 
+        /* ---------- Toast ---------- */
         .ios-toast {
-            background: rgba(30, 30, 35, 0.92);
-            backdrop-filter: saturate(180%) blur(30px);
-            border-radius: 12px;
+            background: var(--toast-bg);
+            backdrop-filter: blur(40px) saturate(200%);
+            -webkit-backdrop-filter: blur(40px) saturate(200%);
+            border-radius: 14px;
             padding: 12px 20px;
             display: flex;
             align-items: center;
@@ -347,9 +690,9 @@
             min-width: 280px;
             min-height: 44px;
             animation: iosSpringIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
             border: 0.5px solid rgba(255, 255, 255, 0.08);
-            color: #ffffff;
+            color: var(--toast-text);
         }
         .ios-toast-success { border-right: 3px solid #34c759; }
         .ios-toast-error { border-right: 3px solid #ff3b30; }
@@ -358,48 +701,72 @@
 
         .ios-tab-content { animation: iosFadeIn 0.3s ease-out; }
 
+        /* ---------- Theme Toggle ---------- */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 14px;
+            background: var(--input-bg);
+            border: 0.5px solid var(--input-border);
+            cursor: pointer;
+            transition: all 0.25s;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            min-height: 40px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .theme-toggle:hover { background: rgba(118, 118, 128, 0.12); }
+        .theme-toggle:active { transform: scale(0.96); }
+        .theme-toggle .ph { font-size: 18px; }
+
+        /* ---------- Media Queries ---------- */
         @media (max-width: 768px) {
             .ios-sidebar { width: 240px !important; min-width: 240px !important; padding: 12px 8px; }
-            .ios-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+            .ios-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
             .ios-header-title { font-size: 24px; }
             .ios-btn { min-height: 40px; padding: 6px 14px; font-size: 14px; min-width: 50px; }
+            .ios-card-actions .ios-btn { min-height: 30px; font-size: 11px; }
         }
 
         @media (max-width: 480px) {
             .ios-sidebar { width: 200px !important; min-width: 200px !important; padding: 8px 6px; }
-            .ios-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+            .ios-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
             .ios-header-title { font-size: 20px; }
-            .ios-btn { min-height: 36px; padding: 4px 12px; font-size: 13px; min-width: 44px; border-radius: 10px; }
+            .ios-btn { min-height: 36px; padding: 4px 12px; font-size: 13px; min-width: 44px; border-radius: 12px; }
+            .ios-card-actions .ios-btn { min-height: 28px; font-size: 10px; padding: 4px 8px; }
+            .ios-file-card { min-height: 170px; padding: 12px 8px 8px; }
         }
 
         .no-underline { text-decoration: none !important; }
-
-        /* Login */
-        .login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f2f2f7; padding: 20px; }
-        .login-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: saturate(180%) blur(20px);
-            border-radius: 20px;
-            border: 0.5px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.06), 0 20px 60px rgba(0, 0, 0, 0.04);
-            padding: 40px 32px;
-            max-width: 400px;
-            width: 100%;
-        }
     </style>
 </head>
 <body>
-    {% if user.is_authenticated %}
-    <!-- ========== DASHBOARD ========== -->
     <div id="root"></div>
-    
+
     {{ django_data|json_script:"django-data" }}
-    
+
     <script>
         var dataElement = document.getElementById('django-data');
         if (dataElement) {
             var djangoData = JSON.parse(dataElement.textContent);
             window.DJANGO_DATA = djangoData;
+        }
+
+        (function() {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            document.cookie = 'theme=' + theme + '; path=/; max-age=31536000; SameSite=Lax';
+        })();
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            document.cookie = 'theme=' + theme + '; path=/; max-age=31536000; SameSite=Lax';
         }
     </script>
 
@@ -445,7 +812,6 @@
             return sanitized;
         }
 
-        // ---- Error Boundary ----
         class ErrorBoundary extends React.Component {
             constructor(props) {
                 super(props);
@@ -568,7 +934,7 @@
                     React.createElement('i', { className: 'ph ' + fileIcon.icon })
                 ),
                 React.createElement('div', { className: 'w-full flex flex-col gap-1' },
-                    React.createElement('div', { className: 'text-sm font-semibold text-[#1c1c1e] truncate px-1', title: file.name },
+                    React.createElement('div', { className: 'text-sm font-semibold text-[var(--text-primary)] truncate px-1', title: file.name },
                         file.name.length > 18 ? file.name.substring(0, 18) + '...' : file.name
                     ),
                     React.createElement('div', { className: 'flex justify-between text-xs ios-text-muted px-1' },
@@ -576,22 +942,22 @@
                         React.createElement('span', null, fileSize)
                     )
                 ),
-                React.createElement('div', { className: 'ios-btn-group justify-center pt-1' },
+                React.createElement('div', { className: 'ios-card-actions' },
                     React.createElement('button', {
                         onClick: function(e) { e.stopPropagation(); downloadFile(file.url); },
-                        className: 'ios-btn ios-btn-primary text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                        className: 'ios-btn ios-btn-primary',
                         title: 'دانلود'
-                    }, React.createElement('i', { className: 'ph ph-download-simple text-base' })),
+                    }, React.createElement('i', { className: 'ph ph-download-simple' }), React.createElement('span', null, 'دانلود')),
                     isStaff ? React.createElement('button', {
                         onClick: function(e) { e.stopPropagation(); analyzeFile(file.id, file.name); },
-                        className: 'ios-btn ios-btn-secondary text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                        className: 'ios-btn ios-btn-secondary',
                         title: 'تحلیل با AI'
-                    }, React.createElement('i', { className: 'ph ph-robot text-base' })) : null,
+                    }, React.createElement('i', { className: 'ph ph-robot' }), React.createElement('span', null, 'هوش مصنوعی')) : null,
                     React.createElement('button', {
                         onClick: function(e) { e.stopPropagation(); deleteFile(file.id); },
-                        className: 'ios-btn ios-btn-danger text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                        className: 'ios-btn ios-btn-danger',
                         title: 'حذف'
-                    }, React.createElement('i', { className: 'ph ph-trash text-base' }))
+                    }, React.createElement('i', { className: 'ph ph-trash' }), React.createElement('span', null, 'حذف'))
                 )
             );
         });
@@ -604,7 +970,7 @@
                     React.createElement('i', { className: 'ph ' + fileIcon.icon })
                 ),
                 React.createElement('div', { className: 'w-full flex flex-col gap-1' },
-                    React.createElement('div', { className: 'text-sm font-semibold text-[#1c1c1e] truncate px-1', title: file.name },
+                    React.createElement('div', { className: 'text-sm font-semibold text-[var(--text-primary)] truncate px-1', title: file.name },
                         file.name.length > 18 ? file.name.substring(0, 18) + '...' : file.name
                     ),
                     React.createElement('div', { className: 'flex justify-between text-xs ios-text-muted px-1' },
@@ -616,41 +982,39 @@
                         React.createElement('span', null, 'از طرف: ' + (file.sender_name || 'کاربر ناشناس'))
                     )
                 ),
-                React.createElement('div', { className: 'ios-btn-group justify-center pt-1' },
+                React.createElement('div', { className: 'ios-card-actions' },
                     React.createElement('button', {
                         onClick: function(e) { e.stopPropagation(); downloadFile(file.url); },
-                        className: 'ios-btn ios-btn-primary text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                        className: 'ios-btn ios-btn-primary',
                         title: 'دانلود'
-                    }, React.createElement('i', { className: 'ph ph-download-simple text-base' })),
+                    }, React.createElement('i', { className: 'ph ph-download-simple' }), React.createElement('span', null, 'دانلود')),
                     isStaff ? React.createElement('button', {
                         onClick: function(e) { e.stopPropagation(); analyzeFile(file.id, file.name); },
-                        className: 'ios-btn ios-btn-secondary text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                        className: 'ios-btn ios-btn-secondary',
                         title: 'تحلیل با AI'
-                    }, React.createElement('i', { className: 'ph ph-robot text-base' })) : null,
+                    }, React.createElement('i', { className: 'ph ph-robot' }), React.createElement('span', null, 'هوش مصنوعی')) : null,
                     React.createElement('button', {
                         onClick: function(e) { e.stopPropagation(); deleteReceivedFile(file.id); },
-                        className: 'ios-btn ios-btn-danger text-xs px-3 py-1 min-w-[32px] min-h-[32px]',
+                        className: 'ios-btn ios-btn-danger',
                         title: 'حذف'
-                    }, React.createElement('i', { className: 'ph ph-trash text-base' }))
+                    }, React.createElement('i', { className: 'ph ph-trash' }), React.createElement('span', null, 'حذف'))
                 )
             );
         });
 
-        // ---- Dashboard اصلی با اصلاحات ----
         function Dashboard() {
             var toast = useToast();
             var toasts = toast.toasts;
             var showToast = toast.showToast;
             var removeToast = toast.removeToast;
-            
-            // مقدار پیش‌فرض کامل برای djangoData
-            var djangoData = window.DJANGO_DATA || { 
-                user: { id: 0, username: '', first_name: '', last_name: '', is_staff: false, is_superuser: false }, 
-                settings: { font_size: 18, menu_size: 280, button_size: 56 }, 
-                files: [], 
-                received_files: [] 
+
+            var djangoData = window.DJANGO_DATA || {
+                user: { id: 0, username: '', first_name: '', last_name: '', is_staff: false, is_superuser: false },
+                settings: { font_size: 18, menu_size: 280, button_size: 56 },
+                files: [],
+                received_files: []
             };
-            
+
             var settingsState = React.useState({
                 fontSize: djangoData.settings.font_size || 18,
                 menuWidth: djangoData.settings.menu_size || 280,
@@ -682,7 +1046,7 @@
             var isUploadingState = React.useState(false);
             var isUploading = isUploadingState[0];
             var setIsUploading = isUploadingState[1];
-            
+
             var sendModalOpenState = React.useState(false);
             var sendModalOpen = sendModalOpenState[0];
             var setSendModalOpen = sendModalOpenState[1];
@@ -726,18 +1090,16 @@
             var isAnalyzingState = React.useState(false);
             var isAnalyzing = isAnalyzingState[0];
             var setIsAnalyzing = isAnalyzingState[1];
-            
+
             var fileInputRef = React.useRef(null);
             var folderInputRef = React.useRef(null);
             var dropZoneRef = React.useRef(null);
             var analysisResultRef = React.useRef(null);
 
-            // State برای Confirm Modal
             var confirmModalState = React.useState({ open: false, message: '', onConfirm: null });
             var confirmModal = confirmModalState[0];
             var setConfirmModal = confirmModalState[1];
 
-            // State برای بررسی توکن
             var isCheckingTokenState = React.useState(true);
             var isCheckingToken = isCheckingTokenState[0];
             var setIsCheckingToken = isCheckingTokenState[1];
@@ -745,12 +1107,23 @@
             var isStaff = djangoData.user.is_staff || false;
             var isSuperuser = djangoData.user.is_superuser || false;
 
-            // AbortController refs برای لغو درخواست‌ها
             var uploadAbortRef = React.useRef(null);
             var sendAbortRef = React.useRef(null);
             var analyzeAbortRef = React.useRef(null);
 
-            // بررسی توکن در ابتدای بارگذاری
+            var [theme, setThemeState] = React.useState(function() {
+                return document.documentElement.getAttribute('data-theme') || 'light';
+            });
+
+            // Global drag state
+            var [isGlobalDragging, setIsGlobalDragging] = React.useState(false);
+
+            var toggleTheme = React.useCallback(function() {
+                var newTheme = theme === 'light' ? 'dark' : 'light';
+                setThemeState(newTheme);
+                setTheme(newTheme);
+            }, [theme]);
+
             React.useEffect(function() {
                 setIsCheckingToken(false);
             }, []);
@@ -763,7 +1136,6 @@
                 document.body.style.fontSize = settings.fontSize + 'px';
             }, [settings]);
 
-            // نمایش analysisResult با استفاده از ref و innerHTML
             React.useEffect(function() {
                 if (analysisResultRef.current) {
                     analysisResultRef.current.innerHTML = analysisResult;
@@ -776,7 +1148,7 @@
                     newSettings[key] = value;
                     return newSettings;
                 });
-                
+
                 var bodyData = {};
                 if (key === 'fontSize') bodyData.font_size = value;
                 else bodyData.font_size = settings.fontSize;
@@ -819,7 +1191,6 @@
             var handleFolder = React.useCallback(function(files) {
                 if (!files || files.length === 0) return;
                 if (files.length > 100) {
-                    // استفاده از confirm modal
                     setConfirmModal({
                         open: true,
                         message: 'شما ' + files.length + ' فایل از داخل پوشه را انتخاب کرده‌اید. ادامه می‌دهید؟',
@@ -876,7 +1247,6 @@
                 });
             }, [selectedFiles, showToast]);
 
-            // ---- اصلاح uploadFiles با AbortController ----
             var uploadFiles = React.useCallback(function() {
                 if (selectedFiles.length === 0) return;
                 if (uploadAbortRef.current) {
@@ -917,7 +1287,6 @@
                 });
             }, [selectedFiles, currentFolder, showToast]);
 
-            // ---- اصلاح openSendModal با apiRequest ----
             var openSendModal = React.useCallback(function() {
                 setSendModalOpen(true);
                 setIsLoadingUsers(true);
@@ -941,7 +1310,6 @@
                 setIsSending(false);
             }, []);
 
-            // ---- اصلاح sendFiles با AbortController ----
             var sendFiles = React.useCallback(function() {
                 if (!selectedUserId) {
                     showToast('لطفاً کاربر مقصد را انتخاب کنید', 'error');
@@ -990,7 +1358,6 @@
                 });
             }, [selectedUserId, selectedFiles, closeSendModal, showToast]);
 
-            // ---- اصلاح handleLogout ----
             var handleLogout = React.useCallback(function() {
                 setConfirmModal({
                     open: true,
@@ -1016,7 +1383,6 @@
                 window.location.reload();
             }, []);
 
-            // ---- اصلاح deleteFile با confirm modal ----
             var deleteFile = React.useCallback(function(fileId) {
                 setConfirmModal({
                     open: true,
@@ -1046,7 +1412,6 @@
                 });
             }, [showToast]);
 
-            // ---- اصلاح deleteReceivedFile با confirm modal ----
             var deleteReceivedFile = React.useCallback(function(fileId) {
                 setConfirmModal({
                     open: true,
@@ -1095,7 +1460,6 @@
                 }
             }, []);
 
-            // ---- اصلاح getAISummary با AbortController و sanitize ----
             var getAISummary = React.useCallback(function(level) {
                 if (!currentFileId) {
                     showToast('هیچ فایلی انتخاب نشده است', 'error');
@@ -1119,7 +1483,7 @@
                 .then(function(data) {
                     if (data.success) {
                         var resultText = data.result || data.analysis || 'تحلیل انجام شد.';
-                        var html = '<div style="color:#007aff;font-weight:700;margin-bottom:12px;font-size:16px;">📄 ' + sanitizeHTML(data.file_name || 'فایل') + '</div>';
+                        var html = '<div style="color:var(--text-blue);font-weight:700;margin-bottom:12px;font-size:16px;">📄 ' + sanitizeHTML(data.file_name || 'فایل') + '</div>';
                         html += '<div>' + sanitizeHTML(resultText.replace(/\n/g, '<br>')) + '</div>';
                         if (data.threat_status && data.threat_status.severity !== 'low') {
                             html += '<div style="margin-top:12px;color:#ff9500;border:1px solid #ff9500;padding:12px;border-radius:12px;background:rgba(255,149,0,0.04);">';
@@ -1142,7 +1506,6 @@
                 });
             }, [currentFileId, showToast]);
 
-            // ---- اصلاح askAIQuestion با AbortController و sanitize ----
             var askAIQuestion = React.useCallback(function() {
                 if (!aiQuestion.trim()) {
                     showToast('لطفاً سوال خود را وارد کنید', 'warning');
@@ -1175,7 +1538,7 @@
                     if (data.success) {
                         var resultText = data.result || data.analysis || 'پاسخی دریافت نشد.';
                         setAnalysisResult(
-                            '<div style="color:#007aff;font-weight:700;margin-bottom:12px;font-size:16px;">💬 پاسخ AI:</div>' +
+                            '<div style="color:var(--text-blue);font-weight:700;margin-bottom:12px;font-size:16px;">💬 پاسخ AI:</div>' +
                             '<div>' + sanitizeHTML(resultText.replace(/\n/g, '<br>')) + '</div>'
                         );
                     } else {
@@ -1193,7 +1556,66 @@
                 });
             }, [aiQuestion, currentFileId, showToast]);
 
-            // ---- اصلاح رویداد drop با preventDefault و stopPropagation ----
+            // ========== GLOBAL DRAG AND DROP (روی کل صفحه) ==========
+            React.useEffect(function() {
+                var dragCounter = 0;
+
+                var handleDragEnter = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dragCounter++;
+                    if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.indexOf('Files') !== -1) {
+                        setIsGlobalDragging(true);
+                    }
+                };
+
+                var handleDragOver = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (e.dataTransfer) {
+                        e.dataTransfer.dropEffect = 'copy';
+                    }
+                };
+
+                var handleDragLeave = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dragCounter--;
+                    if (dragCounter <= 0) {
+                        dragCounter = 0;
+                        setIsGlobalDragging(false);
+                    }
+                };
+
+                var handleDrop = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dragCounter = 0;
+                    setIsGlobalDragging(false);
+                    var files = e.dataTransfer.files;
+                    if (files && files.length > 0) {
+                        if (files[0].webkitRelativePath && files[0].webkitRelativePath.length > 0) {
+                            handleFolder(files);
+                        } else {
+                            handleFiles(files);
+                        }
+                    }
+                };
+
+                window.addEventListener('dragenter', handleDragEnter);
+                window.addEventListener('dragover', handleDragOver);
+                window.addEventListener('dragleave', handleDragLeave);
+                window.addEventListener('drop', handleDrop);
+
+                return function() {
+                    window.removeEventListener('dragenter', handleDragEnter);
+                    window.removeEventListener('dragover', handleDragOver);
+                    window.removeEventListener('dragleave', handleDragLeave);
+                    window.removeEventListener('drop', handleDrop);
+                };
+            }, [handleFiles, handleFolder]);
+
+            // Drop zone داخلی
             React.useEffect(function() {
                 var dropZone = dropZoneRef.current;
                 if (!dropZone) return;
@@ -1215,6 +1637,7 @@
                     e.preventDefault();
                     e.stopPropagation();
                     dropZone.classList.remove('drag-over');
+                    setIsGlobalDragging(false);
                     var files = e.dataTransfer.files;
                     if (files.length > 0 && files[0].webkitRelativePath) {
                         handleFolder(files);
@@ -1254,17 +1677,15 @@
 
             var hasStagedFiles = selectedFiles.length > 0;
 
-            // اگر در حال بررسی توکن هستیم، اسپینر نمایش دهید
             if (isCheckingToken) {
                 return React.createElement('div', { className: 'flex items-center justify-center h-screen' },
                     React.createElement('div', { className: 'text-center' },
-                        React.createElement('i', { className: 'ph ph-spinner ios-spin text-4xl text-[#007aff]' }),
+                        React.createElement('i', { className: 'ph ph-spinner ios-spin text-4xl text-[var(--text-blue)]' }),
                         React.createElement('p', { className: 'ios-text-muted mt-4' }, 'در حال بارگذاری...')
                     )
                 );
             }
 
-            // اگر djangoData معتبر نیست
             if (!window.DJANGO_DATA || Object.keys(window.DJANGO_DATA).length === 0) {
                 return React.createElement('div', { className: 'ios-empty-state' },
                     React.createElement('i', { className: 'ph ph-warning-circle ios-empty-state-icon' }),
@@ -1275,18 +1696,26 @@
 
             return React.createElement(ErrorBoundary, null,
                 React.createElement(React.Fragment, null,
-                    React.createElement('div', { className: 'flex h-screen overflow-hidden bg-[#f2f2f7] text-[#1c1c1e]', style: { fontFamily: '-apple-system, Vazirmatn, SF Pro Display' } },
+                    // Global drag overlay
+                    isGlobalDragging ? React.createElement('div', { className: 'global-drag-overlay' },
+                        React.createElement('div', { className: 'global-drag-overlay-inner' },
+                            React.createElement('i', { className: 'ph ph-cloud-arrow-up global-drag-overlay-icon' }),
+                            React.createElement('div', { className: 'global-drag-overlay-text' }, 'فایل‌ها را رها کنید'),
+                            React.createElement('div', { className: 'ios-text-muted mt-2 text-sm' }, 'برای آپلود، فایل‌ها را در اینجا رها کنید')
+                        )
+                    ) : null,
+                    React.createElement('div', { className: 'flex h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]', style: { fontFamily: '-apple-system, Vazirmatn, SF Pro Display' } },
                         React.createElement('aside', {
                             className: 'ios-sidebar flex-shrink-0 shadow-2xl z-10',
                             style: { width: settings.menuWidth + 'px', minWidth: settings.menuWidth + 'px' }
                         },
+                            // Brand (بدون آیکون اپل و iOS 27)
                             React.createElement('div', { className: 'ios-brand' },
                                 React.createElement('div', { className: 'ios-brand-icon' },
-                                    React.createElement('i', { className: 'ph ph-apple-logo' })
+                                    React.createElement('i', { className: 'ph ph-folder-simple' })
                                 ),
                                 React.createElement('div', null,
-                                    React.createElement('div', { className: 'ios-brand-title' }, 'مدیریت فایل'),
-                                    React.createElement('div', { className: 'ios-brand-subtitle' }, 'iOS 27')
+                                    React.createElement('div', { className: 'ios-brand-title' }, 'مدیریت فایل')
                                 )
                             ),
                             React.createElement('div', { className: 'ios-section' },
@@ -1367,11 +1796,20 @@
                                         className: 'ios-btn ios-btn-danger ios-btn-block text-sm no-underline'
                                     },
                                         React.createElement('i', { className: 'ph ph-shield-check text-lg' }),
-                                        React.createElement('span', null, 'پنل سوپر ادمین')
+                                        React.createElement('span', null, 'پنل مدیریت دسترسی')
                                     ) : null
                                 )
                             ) : null,
-                            React.createElement('div', { className: 'ios-section mt-auto' },
+                            React.createElement('div', { className: 'ios-section px-2' },
+                                React.createElement('button', {
+                                    onClick: toggleTheme,
+                                    className: 'theme-toggle w-full'
+                                },
+                                    React.createElement('i', { className: 'ph ' + (theme === 'light' ? 'ph-moon' : 'ph-sun') + ' text-lg' }),
+                                    React.createElement('span', null, theme === 'light' ? 'حالت تیره' : 'حالت روشن')
+                                )
+                            ),
+                            React.createElement('div', { className: 'ios-section' },
                                 React.createElement('button', {
                                     onClick: handleLogout,
                                     className: 'ios-btn ios-btn-danger ios-btn-block text-sm'
@@ -1381,17 +1819,17 @@
                                 )
                             )
                         ),
-                        React.createElement('main', { className: 'flex-1 flex flex-col p-6 gap-5 overflow-hidden min-w-0 bg-[#f2f2f7]' },
+                        React.createElement('main', { className: 'flex-1 flex flex-col p-6 gap-5 overflow-hidden min-w-0 bg-[var(--bg-primary)]' },
                             React.createElement('header', { className: 'ios-header' },
                                 React.createElement('div', null,
                                     React.createElement('div', { className: 'ios-header-title' },
-                                        React.createElement('span', { className: 'ios-text-blue' }, 
+                                        React.createElement('span', { className: 'ios-text-blue' },
                                             activeTab === 'my_files' ? '📁' : '📬'
                                         ),
                                         ' ' + (activeTab === 'my_files' ? 'فایل‌های من' : 'فایل‌های دریافتی')
                                     ),
                                     React.createElement('div', { className: 'ios-header-subtitle' },
-                                        activeTab === 'my_files' 
+                                        activeTab === 'my_files'
                                             ? (currentFolder ? 'پوشه انتخاب شده: ' + currentFolder : 'مسیر: هیچ پوشه‌ای انتخاب نشده')
                                             : 'فایل‌هایی که کاربران برای شما ارسال کرده‌اند'
                                     )
@@ -1400,7 +1838,7 @@
                                     React.createElement('div', { className: 'ios-stat' },
                                         React.createElement('i', { className: 'ph ph-files text-lg ios-text-blue' }),
                                         React.createElement('span', null, activeTab === 'my_files' ? 'فایل‌های من:' : 'دریافتی:'),
-                                        React.createElement('span', { className: 'ios-stat-value' }, 
+                                        React.createElement('span', { className: 'ios-stat-value' },
                                             activeTab === 'my_files' ? fileList.length : receivedFiles.length
                                         )
                                     ),
@@ -1442,7 +1880,7 @@
                                         )
                                     )
                                 ),
-                                hasStagedFiles ? React.createElement('div', { className: 'mt-4 pt-4 border-t border-[#e5e5ea]' },
+                                hasStagedFiles ? React.createElement('div', { className: 'mt-4 pt-4 border-t border-[var(--divider)]' },
                                     React.createElement('div', { className: 'flex gap-2 overflow-x-auto pb-2 flex-wrap' },
                                         selectedFiles.map(function(file, index) {
                                             var iconClass = 'ph-file';
@@ -1488,11 +1926,11 @@
                                 ) : null
                             ) : null,
                             React.createElement('section', { className: 'flex-1 ios-card p-5 flex flex-col min-h-0' },
-                                React.createElement('div', { className: 'flex justify-between items-center pb-4 border-b border-[#e5e5ea] flex-shrink-0 flex-wrap gap-3' },
-                                    React.createElement('div', { className: 'text-xl font-semibold flex items-center gap-3 text-[#1c1c1e]' },
+                                React.createElement('div', { className: 'flex justify-between items-center pb-4 border-b border-[var(--divider)] flex-shrink-0 flex-wrap gap-3' },
+                                    React.createElement('div', { className: 'text-xl font-semibold flex items-center gap-3 text-[var(--text-primary)]' },
                                         React.createElement('i', { className: 'ph ' + (activeTab === 'my_files' ? 'ph-hard-drives' : 'ph-inbox') + ' text-2xl ios-text-blue' }),
                                         React.createElement('span', null, activeTab === 'my_files' ? 'فایل‌های من' : 'فایل‌های دریافتی'),
-                                        React.createElement('span', { className: 'text-sm font-normal ios-text-muted' }, 
+                                        React.createElement('span', { className: 'text-sm font-normal ios-text-muted' },
                                             '(' + (activeTab === 'my_files' ? fileList.length : receivedFiles.length) + ')'
                                         )
                                     ),
@@ -1524,7 +1962,7 @@
                                                 deleteFile: deleteFile
                                             });
                                         })
-                                    ) : 
+                                    ) :
                                     (
                                         receivedFiles.length === 0 ?
                                         React.createElement('div', { className: 'col-span-full ios-empty-state' },
@@ -1599,16 +2037,16 @@
                                 ),
                                 React.createElement('label', { className: 'ios-text-muted font-semibold text-sm flex flex-col gap-1.5' },
                                     React.createElement('span', null, 'فایل‌های انتخاب شده (' + selectedFiles.length + ')'),
-                                    React.createElement('div', { className: 'bg-[#f2f2f7] p-3 rounded-xl border border-[#e5e5ea] max-h-[120px] overflow-y-auto text-xs ios-text-muted' },
+                                    React.createElement('div', { className: 'bg-[var(--input-bg)] p-3 rounded-xl border border-[var(--input-border)] max-h-[120px] overflow-y-auto text-xs ios-text-muted' },
                                         selectedFiles.length === 0 ?
                                         'هیچ فایلی انتخاب نشده است' :
                                         selectedFiles.map(function(f, i) {
-                                            return React.createElement('div', { key: i, className: 'py-1 border-b border-[#e5e5ea] last:border-none' }, '• ' + f.name);
+                                            return React.createElement('div', { key: i, className: 'py-1 border-b border-[var(--divider)] last:border-none' }, '• ' + f.name);
                                         })
                                     )
                                 )
                             ),
-                            React.createElement('div', { className: 'ios-btn-group justify-end mt-6 pt-4 border-t border-[#e5e5ea]' },
+                            React.createElement('div', { className: 'ios-btn-group justify-end mt-6 pt-4 border-t border-[var(--divider)]' },
                                 React.createElement('button', {
                                     onClick: closeSendModal,
                                     disabled: isSending,
@@ -1638,9 +2076,9 @@
                                 React.createElement('span', null, 'تحلیل هوش مصنوعی')
                             ),
                             React.createElement('div', { className: 'flex flex-col gap-4' },
-                                React.createElement('div', { className: 'bg-[#f2f2f7] p-3 rounded-xl border border-[#e5e5ea]' },
+                                React.createElement('div', { className: 'bg-[var(--input-bg)] p-3 rounded-xl border border-[var(--input-border)]' },
                                     React.createElement('strong', { className: 'ios-text-blue text-sm' }, 'فایل:'),
-                                    React.createElement('span', { className: 'text-[#1c1c1e] text-sm ml-2' }, currentFileName)
+                                    React.createElement('span', { className: 'text-[var(--text-primary)] text-sm ml-2' }, currentFileName)
                                 ),
                                 React.createElement('div', { className: 'ios-btn-group' },
                                     React.createElement('button', {
@@ -1670,9 +2108,9 @@
                                 ),
                                 React.createElement('div', {
                                     ref: analysisResultRef,
-                                    className: 'bg-[#f2f2f7] p-4 rounded-xl border border-[#e5e5ea] min-h-[120px] max-h-[300px] overflow-y-auto whitespace-pre-wrap font-mono text-sm leading-relaxed ios-text-muted'
+                                    className: 'bg-[var(--input-bg)] p-4 rounded-xl border border-[var(--input-border)] min-h-[120px] max-h-[300px] overflow-y-auto whitespace-pre-wrap font-mono text-sm leading-relaxed ios-text-muted'
                                 }),
-                                React.createElement('div', { className: 'border-t border-[#e5e5ea] pt-4' },
+                                React.createElement('div', { className: 'border-t border-[var(--divider)] pt-4' },
                                     React.createElement('label', { className: 'text-xs ios-text-muted font-semibold block mb-1.5' },
                                         'سوال خود را از AI بپرسید'
                                     ),
@@ -1699,7 +2137,7 @@
                                     )
                                 )
                             ),
-                            React.createElement('div', { className: 'ios-btn-group justify-end mt-6 pt-4 border-t border-[#e5e5ea]' },
+                            React.createElement('div', { className: 'ios-btn-group justify-end mt-6 pt-4 border-t border-[var(--divider)]' },
                                 React.createElement('button', {
                                     onClick: closeAnalyzeModal,
                                     disabled: isAnalyzing,
@@ -1712,7 +2150,6 @@
                             )
                         )
                     ) : null,
-                    // Confirm Modal
                     confirmModal.open ? React.createElement('div', { className: 'ios-modal-overlay modal-overlay open' },
                         React.createElement('div', { className: 'ios-modal max-w-[450px]' },
                             React.createElement('div', { className: 'ios-modal-handle' }),
@@ -1721,9 +2158,9 @@
                                 React.createElement('span', null, 'تأیید')
                             ),
                             React.createElement('div', { className: 'text-center py-4' },
-                                React.createElement('p', { className: 'text-[#1c1c1e] text-base' }, confirmModal.message)
+                                React.createElement('p', { className: 'text-[var(--text-primary)] text-base' }, confirmModal.message)
                             ),
-                            React.createElement('div', { className: 'ios-btn-group justify-center mt-4 pt-4 border-t border-[#e5e5ea]' },
+                            React.createElement('div', { className: 'ios-btn-group justify-center mt-4 pt-4 border-t border-[var(--divider)]' },
                                 React.createElement('button', {
                                     onClick: function() {
                                         setConfirmModal({ open: false, message: '', onConfirm: null });
@@ -1757,114 +2194,5 @@
         var root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(Dashboard));
     </script>
-
-{% else %}
-    <!-- ========== LOGIN PAGE ========== -->
-    <div class="login-container">
-        <div class="login-card">
-            <div style="text-align:center;margin-bottom:32px;">
-                <div style="display:inline-flex;width:60px;height:60px;background:linear-gradient(135deg,#007aff,#5856d6);border-radius:14px;align-items:center;justify-content:center;color:#ffffff;font-size:28px;font-weight:700;box-shadow:0 4px 16px rgba(0,122,255,0.3);margin-bottom:16px;">
-                    <i class="ph ph-apple-logo"></i>
-                </div>
-                <h1 style="font-size:28px;font-weight:700;color:#1c1c1e;letter-spacing:-0.5px;">مدیریت فایل</h1>
-                <p style="font-size:15px;color:#8e8e93;margin-top:4px;">iOS 27 - ورود به سیستم</p>
-            </div>
-
-            <form method="post" action="/api-token-auth/">
-                {% csrf_token %}
-                <div style="margin-bottom:20px;">
-                    <label style="display:block;font-size:13px;font-weight:600;color:#8e8e93;margin-bottom:6px;">نام کاربری</label>
-                    <input type="text" name="username" placeholder="نام کاربری خود را وارد کنید" class="ios-input" required autofocus />
-                </div>
-                <div style="margin-bottom:24px;">
-                    <label style="display:block;font-size:13px;font-weight:600;color:#8e8e93;margin-bottom:6px;">رمز عبور</label>
-                    <input type="password" name="password" placeholder="رمز عبور خود را وارد کنید" class="ios-input" required />
-                </div>
-                <button type="submit" class="ios-btn ios-btn-primary ios-btn-block" style="min-height:48px;font-size:16px;">
-                    <i class="ph ph-sign-in text-lg"></i>
-                    <span>ورود</span>
-                </button>
-                {% if messages %}
-                    {% for message in messages %}
-                        <div style="margin-top:12px;padding:12px;background:rgba(255,59,48,0.08);border-radius:12px;border:1px solid rgba(255,59,48,0.15);color:#ff3b30;font-size:13px;text-align:center;">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            </form>
-        </div>
-    </div>
-
-    <script>
-        (function() {
-            function getCookie(name) {
-                var cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    var cookies = document.cookie.split(';');
-                    for (var i = 0; i < cookies.length; i++) {
-                        var cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
-                        }
-                    }
-                }
-                return cookieValue;
-            }
-
-            var form = document.querySelector('form[action="/api-token-auth/"]');
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    var formData = new FormData(form);
-                    fetch('/login/', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': getCookie('csrftoken')
-                        },
-                        body: formData
-                    })
-                    .then(function(res) { return res.json(); })
-                    .then(function(data) {
-                        if (data.success) {
-                            document.location.replace('/');
-                        } else {
-                            var errorDiv = document.createElement('div');
-                            errorDiv.style.marginTop = '12px';
-                            errorDiv.style.padding = '12px';
-                            errorDiv.style.background = 'rgba(255,59,48,0.08)';
-                            errorDiv.style.borderRadius = '12px';
-                            errorDiv.style.border = '1px solid rgba(255,59,48,0.15)';
-                            errorDiv.style.color = '#ff3b30';
-                            errorDiv.style.fontSize = '13px';
-                            errorDiv.style.textAlign = 'center';
-                            errorDiv.textContent = data.msg || 'نام کاربری یا رمز عبور اشتباه است.';
-                            var existing = form.querySelector('.error-msg');
-                            if (existing) existing.remove();
-                            errorDiv.className = 'error-msg';
-                            form.appendChild(errorDiv);
-                        }
-                    })
-                    .catch(function() {
-                        var errorDiv = document.createElement('div');
-                        errorDiv.style.marginTop = '12px';
-                        errorDiv.style.padding = '12px';
-                        errorDiv.style.background = 'rgba(255,59,48,0.08)';
-                        errorDiv.style.borderRadius = '12px';
-                        errorDiv.style.border = '1px solid rgba(255,59,48,0.15)';
-                        errorDiv.style.color = '#ff3b30';
-                        errorDiv.style.fontSize = '13px';
-                        errorDiv.style.textAlign = 'center';
-                        errorDiv.textContent = 'خطا در ارتباط با سرور.';
-                        var existing = form.querySelector('.error-msg');
-                        if (existing) existing.remove();
-                        errorDiv.className = 'error-msg';
-                        form.appendChild(errorDiv);
-                    });
-                });
-            }
-        })();
-    </script>
-    {% endif %}
 </body>
 </html>

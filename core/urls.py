@@ -242,6 +242,9 @@ urlpatterns = [
     path('api/behavior-analysis/<int:user_id>/', views.behavior_analysis_detail_api, name='behavior_analysis_detail'),
     path('behavior-analysis-panel/', views.behavior_analysis_panel_view, name='behavior_analysis_panel'),
 
+    #path('behavior-analysis-panel/', views.behavior_analysis_panel, name='behavior_analysis_panel'),
+    path('behavior-analysis-panel/', views.behavior_analysis_panel_view, name='behavior_analysis_panel'),
+
 
     
 

@@ -280,6 +280,10 @@ if _os.environ.get('DB_HOST'):
         }
     }
 
+
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+
 # ==================== AI Service (FastAPI) ====================
 AI_SERVICE_URL = os.getenv('AI_SERVICE_URL', 'http://127.0.0.1:9000')
 AI_SERVICE_SECRET = os.getenv('AI_SERVICE_SECRET', 'change-this-to-a-long-random-string-min-32-chars')
