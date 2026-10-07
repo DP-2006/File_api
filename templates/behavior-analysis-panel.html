@@ -12,9 +12,8 @@
     if(!t)t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
     document.documentElement.dataset.theme=t;})();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<link rel="stylesheet" href="{% static 'vendor/vazirmatn/vazirmatn.css' %}">
 <style>
   @property --deg{syntax:'<percentage>';inherits:false;initial-value:0%}
 
@@ -741,7 +740,7 @@
     chatAppend('user', q);
     chatSetEnabled(false);
     const typing = chatShowTyping();
-    if(status) status.textContent = '⏳ در حال پاسخ...';
+    if(status) status.textContent = ' در حال پاسخ...';
 
     try{
       const r = await fetch(`/api/report-chat/${chatState.sessionId}/ask/`, {

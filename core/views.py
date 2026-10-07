@@ -339,32 +339,32 @@ def upload_files_view(request):
         uploaded_count += 1
 
         # ===== تحلیل خودکار AI =====
-        try:
-            from .services.file_analysis_auto_service import analyze_and_save, refresh_user_behavior
-            analyze_and_save(uploaded_file)
-            refresh_user_behavior(request.user.id)
-        except Exception as e:
-            print(f"[AUTO-ANALYSIS] Failed for {f.name}: {e}")
+    #     try:
+    #         from .services.file_analysis_auto_service import analyze_and_save, refresh_user_behavior
+    #         analyze_and_save(uploaded_file)
+    #         refresh_user_behavior(request.user.id)
+    #     except Exception as e:
+    #         print(f"[AUTO-ANALYSIS] Failed for {f.name}: {e}")
 
-        try:
-            from .services.file_analysis_service import file_analysis_service
-            analysis_result = file_analysis_service.analyze_uploaded_file(uploaded_file)
+    #     try:
+    #         from .services.file_analysis_service import file_analysis_service
+    #         analysis_result = file_analysis_service.analyze_uploaded_file(uploaded_file)
 
-            if analysis_result.get('success'):
-                notifications_created.append({
-                    'file': f.name,
-                    'threat_level': analysis_result.get('threat_level', 'info'),
-                    'notification_id': analysis_result.get('notification').id if analysis_result.get('notification') else None
-                })
+    #         if analysis_result.get('success'):
+    #             notifications_created.append({
+    #                 'file': f.name,
+    #                 'threat_level': analysis_result.get('threat_level', 'info'),
+    #                 'notification_id': analysis_result.get('notification').id if analysis_result.get('notification') else None
+    #             })
 
-                if analysis_result.get('threat_level') in ['warning', 'critical']:
-                    threats_found.append({
-                        "file": f.name,
-                        "threat": analysis_result.get('threat_level', 'unknown'),
-                        "severity": analysis_result.get('threat_level', 'low')
-                    })
-        except Exception as e:
-            print(f"Error in AI analysis for {f.name}: {e}")
+    #             if analysis_result.get('threat_level') in ['warning', 'critical']:
+    #                 threats_found.append({
+    #                     "file": f.name,
+    #                     "threat": analysis_result.get('threat_level', 'unknown'),
+    #                     "severity": analysis_result.get('threat_level', 'low')
+    #                 })
+    #     except Exception as e:
+    #         print(f"Error in AI analysis for {f.name}: {e}")
 
         try:
             scan_result = firewall.scan_file(uploaded_file)
