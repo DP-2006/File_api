@@ -1,0 +1,293 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000" id="themeColor">
+<title>گزارش‌های من</title>
+<script>
+  (function(){var t;try{t=localStorage.getItem('theme')}catch(e){}
+    if(!t)t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
+    document.documentElement.dataset.theme=t;})();
+</script>
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<link rel="stylesheet" href="{% static 'vendor/vazirmatn/vazirmatn.css' %}">
+<style>
+  @property --deg{syntax:'<percentage>';inherits:false;initial-value:0%}
+  :root,[data-theme="dark"]{
+    color-scheme:dark;--bg:#000;
+    --blue:#0A84FF;--green:#30D158;--red:#FF453A;--orange:#FF9F0A;
+    --purple:#BF5AF2;--teal:#64D2FF;--indigo:#5E5CE6;--pink:#FF375F;
+    --label:#F5F5F7;--label-2:rgba(235,235,245,.6);--label-3:rgba(235,235,245,.3);
+    --fill:rgba(255,255,255,.06);--fill-2:rgba(255,255,255,.12);--separator:rgba(255,255,255,.08);
+    --glass:rgba(28,28,30,.55);--glass-border:rgba(255,255,255,.12);
+    --shadow:0 12px 40px rgba(0,0,0,.45);--hi:inset 0 1px 0 rgba(255,255,255,.1);
+    --search:rgba(118,118,128,.24);--seg:rgba(118,118,128,.22);--seg-thumb:rgba(255,255,255,.18);
+    --ring-in:rgba(18,18,20,.92);--tip:rgba(30,30,32,.92);
+  }
+  [data-theme="light"]{
+    color-scheme:light;--bg:#F2F2F7;
+    --blue:#007AFF;--green:#34C759;--red:#FF3B30;--orange:#FF9500;
+    --purple:#AF52DE;--teal:#32ADE6;--indigo:#5856D6;--pink:#FF2D55;
+    --label:#1C1C1E;--label-2:rgba(60,60,67,.65);--label-3:rgba(60,60,67,.35);
+    --fill:rgba(120,120,128,.1);--fill-2:rgba(120,120,128,.16);--separator:rgba(60,60,67,.12);
+    --glass:rgba(255,255,255,.72);--glass-border:rgba(255,255,255,.9);
+    --shadow:0 10px 32px rgba(60,60,90,.12);--hi:inset 0 1px 0 rgba(255,255,255,.9);
+    --search:rgba(118,118,128,.12);--seg:rgba(118,118,128,.14);--seg-thumb:#fff;
+    --ring-in:rgba(255,255,255,.95);--tip:rgba(255,255,255,.95);
+  }
+  :root{--r-lg:28px;--r-md:20px;--spring:cubic-bezier(.32,.72,0,1)}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:'Vazirmatn',-apple-system,BlinkMacSystemFont,Tahoma,sans-serif;background:var(--bg);color:var(--label);min-height:100vh;padding:20px}
+  button{font-family:inherit}
+  .glass{background:var(--glass);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border:1px solid var(--glass-border);border-radius:var(--r-lg);box-shadow:var(--shadow),var(--hi)}
+  .navbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;margin-bottom:20px;position:sticky;top:12px;z-index:50}
+  .nav-title{font-size:17px;font-weight:700}
+  .back-btn,.icon-btn{display:inline-flex;align-items:center;gap:6px;background:var(--fill-2);border:1px solid var(--glass-border);color:var(--label);border-radius:50px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:transform .25s var(--spring)}
+  .back-btn:hover,.icon-btn:hover{background:var(--fill);transform:scale(1.05)}
+  .icon-btn{width:40px;height:40px;padding:0;justify-content:center}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .kpi{background:var(--glass);border:1px solid var(--glass-border);border-radius:22px;padding:16px;box-shadow:var(--hi)}
+  .kpi .ic{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;font-size:18px;margin-bottom:12px;background:color-mix(in srgb,var(--c) 18%,transparent)}
+  .kpi .v{font-size:27px;font-weight:800;color:var(--c);font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:12px;color:var(--label-2);margin-top:2px}
+  .kpi.blue{--c:var(--blue)}.kpi.green{--c:var(--green)}.kpi.red{--c:var(--red)}.kpi.orange{--c:var(--orange)}.kpi.purple{--c:var(--purple)}
+  .segmented{position:relative;display:flex;background:var(--seg);border-radius:14px;padding:3px;margin-bottom:18px}
+  .segmented::before{content:"";position:absolute;top:3px;bottom:3px;right:3px;width:calc((100% - 6px) / 3);border-radius:11px;background:var(--seg-thumb);box-shadow:0 3px 10px rgba(0,0,0,.2);transform:translateX(calc(var(--i,0) * -100%));transition:transform .45s var(--spring)}
+  .segmented button{position:relative;z-index:1;flex:1;padding:9px;border:none;background:transparent;color:var(--label-2);font-weight:600;font-size:13.5px;cursor:pointer}
+  .segmented button.active{color:var(--label)}
+  .tab-section{display:none}
+  .tab-section.show{display:block;animation:fadeUp .45s var(--spring) both}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .chart-box{padding:18px;height:330px;border-radius:var(--r-md);display:flex;flex-direction:column}
+  .chart-box h4{font-size:13px;color:var(--label-2);margin-bottom:12px;text-align:center;font-weight:600}
+  .chart-box .cv{position:relative;flex:1;min-height:0}
+  .chart-wide{grid-column:1 / -1;height:310px}
+  .file-list{border-radius:var(--r-md);overflow:hidden}
+  .file-row{display:flex;gap:14px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--separator);cursor:pointer;transition:background .15s}
+  .file-row:hover{background:var(--fill)}
+  .file-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer}
+  .file-row:last-child{border-bottom:none}
+  .file-icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:19px;background:var(--fill-2)}
+  .file-info{flex:1;min-width:0}
+  .file-name{font-weight:600;font-size:14px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;direction:ltr;text-align:right}
+  .file-meta{font-size:12px;color:var(--label-2)}
+  .pill{padding:3px 11px;border-radius:50px;font-size:11px;font-weight:700;display:inline-block;margin-top:5px}
+  .pill.t-low{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green)}
+  .pill.t-medium{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+  .pill.t-high,.pill.t-critical{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red)}
+  .chat-msg{display:flex;gap:10px;margin-bottom:12px}
+  .chat-msg .bubble{max-width:78%;padding:11px 14px;border-radius:16px;font-size:13.5px;line-height:1.85;white-space:pre-wrap;word-break:break-word}
+  .chat-msg.user{justify-content:flex-start;flex-direction:row-reverse}
+  .chat-msg.user .bubble{background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+  .chat-msg.assistant .bubble{background:var(--fill-2);color:var(--label);border-bottom-left-radius:4px}
+  .chat-msg .avatar-sm{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:14px;background:var(--fill-2);border:1px solid var(--separator)}
+  .chat-typing i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--label-3);margin:0 1px;animation:blink 1.2s infinite}
+  .chat-typing i:nth-child(2){animation-delay:.2s}.chat-typing i:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.3}30%{opacity:1}}
+  .spinner{width:30px;height:30px;border:3px solid var(--fill-2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:60px auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty-state{text-align:center;padding:60px 24px;color:var(--label-2)}
+  .empty-state .big{font-size:52px;margin-bottom:16px;display:block}
+  @media (max-width:960px){body{padding:12px}.charts-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="navbar glass">
+  <a href="/dashboard/" class="back-btn">› داشبورد</a>
+  <div class="nav-title">گزارش‌های من — <span id="username">{{ user.username }}</span></div>
+  <button class="icon-btn" id="refreshBtn" title="بازخوانی">↻</button>
+</nav>
+
+<main id="mainArea"><div class="spinner"></div></main>
+
+<script>
+function getCsrfToken(){const m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:'';}
+const toFa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0;};
+const esc=s=>s==null?'':String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtTime=s=>s?esc(String(s).slice(0,16)):'—';
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const hexA=(h,a)=>{h=h.replace('#','');const n=parseInt(h.length===3?h.replace(/./g,'$&$&'):h,16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
+const threatPill=lvl=>{const m={low:['تهدید: کم','t-low'],medium:['تهدید: متوسط','t-medium'],high:['تهدید: بالا','t-high'],critical:['تهدید: بحرانی','t-critical']}[String(lvl||'').toLowerCase()]||[esc(lvl||'—'),'t-low'];return `<span class="pill ${m[1]}">${m[0]}</span>`;};
+
+let charts={},lastData=null,currentTab='overview';
+const getJSON=async u=>{const r=await fetch(u,{headers:{'Accept':'application/json'},credentials:'same-origin'});if(!r.ok)throw new Error('HTTP '+r.status);return r.json();};
+
+const tooltip=()=>({backgroundColor:css('--tip'),borderColor:css('--separator'),borderWidth:1,titleColor:css('--label'),bodyColor:css('--label-2'),padding:12,cornerRadius:12,displayColors:false,rtl:true,textDirection:'rtl',callbacks:{label:c=>toFa(c.formattedValue)}});
+const vGrad=(hex,a0=1,a1=.55)=>ctx=>{const a=ctx.chart.chartArea;if(!a)return hex;const g=ctx.chart.ctx.createLinearGradient(0,a.top,0,a.bottom);g.addColorStop(0,hexA(hex,a0));g.addColorStop(1,hexA(hex,a1));return g;};
+const centerText={id:'centerText',afterDraw(c,_,o){if(c.config.type!=='doughnut'||!o.text)return;const{ctx,chartArea:a}=c,x=(a.left+a.right)/2,y=(a.top+a.bottom)/2;ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=css('--label');ctx.font='800 26px Vazirmatn';ctx.fillText(o.text,x,y-8);ctx.fillStyle=css('--label-2');ctx.font='500 11px Vazirmatn';ctx.fillText(o.sub,x,y+16);ctx.restore();}};
+
+function destroyCharts(){Object.values(charts).forEach(c=>c&&c.destroy());charts={};}
+function buildCharts(d){
+  destroyCharts();
+  const b=d.behavior||{},topics=b.top_topics||[],trend=d.trend||[];
+  const txt=css('--label-2'),grid=css('--separator'),P=[css('--blue'),css('--green'),css('--orange'),css('--red'),css('--purple'),css('--teal')];
+  const base={responsive:true,maintainAspectRatio:false};
+  const scaleY={beginAtZero:true,grid:{color:grid},border:{display:false},ticks:{precision:0,color:txt,callback:v=>toFa(v)}};
+  const cT=document.getElementById('chartTopics');
+  if(cT){const total=topics.reduce((s,t)=>s+num(t.count),0);charts.topics=new Chart(cT,{type:'doughnut',data:{labels:topics.map(t=>t.name),datasets:[{data:topics.map(t=>num(t.count)),backgroundColor:topics.map((_,i)=>P[i%P.length]),borderWidth:0,hoverOffset:12,spacing:3,borderRadius:8}]},options:{...base,cutout:'68%',plugins:{centerText:{text:toFa(total),sub:'مجموع'},tooltip:tooltip(),legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,color:txt,font:{size:11}}}}},plugins:[centerText]});}
+  if(document.getElementById('chartRelated'))charts.related=new Chart(document.getElementById('chartRelated'),{type:'bar',data:{labels:['مرتبط','غیرمرتبط'],datasets:[{data:[num(b.related_files_count),num(b.unrelated_files_count)],backgroundColor:[vGrad(css('--green')),vGrad(css('--red'))],borderRadius:14,borderSkipped:false,categoryPercentage:.6,barPercentage:.75}]},options:{...base,plugins:{legend:{display:false},tooltip:tooltip()},scales:{x:{grid:{display:false},border:{display:false},ticks:{color:css('--label'),font:{size:13,weight:'600'}}},y:scaleY}}});
+  if(document.getElementById('chartTrend'))charts.trend=new Chart(document.getElementById('chartTrend'),{type:'line',data:{labels:trend.map(t=>t.date),datasets:[{label:'تعداد آپلود',data:trend.map(t=>num(t.count)),borderColor:css('--blue'),borderWidth:3,fill:true,backgroundColor:vGrad(css('--blue'),.4,0),tension:.42,pointRadius:0,pointHoverRadius:7,pointBackgroundColor:css('--blue'),pointBorderColor:'#fff',pointBorderWidth:2}]},options:{...base,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:tooltip()},scales:{x:{grid:{display:false},border:{display:false},ticks:{color:txt,maxTicksLimit:8}},y:scaleY}}});
+}
+
+async function loadData(){
+  try{
+    const d=await getJSON('/api/my-reports/');
+    if(!d.success){document.getElementById('mainArea').innerHTML=`<div class="glass"><div class="empty-state"><span class="big">⚠️</span>${esc(d.msg||'خطا')}</div></div>`;return;}
+    lastData=d;render(d);
+  }catch(e){document.getElementById('mainArea').innerHTML='<div class="glass"><div class="empty-state"><span class="big">📡</span>خطا در ارتباط</div></div>';}
+}
+
+function render(d){
+  const b=d.behavior||{},files=d.files||[],user=d.user||{};
+  const total=num(b.total_files),rel=num(b.related_files_count);
+  const relPct=total>0?Math.round(rel/total*100):0;
+  const kpis=[{c:'blue',i:'📁',v:total,l:'کل فایل‌ها'},{c:'green',i:'✅',v:rel,l:'مرتبط'},{c:'red',i:'🚫',v:num(b.unrelated_files_count),l:'غیرمرتبط'},{c:'orange',i:'⚠️',v:num(b.suspicious_files_count),l:'مشکوک'},{c:'purple',i:'📈',v:num(b.relevance_avg),l:'میانگین relevance'}].map(k=>`
+    <div class="kpi ${k.c}"><div class="ic">${k.i}</div><div class="v">${toFa(typeof k.v==='number'&&!Number.isInteger(k.v)?k.v.toFixed(2):k.v)}</div><div class="l">${k.l}</div></div>`).join('');
+  const filesHtml=files.length===0?'<div class="empty-state"><span class="big">🗂️</span>هیچ فایلی تحلیل نشده</div>':
+    `<div class="file-list glass">${files.map(f=>`
+      <div class="file-row">
+        <div class="file-icon">📄</div>
+        <div class="file-info">
+          <div class="file-name">${esc(f.file_name)}</div>
+          <div class="file-meta">${esc(f.category||'—')} · ${fmtTime(f.analyzed_at)}</div>
+          ${threatPill(f.threat_level)}
+        </div>
+      </div>`).join('')}</div>`;
+  document.getElementById('mainArea').innerHTML=`
+    <div class="kpi-grid">${kpis}</div>
+    ${b.ai_summary?`<div class="glass" style="padding:16px 18px;margin-bottom:16px;font-size:13.5px;line-height:1.9;color:var(--label-2)">✨ ${esc(b.ai_summary)}</div>`:''}
+    <div class="segmented" id="segTabs">
+      <button data-tab="overview">نمای کلی</button>
+      <button data-tab="files">فایل‌ها</button>
+      <button data-tab="chat">💬 چت با AI</button>
+    </div>
+    <div class="tab-section" id="tab-overview">
+      <div class="charts-grid">
+        <div class="chart-box glass"><h4>🍩 موضوعات غالب</h4><div class="cv">${(b.top_topics||[]).length?'<canvas id="chartTopics"></canvas>':'<div style="display:grid;place-items:center;height:100%;color:var(--label-3)">داده‌ای نیست</div>'}</div></div>
+        <div class="chart-box glass"><h4>📊 مرتبط / غیرمرتبط</h4><div class="cv"><canvas id="chartRelated"></canvas></div></div>
+        <div class="chart-box glass chart-wide"><h4>📈 روند آپلود (۳۰ روز اخیر)</h4><div class="cv"><canvas id="chartTrend"></canvas></div></div>
+      </div>
+    </div>
+    <div class="tab-section" id="tab-files">${filesHtml}</div>
+    <div class="tab-section" id="tab-chat">
+      <div class="glass" style="padding:18px">
+        <div style="margin-bottom:14px;font-weight:700;font-size:14px">📎 انتخاب فایل‌ها برای چت</div>
+        <div id="filePicker" style="max-height:220px;overflow-y:auto;background:var(--fill);border-radius:14px;padding:8px;margin-bottom:12px"><div class="spinner" style="margin:20px auto"></div></div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+          <button class="icon-btn" id="chatNewSession" style="width:auto;padding:9px 16px;font-size:13px">➕ شروع جلسه جدید</button>
+          <span id="chatStatus" style="font-size:12px;color:var(--label-2)">فایلی انتخاب نشده</span>
+        </div>
+        <div id="chatMessages" style="min-height:200px;max-height:420px;overflow-y:auto;padding:8px;background:var(--fill);border-radius:14px;margin-bottom:12px">
+          <div class="empty-state" style="padding:30px 20px"><span class="big">💬</span><h3>آماده به گفتگو</h3>ابتدا فایل‌ها را انتخاب و روی «شروع جلسه جدید» بزنید</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="chatInput" placeholder="سوال خود را بنویسید..." disabled style="flex:1;min-width:0;background:var(--search);border:none;outline:none;color:var(--label);font-size:14px;font-family:inherit;padding:11px 14px;border-radius:12px">
+          <button class="icon-btn" id="chatSend" disabled style="width:auto;padding:11px 20px;font-size:13px;font-weight:600">ارسال</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('relPctDisplay')?.remove();
+  document.querySelectorAll('#segTabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+  setTab(currentTab);
+  buildCharts(d);
+  loadFilePicker();
+}
+
+function setTab(name){
+  currentTab=name;
+  const btns=[...document.querySelectorAll('#segTabs button')];
+  btns.forEach((x,i)=>{x.classList.toggle('active',x.dataset.tab===name);if(x.dataset.tab===name)document.getElementById('segTabs').style.setProperty('--i',i);});
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.toggle('show',s.id==='tab-'+name));
+  if(name==='overview')setTimeout(()=>Object.values(charts).forEach(c=>c&&c.resize()),100);
+}
+
+async function loadFilePicker(){
+  const wrap=document.getElementById('filePicker');if(!wrap)return;
+  try{
+    const d=await getJSON('/api/my-files-for-chat/');
+    if(!d.success){wrap.innerHTML='<div class="empty-state" style="padding:20px">خطا در بارگذاری فایل‌ها</div>';return;}
+    const own=d.own||[],received=d.received||[];
+    if(!own.length&&!received.length){wrap.innerHTML='<div class="empty-state" style="padding:20px"><span class="big">📂</span>فایلی برای انتخاب نیست</div>';return;}
+    let html='';
+    if(own.length){html+=`<div style="padding:8px 6px 4px;font-size:12px;color:var(--label-2);font-weight:700">📤 فایل‌های من (${toFa(own.length)})</div>`;
+      html+=own.map(f=>`<label class="file-row" style="padding:10px 14px"><input type="checkbox" class="file-cb" value="${f.id}"><div class="file-info"><div class="file-name">${esc(f.name)}</div><div class="file-meta">${fmtTime(f.uploaded_at)}${f.has_analysis?' · ✅ تحلیل شده':''}</div></div></label>`).join('');}
+    if(received.length){html+=`<div style="padding:8px 6px 4px;font-size:12px;color:var(--label-2);font-weight:700;margin-top:8px">📥 دریافتی‌ها (${toFa(received.length)})</div>`;
+      html+=received.map(f=>`<label class="file-row" style="padding:10px 14px"><input type="checkbox" class="file-cb" value="${f.id}"><div class="file-info"><div class="file-name">${esc(f.name)}</div><div class="file-meta">از ${esc(f.sender||'—')} · ${fmtTime(f.uploaded_at)}</div></div></label>`).join('');}
+    wrap.innerHTML=html;
+    wrap.querySelectorAll('.file-cb').forEach(cb=>cb.addEventListener('change',updateChatStatus));
+    updateChatStatus();
+  }catch(e){wrap.innerHTML='<div class="empty-state" style="padding:20px">خطای شبکه</div>';}
+}
+
+function updateChatStatus(){
+  const cbs=[...document.querySelectorAll('.file-cb:checked')];
+  const st=document.getElementById('chatStatus');
+  if(st)st.textContent=cbs.length?`${toFa(cbs.length)} فایل انتخاب شده`:'فایلی انتخاب نشده';
+}
+
+let chatSessionId=null,chatSending=false;
+
+function chatAppend(role,content){
+  const wrap=document.getElementById('chatMessages');if(!wrap)return;
+  wrap.querySelector('.empty-state')?.remove();
+  const div=document.createElement('div');
+  div.className=`chat-msg ${role}`;
+  div.innerHTML=`<div class="avatar-sm">${role==='user'?'👤':'🤖'}</div><div class="bubble">${esc(content)}</div>`;
+  wrap.appendChild(div);wrap.scrollTop=wrap.scrollHeight;
+  return div;
+}
+function chatTyping(){const w=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-msg assistant';d.id='chatTyping';d.innerHTML='<div class="avatar-sm">🤖</div><div class="bubble chat-typing"><i></i><i></i><i></i></div>';w.appendChild(d);w.scrollTop=w.scrollHeight;}
+function setEnabled(v){const i=document.getElementById('chatInput'),s=document.getElementById('chatSend');if(i)i.disabled=!v;if(s)s.disabled=!v||chatSending;}
+
+async function startSession(){
+  const cbs=[...document.querySelectorAll('.file-cb:checked')].map(c=>parseInt(c.value,10));
+  if(!cbs.length){alert('حداقل یک فایل انتخاب کنید');return;}
+  const btn=document.getElementById('chatNewSession'),st=document.getElementById('chatStatus');
+  btn.disabled=true;st.textContent='در حال ساخت...';
+  try{
+    const r=await fetch('/api/my-report-chat/start/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify({file_ids:cbs,title:`چت روی ${cbs.length} فایل`})});
+    const d=await r.json();
+    if(!d.success){st.textContent='خطا: '+(d.msg||'');return;}
+    chatSessionId=d.session_id;st.textContent=`جلسه #${d.session_id} — ${toFa(d.file_count)} فایل`;
+    document.getElementById('chatMessages').innerHTML='';
+    setEnabled(true);document.getElementById('chatInput')?.focus();
+  }catch(e){st.textContent='خطای شبکه';}
+  finally{btn.disabled=false;}
+}
+
+async function sendMsg(){
+  if(chatSending)return;
+  const inp=document.getElementById('chatInput'),st=document.getElementById('chatStatus');
+  const q=(inp.value||'').trim();if(!q)return;
+  if(!chatSessionId){await startSession();if(!chatSessionId)return;}
+  chatSending=true;inp.value='';chatAppend('user',q);setEnabled(false);chatTyping();st.textContent='در حال پاسخ...';
+  try{
+    const r=await fetch(`/api/my-report-chat/${chatSessionId}/ask/`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()},body:JSON.stringify({question:q})});
+    const d=await r.json();
+    document.getElementById('chatTyping')?.remove();
+    if(d.success){chatAppend('assistant',d.answer);st.textContent='آماده';}
+    else{chatAppend('assistant','خطا: '+(d.msg||''));st.textContent='خطا';}
+  }catch(e){document.getElementById('chatTyping')?.remove();chatAppend('assistant','خطای شبکه');st.textContent='خطای شبکه';}
+  finally{chatSending=false;setEnabled(true);inp.focus();}
+}
+
+document.addEventListener('click',e=>{
+  if(e.target.id==='chatNewSession')startSession();
+  if(e.target.id==='chatSend')sendMsg();
+});
+document.addEventListener('keydown',e=>{
+  if(e.target.id==='chatInput'&&e.key==='Enter'){e.preventDefault();sendMsg();}
+  if(e.target.id==='refreshBtn')loadData();
+});
+
+loadData();
+setInterval(()=>{if(!document.hidden)loadData();},30000);
+</script>
+</body>
+</html>

@@ -2,808 +2,1559 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>پنل مدیریت - Admin Manager</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<meta name="theme-color" content="#eef1f6" id="themeColorMeta">
 <meta name="csrf-token" content="{{ csrf_token }}">
-  
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>پنل مدیریت · iOS 27 Liquid Glass · Touch</title>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<!-- Fonts: Vazirmatn + Inter -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ★ اعمال تم قبل از رندر (جلوگیری از flash) -->
+<script>
+(function(){
+  try {
+    const saved = localStorage.getItem('theme'); // 'light' | 'dark' | null
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const useDark = saved === 'dark' || (!saved && prefersDark);
+    if (useDark) document.documentElement.classList.add('dark');
+  } catch(e){}
+})();
+</script>
+
 <style>
-* { box-sizing: border-box; }
-body {
-font-family: Tahoma, 'Segoe UI', sans-serif;
-padding: 0;
-background: #f4f4f4;
-margin: 0;
-direction: rtl;
-}
-  
-/* سایدبار */
-.sidebar {
-width: 260px;
-background: linear-gradient(180deg, #466d95 0%, #1a252f 100%);
-min-height: 100vh;
-position: fixed;
-right: 0;
-top: 0;
-padding: 20px 0;
-z-index: 1000;
-box-shadow: -2px 0 10px rgba(0,0,0,0.1);
-}
-  
-.sidebar-logo {
-text-align: center;
-color: white;
-padding: 20px 15px;
-border-bottom: 1px solid rgba(255,255,255,0.1);
-margin-bottom: 20px;
-}
-  
-.sidebar-logo h2 {
-color: #3498db;
-margin: 0;
-font-size: 1.4em;
-}
-  
-.sidebar-logo span {
-color: #ecf0f1;
-font-size: 0.85em;
-display: block;
-margin-top: 5px;
-}
-  
-.sidebar-menu {
-list-style: none;
-padding: 0;
-margin: 0;
-}
-  
-.sidebar-menu li {
-margin: 5px 0;
-}
-  
-.sidebar-menu a {
-display: flex;
-align-items: center;
-padding: 15px 20px;
-color: #bdc3c7;
-text-decoration: none;
-transition: all 0.3s;
-border-right: 3px solid transparent;
-}
-  
-.sidebar-menu a:hover,
-.sidebar-menu a.active {
-background: rgba(52, 152, 219, 0.2);
-color: white;
-border-right-color: #3498db;
-}
-  
-.sidebar-menu a i {
-margin-left: 10px;
-width: 20px;
-text-align: center;
-}
-  
-.sidebar-section {
-padding: 15px 20px;
-color: #7f8c8d;
-font-size: 0.75em;
-text-transform: uppercase;
-letter-spacing: 1px;
-border-top: 1px solid rgba(255,255,255,0.05);
-margin-top: 20px;
-}
-  
-.sidebar-user {
-position: absolute;
-bottom: 0;
-width: 100%;
-padding: 15px 20px;
-background: rgba(0,0,0,0.2);
-color: white;
-text-align: center;
-}
-  
-.sidebar-user .user-name {
-font-weight: bold;
-display: block;
-}
-  
-.sidebar-user .user-role {
-font-size: 0.8em;
-color: #3498db;
-}
-  
-/* محتوای اصلی */
-.main-content {
-margin-right: 260px;
-padding: 20px;
-min-height: 100vh;
-}
-  
-.container {
-max-width: 1200px;
-margin: 0 auto;
-background: white;
-padding: 25px;
-border-radius: 10px;
-box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-}
-  
-h1, h2 {
-color: #333;
-margin-top: 0;
-}
-  
-.header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 25px;
-padding-bottom: 15px;
-border-bottom: 2px solid #eee;
-}
-  
-.btn {
-padding: 10px 20px;
-border: none;
-border-radius: 6px;
-cursor: pointer;
-color: white;
-font-size: 0.95em;
-text-decoration: none;
-transition: 0.3s;
-display: inline-block;
-}
-.btn:hover { opacity: 0.9; transform: translateY(-1px); }
-  
-.btn-blue { background: #3498db; }
-.btn-green { background: #2ecc71; }
-.btn-purple { background: #9b59b6; }
-.btn-red { background: #e74c3c; }
-.btn-orange { background: #e67e22; }
-.btn-danger { background: #e74c3c; }
-.btn-danger:hover { background: #c0392b; }
-  
-.section {
-margin-bottom: 35px;
-border: 1px solid #eee;
-padding: 20px;
-border-radius: 10px;
-background: #fafafa;
-}
-  
-.form-group { margin-bottom: 15px; }
-.form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
-.form-group input, .form-group select {
-width: 100%; padding: 10px; border: 1px solid #ddd;
-border-radius: 5px;
-}
-  
-.form-group input:focus, .form-group select:focus {
-outline: none;
-border-color: #3498db;
-}
-  
-table {
-width: 100%; border-collapse: collapse; margin-top: 15px;
-background: white; border-radius: 8px; overflow: hidden;
-}
-th { background: #3498db; color: white; padding: 12px; text-align: right; }
-td { padding: 10px; border-bottom: 1px solid #eee; text-align: right; }
-  
-.badge { padding: 5px 10px; border-radius: 20px; font-size: .85em; display: inline-block; margin: 2px; }
-.badge-success { background: #d4edda; color: #155724; }
-.badge-danger { background: #f8d7da; color: #721c24; }
-.badge-warning { background: #fff3cd; color: #856404; }
-.badge-info { background: #d1ecf1; color: #0c5460; }
-.badge-primary { background: #d6e9f8; color: #004085; }
-  
-/* Toast */
-.toast {
-position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-padding: 15px 30px; border-radius: 8px; color: white;
-animation: slideDown .3s;
-z-index: 2000;
-}
-@keyframes slideDown { from{opacity:0; transform:translateX(-50%) translateY(-20px);} to{opacity:1; transform:translateX(-50%) translateY(0);} }
-.toast-success { background: #2ecc71; }
-.toast-error { background: #e74c3c; }
-.toast-info { background: #3498db; }
-  
-/* Multi-select */
-.multi-select { height: 100px; }
-  
-/* Stats Cards */
-.stats-grid {
-display: grid;
-grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-gap: 15px;
-margin-bottom: 25px;
-}
-  
-.stat-card {
-background: white;
-padding: 20px;
-border-radius: 10px;
-box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-text-align: center;
-}
-  
-.stat-card .number {
-font-size: 2em;
-font-weight: bold;
-color: #3498db;
-}
-  
-.stat-card .label {
-color: #7f8c8d;
-margin-top: 5px;
+/* =========================================================
+   iOS 27 · Liquid Glass · Touch-Optimized (iPad 16"+)
+   + Dark / Light Mode
+   ========================================================= */
+
+/* -------- Light theme (default) -------- */
+:root,
+html:not(.dark){
+  --glass-bg: rgba(255,255,255,.55);
+  --glass-bg-strong: rgba(255,255,255,.82);
+  --glass-border: rgba(255,255,255,.68);
+  --glass-stroke: rgba(15,23,42,.08);
+  --glass-shadow: 0 10px 40px rgba(15,23,42,.09), 0 1px 0 rgba(255,255,255,.75) inset;
+  --blur: 32px; --blur-strong: 55px;
+  --text-primary:#0f172a; --text-secondary:#475569; --text-tertiary:#94a3b8;
+  --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a;
+  --purple:#bf5af2; --indigo:#5e5ce6; --teal:#5ac8fa;
+  --r-xs:12px; --r-sm:16px; --r-md:22px; --r-lg:30px; --r-xl:40px; --r-full:999px;
+  --bg-base:#eef1f6;
+  --bg-gradient:
+    radial-gradient(1400px 900px at 90% -10%, rgba(10,132,255,.20), transparent 62%),
+    radial-gradient(1200px 800px at -10% 20%, rgba(191,90,242,.16), transparent 58%),
+    radial-gradient(1000px 700px at 50% 110%, rgba(48,209,88,.14), transparent 62%);
+  --input-bg: rgba(255,255,255,.75);
+  --input-bg-focus: rgba(255,255,255,.98);
+  --card-bg: rgba(255,255,255,.55);
+  --table-bg: rgba(255,255,255,.48);
+  --table-hover: rgba(255,255,255,.65);
+  --table-active: rgba(10,132,255,.06);
+  --modal-bg: rgba(255,255,255,.92);
+  --modal-border: rgba(255,255,255,.78);
+  --th-bg: linear-gradient(180deg, rgba(10,132,255,.10), rgba(10,132,255,.05));
+  --ghost-bg: rgba(255,255,255,.6);
+  --ghost-bg-hover: rgba(255,255,255,.9);
+  --menu-hover: rgba(255,255,255,.7);
+  --menu-active-bg: linear-gradient(180deg, rgba(10,132,255,.18), rgba(10,132,255,.10));
+  --menu-active-tap: rgba(10,132,255,.18);
+  --checkbox-line-bg: rgba(255,255,255,.65);
+  --checkbox-line-hover: rgba(255,255,255,.9);
+  --toggle-bg: rgba(255,255,255,.7);
+  --toggle-border: rgba(15,23,42,.10);
+  --toggle-icon: #f59e0b;
+  --scrollbar-thumb: rgba(15,23,42,.16);
+  --touch-target: 48px;
 }
 
-/* مودال حذف */
-.modal-overlay {
-display: none;
-position: fixed;
-top: 0; left: 0; right: 0; bottom: 0;
-background: rgba(0,0,0,0.6);
-z-index: 3000;
-justify-content: center;
-align-items: center;
+/* -------- Dark theme -------- */
+html.dark{
+  --glass-bg: rgba(30,41,59,.55);
+  --glass-bg-strong: rgba(30,41,59,.82);
+  --glass-border: rgba(255,255,255,.10);
+  --glass-stroke: rgba(255,255,255,.08);
+  --glass-shadow: 0 10px 40px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.06) inset;
+  --blur: 36px; --blur-strong: 60px;
+  --text-primary:#f1f5f9; --text-secondary:#cbd5e1; --text-tertiary:#94a3b8;
+  --blue:#409cff; --green:#32d74b; --orange:#ff9f0a; --red:#ff453a;
+  --purple:#bf5af2; --indigo:#7d7aff; --teal:#64d2ff;
+  --bg-base:#0f172a;
+  --bg-gradient:
+    radial-gradient(1400px 900px at 90% -10%, rgba(10,132,255,.28), transparent 62%),
+    radial-gradient(1200px 800px at -10% 20%, rgba(191,90,242,.22), transparent 58%),
+    radial-gradient(1000px 700px at 50% 110%, rgba(48,209,88,.18), transparent 62%);
+  --input-bg: rgba(30,41,59,.7);
+  --input-bg-focus: rgba(30,41,59,.95);
+  --card-bg: rgba(30,41,59,.55);
+  --table-bg: rgba(30,41,59,.4);
+  --table-hover: rgba(51,65,85,.55);
+  --table-active: rgba(10,132,255,.10);
+  --modal-bg: rgba(30,41,59,.94);
+  --modal-border: rgba(255,255,255,.12);
+  --th-bg: linear-gradient(180deg, rgba(10,132,255,.18), rgba(10,132,255,.08));
+  --ghost-bg: rgba(51,65,85,.6);
+  --ghost-bg-hover: rgba(51,65,85,.9);
+  --menu-hover: rgba(51,65,85,.7);
+  --menu-active-bg: linear-gradient(180deg, rgba(64,156,255,.22), rgba(64,156,255,.12));
+  --menu-active-tap: rgba(64,156,255,.22);
+  --checkbox-line-bg: rgba(51,65,85,.55);
+  --checkbox-line-hover: rgba(51,65,85,.85);
+  --toggle-bg: rgba(51,65,85,.7);
+  --toggle-border: rgba(255,255,255,.10);
+  --toggle-icon: #fbbf24;
+  --scrollbar-thumb: rgba(255,255,255,.18);
 }
-.modal-overlay.open { display: flex; }
 
-.modal-box {
-background: white;
-padding: 30px;
-border-radius: 12px;
-width: 90%;
-max-width: 450px;
-text-align: center;
-box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+/* -------- Base -------- */
+*{
+  margin:0;padding:0;box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
 }
-.modal-box .icon {
-font-size: 4rem;
-color: #e74c3c;
-margin-bottom: 15px;
+
+html{
+  height:100%;
+  -webkit-text-size-adjust:100%;
+  color-scheme:light;
 }
-.modal-box h3 {
-color: #333;
-margin-bottom: 10px;
+html.dark{ color-scheme:dark; }
+
+body{
+  font-family:'Vazirmatn','Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Tahoma,sans-serif;
+  color:var(--text-primary);
+  background:var(--bg-base);
+  background-image:var(--bg-gradient);
+  background-attachment:fixed;
+  min-height:100vh;
+  min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  padding:
+    env(safe-area-inset-top)
+    env(safe-area-inset-right)
+    env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  overscroll-behavior:none;
+  /* ★ انتقال نرم رنگ‌ها هنگام جابجایی تم */
+  transition:
+    background-color .45s cubic-bezier(.4,0,.2,1),
+    color .35s cubic-bezier(.4,0,.2,1);
 }
-.modal-box p {
-color: #666;
-line-height: 1.6;
-margin-bottom: 20px;
+
+/* ============ Layout ============ */
+.app-shell{
+  display:flex;
+  min-height:100vh;
+  min-height:100dvh;
+  padding:clamp(16px, 2vw, 26px);
+  gap:clamp(14px, 1.6vw, 24px);
 }
-.modal-box .highlight {
-color: #e74c3c;
-font-weight: bold;
+
+/* ============ Glass ============ */
+.glass{
+  background:var(--glass-bg);
+  backdrop-filter:blur(var(--blur)) saturate(180%);
+  -webkit-backdrop-filter:blur(var(--blur)) saturate(180%);
+  border:1px solid var(--glass-border);
+  box-shadow:var(--glass-shadow);
+  border-radius:var(--r-lg);
+  transition:
+    background .45s cubic-bezier(.4,0,.2,1),
+    border-color .45s cubic-bezier(.4,0,.2,1),
+    box-shadow .45s cubic-bezier(.4,0,.2,1);
 }
-.modal-actions {
-display: flex;
-gap: 12px;
-justify-content: center;
+
+/* ============ Theme Toggle Button ============ */
+.theme-toggle{
+  position:fixed;
+  top:calc(20px + env(safe-area-inset-top));
+  left:calc(20px + env(safe-area-inset-left));
+  width:56px;height:56px;
+  border-radius:50%;
+  border:1px solid var(--toggle-border);
+  background:var(--toggle-bg);
+  backdrop-filter:blur(28px) saturate(180%);
+  -webkit-backdrop-filter:blur(28px) saturate(180%);
+  box-shadow:
+    0 12px 32px rgba(15,23,42,.15),
+    inset 0 1px 0 rgba(255,255,255,.55);
+  cursor:pointer;
+  display:grid;place-items:center;
+  z-index:9998;
+  transition:
+    transform .3s cubic-bezier(.34,1.56,.64,1),
+    background .35s ease,
+    box-shadow .35s ease,
+    border-color .35s ease;
+  touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;
+  overflow:hidden;
+  isolation:isolate;
 }
-.modal-actions button {
-padding: 10px 30px;
-border-radius: 6px;
-border: none;
-font-size: 0.95rem;
-cursor: pointer;
-transition: 0.2s;
+.theme-toggle:hover{
+  transform:scale(1.06);
+  box-shadow:
+    0 16px 40px rgba(15,23,42,.22),
+    inset 0 1px 0 rgba(255,255,255,.65);
 }
-.modal-actions .btn-cancel {
-background: #ecf0f1;
-color: #333;
+.theme-toggle:active{ transform:scale(.92); }
+
+/* آیکن‌های درون دکمه */
+.theme-toggle .icon{
+  position:absolute;
+  font-size:1.35rem;
+  color:var(--toggle-icon);
+  transition:
+    transform .55s cubic-bezier(.34,1.56,.64,1),
+    opacity .35s ease;
+  will-change:transform, opacity;
 }
-.modal-actions .btn-cancel:hover {
-background: #d5dbdb;
+
+/* حالت روشن: خورشید نمایش، ماه پنهان */
+html:not(.dark) .theme-toggle .icon-sun{
+  transform:rotate(0deg) scale(1);
+  opacity:1;
 }
-.modal-actions .btn-danger {
-background: #e74c3c;
-color: white;
+html:not(.dark) .theme-toggle .icon-moon{
+  transform:rotate(-90deg) scale(.4);
+  opacity:0;
 }
-.modal-actions .btn-danger:hover {
-background: #c0392b;
+/* حالت تاریک: ماه نمایش، خورشید پنهان */
+html.dark .theme-toggle .icon-sun{
+  transform:rotate(90deg) scale(.4);
+  opacity:0;
 }
-.modal-actions .btn-danger:disabled {
-opacity: 0.5;
-cursor: not-allowed;
+html.dark .theme-toggle .icon-moon{
+  transform:rotate(0deg) scale(1);
+  opacity:1;
+  color:#e2e8f0;
 }
-.warning-box {
-background: #fef2f2;
-border-radius: 8px;
-padding: 12px;
-margin: 15px 0;
-text-align: right;
-border-right: 3px solid #e74c3c;
-font-size: 0.85rem;
-color: #991b1b;
+
+/* حلقه درخشان اطراف دکمه در حالت دارک */
+html.dark .theme-toggle{
+  box-shadow:
+    0 12px 32px rgba(0,0,0,.4),
+    0 0 0 1px rgba(64,156,255,.15),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+/* ============ Sidebar ============ */
+.sidebar{
+  width:clamp(260px, 20vw, 320px);
+  flex-shrink:0;
+  display:flex;flex-direction:column;
+  padding:clamp(20px, 1.8vw, 28px) clamp(14px, 1.4vw, 20px);
+  gap:clamp(14px, 1.2vw, 20px);
+  position:sticky;top:clamp(16px, 2vw, 26px);
+  height:calc(100vh - clamp(32px, 4vw, 52px));
+  height:calc(100dvh - clamp(32px, 4vw, 52px));
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+}
+.sidebar::-webkit-scrollbar{width:8px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:20px}
+.sidebar::-webkit-scrollbar-track{background:transparent}
+
+.brand{
+  display:flex;align-items:center;gap:14px;
+  padding-bottom:18px;border-bottom:1px solid var(--glass-stroke);
+  transition:border-color .35s ease;
+}
+.brand-icon{
+  width:clamp(48px, 3.4vw, 56px);
+  height:clamp(48px, 3.4vw, 56px);
+  border-radius:16px;
+  background:linear-gradient(135deg,#0a84ff,#5e5ce6);
+  display:grid;place-items:center;
+  color:#fff;
+  font-size:clamp(1.15rem, 1.4vw, 1.35rem);
+  flex-shrink:0;
+  box-shadow:0 8px 22px rgba(10,132,255,.4), inset 0 1px 0 rgba(255,255,255,.5);
+}
+.brand-title{
+  font-size:clamp(1.15rem, 1.3vw, 1.35rem);
+  font-weight:700;letter-spacing:-.02em;
+}
+.brand-subtitle{
+  font-size:clamp(.75rem, .85vw, .85rem);
+  color:var(--text-tertiary);font-weight:500;
+  margin-top:2px;
+}
+
+/* ============ Menu ============ */
+.menu{list-style:none;display:flex;flex-direction:column;gap:6px}
+.menu a{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;
+  min-height:var(--touch-target);
+  border-radius:var(--r-sm);
+  color:var(--text-secondary);text-decoration:none;
+  font-size:clamp(.9rem, 1vw, 1rem);
+  font-weight:500;
+  transition:background .25s ease, color .25s ease, box-shadow .25s ease;
+  cursor:pointer;
+  user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;
+}
+.menu a:hover{background:var(--menu-hover);color:var(--text-primary)}
+.menu a:active{
+  background:var(--menu-active-tap);
+  transform:scale(.985);
+  transition:transform .08s;
+}
+.menu a.active{
+  background:var(--menu-active-bg);
+  color:var(--blue);
+  box-shadow:inset 0 0 0 1px rgba(10,132,255,.28);
+  font-weight:600;
+}
+.menu a i{
+  width:26px;text-align:center;
+  font-size:clamp(1rem, 1.05vw, 1.1rem);
+  color:inherit;flex-shrink:0;
+}
+
+.menu-section{
+  font-size:.72rem;color:var(--text-tertiary);
+  font-weight:700;letter-spacing:.08em;
+  padding:16px 16px 6px;text-transform:uppercase;
+}
+
+/* ============ Sidebar user ============ */
+.sidebar-user{
+  margin-top:auto;
+  padding:16px;
+  border-radius:var(--r-md);
+  background:linear-gradient(135deg, rgba(10,132,255,.14), rgba(94,92,230,.14));
+  border:1px solid rgba(10,132,255,.16);
+  text-align:center;
+  transition:background .35s ease, border-color .35s ease;
+}
+html.dark .sidebar-user{
+  background:linear-gradient(135deg, rgba(64,156,255,.18), rgba(125,122,255,.16));
+  border-color:rgba(64,156,255,.22);
+}
+.sidebar-user .user-name{
+  display:block;font-weight:700;
+  font-size:clamp(.9rem, 1vw, 1rem);
+  color:var(--text-primary);
+}
+.sidebar-user .user-role{
+  display:inline-block;margin-top:6px;
+  font-size:.75rem;font-weight:600;
+  padding:5px 12px;border-radius:var(--r-full);
+  background:linear-gradient(180deg, rgba(10,132,255,.22), rgba(10,132,255,.10));
+  color:var(--blue);
+}
+
+/* ============ Main ============ */
+.main{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;
+  gap:clamp(14px, 1.6vw, 22px);
+}
+
+/* ============ Page Header ============ */
+.page-header{
+  padding:clamp(22px, 2vw, 30px) clamp(24px, 2.2vw, 34px);
+  display:flex;justify-content:space-between;align-items:center;
+  gap:20px;flex-wrap:wrap;
+}
+.page-title{
+  font-size:clamp(1.5rem, 1.9vw, 1.9rem);
+  font-weight:800;letter-spacing:-.03em;
+  display:flex;align-items:center;gap:14px;
+}
+.page-title i{color:var(--blue)}
+.welcome-text{
+  font-size:clamp(.85rem, .95vw, .95rem);
+  color:var(--text-secondary);margin-top:6px;
+}
+.welcome-text strong{color:var(--text-primary)}
+
+.header-actions{display:flex;gap:12px;flex-wrap:wrap}
+
+/* ============ Buttons ============ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  padding:14px 22px;
+  min-height:var(--touch-target);
+  border:none;border-radius:var(--r-full);
+  font-family:inherit;
+  font-size:clamp(.85rem, .95vw, .95rem);
+  font-weight:600;cursor:pointer;
+  transition:transform .15s cubic-bezier(.4,0,.2,1),
+             box-shadow .25s ease,
+             background .35s ease,
+             color .35s ease,
+             filter .2s ease;
+  letter-spacing:-.01em;
+  user-select:none;-webkit-user-select:none;
+  text-decoration:none;
+  touch-action:manipulation;
+}
+.btn:hover{filter:brightness(1.03)}
+.btn:active{transform:scale(.94);filter:brightness(.96)}
+
+.btn-primary{
+  background:linear-gradient(180deg,#1a8dff,#0a84ff);color:#fff;
+  box-shadow:0 6px 18px rgba(10,132,255,.35), inset 0 1px 0 rgba(255,255,255,.35);
+}
+.btn-success{
+  background:linear-gradient(180deg,#34d95f,#30d158);color:#fff;
+  box-shadow:0 6px 18px rgba(48,209,88,.35), inset 0 1px 0 rgba(255,255,255,.35);
+}
+.btn-danger{
+  background:linear-gradient(180deg,#ff5b52,#ff453a);color:#fff;
+  box-shadow:0 6px 18px rgba(255,69,58,.35), inset 0 1px 0 rgba(255,255,255,.35);
+}
+.btn-purple{
+  background:linear-gradient(180deg,#cb6bf5,#bf5af2);color:#fff;
+  box-shadow:0 6px 18px rgba(191,90,242,.35), inset 0 1px 0 rgba(255,255,255,.35);
+}
+.btn-ghost{
+  background:var(--ghost-bg);
+  color:var(--text-primary);
+  border:1px solid var(--glass-stroke);
+  backdrop-filter:blur(20px);
+}
+.btn-ghost:hover{background:var(--ghost-bg-hover)}
+
+.btn-sm{
+  padding:11px 16px;
+  min-height:44px;
+  font-size:clamp(.78rem, .85vw, .85rem);
+  gap:8px;
+}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none !important}
+
+/* ============ Stats ============ */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap:clamp(14px, 1.4vw, 22px);
+}
+.stat-card{
+  padding:clamp(22px, 1.8vw, 30px);
+  border-radius:var(--r-lg);
+  background:var(--card-bg);
+  backdrop-filter:blur(32px) saturate(180%);
+  -webkit-backdrop-filter:blur(32px) saturate(180%);
+  border:1px solid var(--glass-border);
+  box-shadow:var(--glass-shadow);
+  display:flex;align-items:center;
+  gap:clamp(16px, 1.6vw, 22px);
+  transition:transform .25s cubic-bezier(.4,0,.2,1),
+             box-shadow .25s ease,
+             background .45s cubic-bezier(.4,0,.2,1),
+             border-color .45s ease;
+  animation:cardIn .5s cubic-bezier(.22,1,.36,1) backwards;
+  touch-action:manipulation;
+}
+.stat-card:nth-child(1){animation-delay:.05s}
+.stat-card:nth-child(2){animation-delay:.1s}
+.stat-card:nth-child(3){animation-delay:.15s}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 16px 42px rgba(15,23,42,.11)}
+.stat-card:active{transform:scale(.985);transition:transform .1s}
+
+.stat-icon{
+  width:clamp(56px, 4vw, 66px);
+  height:clamp(56px, 4vw, 66px);
+  border-radius:18px;
+  display:grid;place-items:center;
+  font-size:clamp(1.35rem, 1.6vw, 1.6rem);
+  color:#fff;flex-shrink:0;
+}
+.stat-icon.blue{background:linear-gradient(135deg,#1a8dff,#0a84ff);box-shadow:0 8px 20px rgba(10,132,255,.35)}
+.stat-icon.green{background:linear-gradient(135deg,#34d95f,#30d158);box-shadow:0 8px 20px rgba(48,209,88,.35)}
+.stat-icon.purple{background:linear-gradient(135deg,#cb6bf5,#bf5af2);box-shadow:0 8px 20px rgba(191,90,242,.35)}
+
+.stat-info{display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat-number{
+  font-size:clamp(1.85rem, 2.4vw, 2.4rem);
+  font-weight:800;letter-spacing:-.03em;line-height:1;
+}
+.stat-label{
+  font-size:clamp(.8rem, .9vw, .92rem);
+  color:var(--text-secondary);font-weight:500;
+}
+
+/* ============ Sections ============ */
+.section{
+  padding:clamp(22px, 2vw, 30px);
+  border-radius:var(--r-lg);
+  background:var(--card-bg);
+  backdrop-filter:blur(32px) saturate(180%);
+  -webkit-backdrop-filter:blur(32px) saturate(180%);
+  border:1px solid var(--glass-border);
+  box-shadow:var(--glass-shadow);
+  animation:cardIn .55s cubic-bezier(.22,1,.36,1) backwards;
+  transition:
+    background .45s cubic-bezier(.4,0,.2,1),
+    border-color .45s ease,
+    box-shadow .45s ease;
+}
+.section-title{
+  font-size:clamp(1.05rem, 1.2vw, 1.2rem);
+  font-weight:700;letter-spacing:-.02em;
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:22px;padding-bottom:16px;
+  border-bottom:1px solid var(--glass-stroke);
+  transition:border-color .35s ease;
+}
+.section-title i{
+  color:var(--blue);
+  font-size:clamp(1.05rem, 1.2vw, 1.2rem);
+}
+
+/* ============ Forms ============ */
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:clamp(16px, 1.4vw, 22px);
+}
+.form-group{display:flex;flex-direction:column;gap:8px}
+.form-group.full{grid-column:1 / -1}
+.form-group label{
+  font-size:clamp(.82rem, .9vw, .92rem);
+  font-weight:600;color:var(--text-secondary);
+  display:flex;align-items:center;gap:8px;
+}
+.form-group label i{color:var(--blue);font-size:.85rem}
+
+.input-glass{
+  width:100%;
+  padding:16px 18px;
+  min-height:var(--touch-target);
+  border-radius:var(--r-sm);
+  border:1px solid var(--glass-stroke);
+  background:var(--input-bg);
+  font-family:inherit;
+  font-size:clamp(.9rem, 1vw, 1rem);
+  color:var(--text-primary);
+  transition:background .35s, border-color .25s, box-shadow .25s, color .35s;
+  -webkit-appearance:none;
+  appearance:none;
+  touch-action:manipulation;
+}
+.input-glass::placeholder{color:var(--text-tertiary)}
+.input-glass:focus{
+  outline:none;background:var(--input-bg-focus);
+  border-color:var(--blue);
+  box-shadow:0 0 0 4px rgba(10,132,255,.18);
+}
+
+select.input-glass{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:left 18px center;
+  background-size:11px;
+  padding-left:46px;
+  cursor:pointer;
+}
+html.dark select.input-glass{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%23cbd5e1' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+}
+select.multi-select{
+  height:auto;min-height:170px;
+  padding:10px;
+  background-image:none;
+  padding-left:10px;
+}
+select.multi-select option{
+  padding:12px 14px;border-radius:10px;margin:3px 0;
+  font-size:clamp(.88rem, .95vw, .95rem);
+  background:transparent;
+  color:var(--text-primary);
+}
+html.dark select.multi-select option{
+  background:rgba(30,41,59,.9);
+}
+select.multi-select option:checked{
+  background:linear-gradient(180deg,#1a8dff,#0a84ff);color:#fff;
+}
+
+.form-hint{
+  font-size:clamp(.75rem, .8vw, .82rem);
+  color:var(--text-tertiary);margin-top:4px;
+}
+
+.checkbox-line{
+  display:inline-flex;align-items:center;gap:12px;
+  padding:14px 18px;
+  min-height:var(--touch-target);
+  border-radius:var(--r-sm);
+  background:var(--checkbox-line-bg);
+  border:1px solid var(--glass-stroke);
+  cursor:pointer;
+  font-size:clamp(.88rem, .95vw, .95rem);
+  font-weight:500;
+  transition:background .25s, transform .1s, border-color .35s;
+  align-self:flex-start;
+  touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;
+}
+.checkbox-line:hover{background:var(--checkbox-line-hover)}
+.checkbox-line:active{transform:scale(.98)}
+.checkbox-line input{
+  width:22px;height:22px;
+  accent-color:var(--blue);
+  cursor:pointer;flex-shrink:0;
+}
+
+/* ============ Table ============ */
+.table-wrap{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  border-radius:var(--r-md);
+  border:1px solid var(--glass-stroke);
+  background:var(--table-bg);
+  margin-top:6px;
+  touch-action:pan-x pan-y;
+  transition:background .45s ease, border-color .35s ease;
+}
+table{
+  width:100%;border-collapse:collapse;
+  min-width:820px;
+}
+th{
+  background:var(--th-bg);
+  color:var(--text-primary);
+  padding:18px 18px;
+  text-align:right;
+  font-size:clamp(.82rem, .9vw, .92rem);
+  font-weight:700;
+  border-bottom:1px solid var(--glass-stroke);
+  letter-spacing:-.01em;
+  white-space:nowrap;
+  transition:background .45s ease, border-color .35s ease;
+}
+td{
+  padding:18px 18px;
+  border-bottom:1px solid var(--glass-stroke);
+  text-align:right;
+  font-size:clamp(.85rem, .95vw, .95rem);
+  color:var(--text-primary);
+  vertical-align:middle;
+  transition:border-color .35s ease, color .35s ease;
+}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .25s ease}
+tbody tr:hover{background:var(--table-hover)}
+tbody tr:active{background:var(--table-active)}
+
+.row-actions{
+  display:flex;gap:10px;flex-wrap:wrap;
+}
+
+/* ============ Badges ============ */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;
+  border-radius:var(--r-full);
+  font-size:clamp(.75rem, .82vw, .82rem);
+  font-weight:600;
+  margin:3px 0;
+  letter-spacing:-.01em;
+  white-space:nowrap;
+  transition:background .35s ease, color .35s ease;
+}
+.badge-success{background:linear-gradient(180deg,#d1fae5,#a7f3d0);color:#065f46}
+.badge-danger{background:linear-gradient(180deg,#fee2e2,#fecaca);color:#991b1b}
+.badge-warning{background:linear-gradient(180deg,#fef3c7,#fde68a);color:#854d0e}
+.badge-info{background:linear-gradient(180deg,#dbeafe,#bfdbfe);color:#1e40af}
+.badge-primary{background:linear-gradient(180deg,#e0e7ff,#c7d2fe);color:#3730a3}
+.badge-purple{background:linear-gradient(180deg,#f3e8ff,#e9d5ff);color:#6b21a8}
+
+/* در حالت دارک، بج‌ها را روشن‌تر/کم‌اشباع‌تر می‌کنیم تا خوانایی حفظ شود */
+html.dark .badge-success{background:linear-gradient(180deg, rgba(48,209,88,.22), rgba(48,209,88,.14));color:#6ee7a7}
+html.dark .badge-danger{background:linear-gradient(180deg, rgba(255,69,58,.22), rgba(255,69,58,.14));color:#fca5a5}
+html.dark .badge-warning{background:linear-gradient(180deg, rgba(255,159,10,.22), rgba(255,159,10,.14));color:#fcd34d}
+html.dark .badge-info{background:linear-gradient(180deg, rgba(10,132,255,.22), rgba(10,132,255,.14));color:#93c5fd}
+html.dark .badge-primary{background:linear-gradient(180deg, rgba(125,122,255,.22), rgba(125,122,255,.14));color:#a5b4fc}
+html.dark .badge-purple{background:linear-gradient(180deg, rgba(191,90,242,.22), rgba(191,90,242,.14));color:#e9d5ff}
+
+/* ============ Toast ============ */
+.toast-container{
+  position:fixed;
+  top:calc(28px + env(safe-area-inset-top));
+  left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;gap:12px;
+  z-index:99999;
+  pointer-events:none;
+  max-width:min(90vw, 560px);
+}
+.toast{
+  padding:18px 30px;
+  min-height:56px;
+  border-radius:var(--r-full);
+  color:#fff;
+  font-size:clamp(.88rem, .95vw, 1rem);
+  font-weight:600;
+  box-shadow:0 16px 44px rgba(15,23,42,.28);
+  backdrop-filter:blur(24px);
+  animation:toastIn .38s cubic-bezier(.22,1,.36,1);
+  display:flex;align-items:center;gap:12px;
+  pointer-events:auto;
+}
+@keyframes toastIn{
+  from{opacity:0;transform:translateY(-24px) scale(.92)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.toast-success{background:linear-gradient(180deg,rgba(48,209,88,.97),rgba(36,180,70,.97))}
+.toast-error{background:linear-gradient(180deg,rgba(255,91,82,.97),rgba(255,69,58,.97))}
+.toast-info{background:linear-gradient(180deg,rgba(26,141,255,.97),rgba(10,132,255,.97))}
+
+/* ============ Modal ============ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(15,23,42,.42);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  z-index:9999;
+  align-items:center;justify-content:center;
+  padding:clamp(20px, 3vw, 40px);
+  touch-action:none;
+  transition:background .35s ease;
+}
+html.dark .modal-overlay{background:rgba(0,0,0,.6)}
+.modal-overlay.open{display:flex;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.modal-box{
+  width:100%;max-width:clamp(420px, 42vw, 560px);
+  padding:clamp(28px, 2.6vw, 40px);
+  border-radius:var(--r-xl);
+  background:var(--modal-bg);
+  backdrop-filter:blur(55px) saturate(200%);
+  -webkit-backdrop-filter:blur(55px) saturate(200%);
+  border:1px solid var(--modal-border);
+  box-shadow:0 40px 100px rgba(15,23,42,.32), inset 0 1px 0 rgba(255,255,255,.9);
+  text-align:center;
+  animation:modalIn .42s cubic-bezier(.22,1,.36,1);
+  max-height:calc(100dvh - 60px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  transition:background .45s ease, border-color .45s ease;
+}
+html.dark .modal-box{
+  box-shadow:0 40px 100px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+}
+@keyframes modalIn{
+  from{opacity:0;transform:translateY(28px) scale(.95)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+
+.modal-icon{
+  width:clamp(84px, 6vw, 100px);
+  height:clamp(84px, 6vw, 100px);
+  border-radius:28px;
+  background:linear-gradient(135deg,#fee2e2,#fecaca);
+  display:grid;place-items:center;
+  margin:0 auto 20px;
+  font-size:clamp(2.2rem, 2.8vw, 2.8rem);
+  color:#dc2626;
+  box-shadow:0 14px 36px rgba(220,38,38,.28);
+}
+html.dark .modal-icon{
+  background:linear-gradient(135deg, rgba(255,69,58,.25), rgba(255,69,58,.15));
+  color:#fca5a5;
+}
+.modal-box h3{
+  font-size:clamp(1.25rem, 1.5vw, 1.5rem);
+  font-weight:800;letter-spacing:-.02em;
+  margin-bottom:12px;
+}
+.modal-box p{
+  color:var(--text-secondary);
+  font-size:clamp(.9rem, 1vw, 1rem);
+  line-height:1.7;margin-bottom:20px;
+}
+.modal-box p .highlight{
+  color:#dc2626;font-weight:700;
+}
+html.dark .modal-box p .highlight{color:#fca5a5}
+.warning-box{
+  background:linear-gradient(135deg, rgba(254,226,226,.85), rgba(254,202,202,.65));
+  border-radius:var(--r-sm);
+  padding:16px 18px;margin:18px 0 24px;
+  text-align:right;
+  font-size:clamp(.8rem, .88vw, .88rem);
+  color:#991b1b;
+  border-right:4px solid #dc2626;
+  display:flex;gap:12px;align-items:flex-start;line-height:1.6;
+}
+html.dark .warning-box{
+  background:linear-gradient(135deg, rgba(255,69,58,.18), rgba(255,69,58,.10));
+  color:#fca5a5;
+}
+.warning-box i{font-size:1rem;flex-shrink:0;margin-top:3px}
+.modal-actions{
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
+}
+.modal-actions .btn{flex:1;min-width:140px;max-width:220px}
+
+/* ============ Spinner ============ */
+.spinner{
+  display:inline-block;width:16px;height:16px;
+  border:2px solid rgba(255,255,255,.4);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ============ Empty ============ */
+.empty-row{
+  text-align:center !important;
+  color:var(--text-tertiary) !important;
+  padding:48px 20px !important;
+  font-size:clamp(.88rem, .95vw, .95rem);
+}
+.empty-row i{
+  display:block;
+  font-size:clamp(2.2rem, 2.6vw, 2.6rem);
+  margin-bottom:14px;opacity:.4;
+}
+
+/* =========================================================
+   Responsive — Tablet 16"+ & Landscape
+   ========================================================= */
+@media (pointer:coarse){
+  .menu a{padding:16px 18px;min-height:52px}
+  .btn{padding:15px 24px;min-height:52px}
+  .btn-sm{padding:12px 18px;min-height:46px}
+  .theme-toggle{width:60px;height:60px}
+}
+
+@media (max-width:1180px){
+  .sidebar{width:clamp(240px, 24vw, 280px)}
+}
+
+@media (min-width:1400px){
+  .main{max-width:1700px}
+}
+
+@media (min-width:1280px){
+  .stats-grid{
+    grid-template-columns:repeat(3, 1fr);
+  }
+}
+
+@media (min-width:1500px){
+  .form-grid{
+    grid-template-columns:repeat(3, 1fr);
+  }
+  .form-group.full{grid-column:1 / -1}
+}
+
+@media (max-width:900px){
+  .app-shell{flex-direction:column;padding:12px;gap:12px}
+  .sidebar{
+    width:100%;position:static;height:auto;
+    flex-direction:row;flex-wrap:wrap;padding:16px;gap:12px;
+  }
+  .sidebar .brand{width:100%}
+  .menu{flex-direction:row;flex-wrap:wrap;gap:8px;flex:1}
+  .menu a{padding:12px 14px;font-size:.85rem}
+  .menu-section{display:none}
+  .sidebar-user{width:100%;margin-top:0}
+  .form-grid{grid-template-columns:1fr}
+  .page-title{font-size:1.25rem}
+  .page-header{padding:20px}
+  .section{padding:20px}
+  .modal-actions .btn{min-width:auto}
+  .theme-toggle{
+    width:52px;height:52px;
+    top:calc(14px + env(safe-area-inset-top));
+    left:calc(14px + env(safe-area-inset-left));
+  }
+}
+
+@media (orientation:landscape) and (min-height:600px) and (max-height:900px){
+  .sidebar{height:calc(100vh - 32px);height:calc(100dvh - 32px)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
 }
 </style>
 </head>
-  
+
 <body>
-  
-<!-- سایدبار -->
-<aside class="sidebar">
-<div class="sidebar-logo">
-<h2>🛡️ مدیریت</h2>
-<span>پنل ادمین</span>
-</div>
-  
-<ul class="sidebar-menu">
-<li>
-<a href="/dashboard/" class="">
-<i>🏠</i>
-داشبورد
-</a>
-</li>
-<li>
-<a href="/admin-manager/" class="active">
-<i>👥</i>
-مدیریت کاربران
-</a>
-</li>
-<li>
-<a href="#" onclick="scrollToSection('users')">
-<i>📋</i>
-لیست کاربران
-</a>
-</li>
-<li>
-<a href="#" onclick="scrollToSection('files')">
-<i>📁</i>
-فایل‌های آپلود شده
-</a>
-</li>
-<li>
-<!-- <a href="/super-admin/"> -->
-<!-- <i>⚙️</i> -->
-<!-- سوپر ادمین -->
-</a>
-</li>
-</ul>
-  
-<div class="sidebar-section">دسترسی سریع</div>
-<ul class="sidebar-menu">
-<li>
-<a href="#" onclick="document.getElementById('newUsername').focus()">
-<i>➕</i>
-ایجاد کاربر جدید
-</a>
-</li>
-</ul>
-  
-<div class="sidebar-user">
-<span class="user-name">{{ request.user.username }}</span>
-<span class="user-role">
-{% if request.user.is_superuser %}سوپر ادمین
-{% elif request.user.is_staff %}ادمین
-{% else %}کاربر{% endif %}
-</span>
-</div>
-</aside>
-  
-<!-- محتوای اصلی -->
-<div class="main-content">
-<div class="container">
-  
-<div class="header">
-<h1>🛡️ پنل مدیریت</h1>
-<div>
-<span style="color: #7f8c8d; margin-left: 15px;">خوش آمدید، <strong>{{ request.user.username }}</strong></span>
-<!-- <a href="/super-admin/" class="btn btn-purple">سوپر ادمین</a> -->
-<a href="/dashboard/" class="btn btn-blue">بازگشت</a>
-</div>
-</div>
-  
-<!-- آمار -->
-<div class="stats-grid">
-<div class="stat-card">
-<div class="number">{{ users.count }}</div>
-<div class="label">تعداد کاربران</div>
-</div>
-<div class="stat-card">
-<div class="number">{{ history.count }}</div>
-<div class="label">فایل‌های آپلود شده</div>
-</div>
-<div class="stat-card">
-<div class="number">{{ all_roles.count }}</div>
-<div class="label">تعداد نقش‌ها</div>
-</div>
-</div>
-  
-<div class="section" id="create-user">
-<h2>➕ ایجاد کاربر جدید</h2>
-  
-<div class="form-group">
-<label>نام کاربری:</label>
-<input id="newUsername" type="text" placeholder="نام کاربری را وارد کنید">
-</div>
-  
-<div class="form-group">
-<label>رمز عبور:</label>
-<input id="newPassword" type="text" placeholder="رمز عبور را وارد کنید">
-</div>
-  
-<div class="form-group">
-<label>انتخاب نقش (گروه):</label>
-<select id="newUserGroups" multiple class="multi-select">
-                {% for role in all_roles %}
-<option value="{{ role.id }}">{{ role.name }}</option>
-                {% endfor %}
-</select>
-<small style="color: #7f8c8d;">برای انتخاب چند نقش، کلید Ctrl را نگه دارید</small>
-</div>
-  
-<div class="form-group">
-<label><input type="checkbox" id="newIsStaff"> ادمین سیستم</label>
-</div>
-  
-<button onclick="createUser()" class="btn btn-green">➕ ایجاد کاربر</button>
-</div>
-  
-<div class="section" id="users">
-<h2>👥 لیست کاربران</h2>
-  
-<table>
-<thead>
-<tr>
-<th>ID</th><th>نام کاربری</th><th>نقش‌ها</th><th>نوع</th><th>وضعیت</th><th>عملیات</th>
-</tr>
-</thead>
-  
-<tbody>
-                {% for user in users %}
-<tr id="user-row-{{ user.id }}">
-<td>{{ user.id }}</td>
-<td>{{ user.username }}</td>
-<td>
-                        {% for g in user.groups.all %}
-<span class="badge badge-success">{{ g.name }}</span>
-                        {% empty %}
-<span style="color: #999;">-</span>
-                        {% endfor %}
-</td>
-<td>
-                        {% if user.is_superuser %}<span class="badge badge-danger">سوپر ادمین</span>
-                        {% elif user.is_staff %}<span class="badge badge-primary">ادمین</span>
-                        {% else %}<span class="badge badge-info">کاربر</span>
-                        {% endif %}
-</td>
-<td id="user-status-{{ user.id }}">
-                        {% if user.is_active %}
-<span class="badge badge-success">فعال</span>
-                        {% else %}
-<span class="badge badge-danger">مسدود</span>
-                        {% endif %}
-</td>
-<td>
-<button onclick="promptChangePassword({{ user.id }})" class="btn btn-blue" style="padding: 5px 10px; font-size: 0.85em;">🔑 رمز</button>
-  
-                        {% if user.is_active %}
-<button onclick="blockUser({{ user.id }})" class="btn btn-purple" style="padding: 5px 10px; font-size: 0.85em;">🚫 مسدود</button>
-                        {% else %}
-<button onclick="unblockUser({{ user.id }})" class="btn btn-green" style="padding: 5px 10px; font-size: 0.85em;">✅ فعال</button>
-                        {% endif %}
-                        
-                        <!-- دکمه حذف - فقط برای کاربران غیر از خودش -->
-                        {% if user.id != request.user.id %}
-                        <button onclick="confirmDeleteUser({{ user.id }}, '{{ user.username }}')" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.85em;">
-                            🗑️ حذف
-                        </button>
-                        {% endif %}
-</td>
-</tr>
-                {% endfor %}
-</tbody>
-</table>
-</div>
-  
-<div class="section" id="files">
-<h2>📁 فایل‌های آپلود شده</h2>
-  
-<table>
-<thead>
-<tr>
-<th>نام فایل</th><th>کاربر</th><th>پوشه</th><th>تاریخ</th><th>عملیات</th>
-</tr>
-</thead>
-  
-<tbody>
-                {% for f in history %}
-<tr data-file-id="{{ f.id }}">
-<td>{{ f.file.name }}</td>
-<td>{{ f.uploaded_by.username }}</td>
-<td>{{ f.folder_name|default:"-" }}</td>
-<td>{{ f.uploaded_at|date:"Y-m-d H:i" }}</td>
-  
-<td>
-<a href="{% url 'download_file' f.id %}" class="btn btn-green" style="padding: 5px 10px; font-size: 0.85em;">⬇️ دانلود</a>
-<button onclick="confirmDeleteFile({{ f.id }}, '{{ f.file.name }}')" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.85em;">🗑️ حذف</button>
-</td>
-</tr>
-                {% empty %}
-<tr>
-<td colspan="5" style="text-align: center; color: #999;">فایلی یافت نشد</td>
-</tr>
-                {% endfor %}
-</tbody>
-</table>
-</div>
-  
-</div>
-</div>
 
-<!-- مودال تایید حذف -->
-<div id="deleteConfirmModal" class="modal-overlay">
-    <div class="modal-box">
-        <div class="icon">⚠️</div>
-        <h3>تایید حذف</h3>
-        <p>
-            آیا از حذف <span id="deleteItemName" class="highlight"></span> اطمینان دارید؟
-        </p>
-        <div class="warning-box">
-            <small>⚠️ این عملیات غیرقابل بازگشت است و تمام اطلاعات مرتبط حذف خواهد شد.</small>
-        </div>
-        <input type="hidden" id="deleteItemId" value="">
-        <input type="hidden" id="deleteItemType" value="">
-        <div class="modal-actions">
-            <button class="btn-cancel" onclick="closeDeleteModal()">لغو</button>
-            <button class="btn-danger" id="confirmDeleteBtn" onclick="executeDelete()">
-                <span id="deleteBtnText">🗑️ حذف</span>
-                <span id="deleteBtnLoading" style="display: none;">در حال حذف...</span>
-            </button>
-        </div>
+<!-- ★ دکمه تغییر تم -->
+<button
+  class="theme-toggle"
+  id="themeToggle"
+  type="button"
+  aria-label="تغییر حالت روشن/تاریک"
+  title="تغییر حالت روشن/تاریک"
+>
+  <i class="fas fa-sun icon icon-sun"></i>
+  <i class="fas fa-moon icon icon-moon"></i>
+</button>
+
+<div class="app-shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar glass">
+    <div class="brand">
+      <div class="brand-icon"><i class="fas fa-shield-halved"></i></div>
+      <div>
+        <div class="brand-title">مدیریت</div>
+        <div class="brand-subtitle">پنل ادمین · iOS 27</div>
+      </div>
     </div>
+
+    <ul class="menu">
+      <li>
+        <a href="/dashboard/">
+          <i class="fas fa-house"></i>
+          داشبورد
+        </a>
+      </li>
+      <li>
+        <a href="/admin-manager/" class="active">
+          <i class="fas fa-users"></i>
+          مدیریت کاربران
+        </a>
+      </li>
+      <li>
+        <a onclick="scrollToSection('users')">
+          <i class="fas fa-list-check"></i>
+          لیست کاربران
+        </a>
+      </li>
+      <li>
+        <a onclick="scrollToSection('files')">
+          <i class="fas fa-folder-open"></i>
+          فایل‌های آپلود شده
+        </a>
+      </li>
+    </ul>
+
+    <div class="menu-section">دسترسی سریع</div>
+    <ul class="menu">
+      <li>
+        <a onclick="document.getElementById('newUsername').focus()">
+          <i class="fas fa-user-plus"></i>
+          ایجاد کاربر جدید
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-user">
+      <span class="user-name">{{ request.user.username }}</span>
+      <span class="user-role">
+        {% if request.user.is_superuser %}سوپر ادمین
+        {% elif request.user.is_staff %}ادمین
+        {% else %}کاربر{% endif %}
+      </span>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <!-- Header -->
+    <div class="page-header glass">
+      <div>
+        <div class="page-title">
+          <i class="fas fa-shield-halved"></i>
+          پنل مدیریت
+        </div>
+        <div class="welcome-text">
+          خوش آمدید، <strong>{{ request.user.username }}</strong> 👋
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="/dashboard/" class="btn btn-primary">
+          <i class="fas fa-arrow-right"></i>
+          بازگشت به داشبورد
+        </a>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+        <div class="stat-info">
+          <div class="stat-number">{{ users.count }}</div>
+          <div class="stat-label">تعداد کاربران</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-file-arrow-up"></i></div>
+        <div class="stat-info">
+          <div class="stat-number">{{ history.count }}</div>
+          <div class="stat-label">فایل‌های آپلود شده</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-user-tag"></i></div>
+        <div class="stat-info">
+          <div class="stat-number">{{ all_roles.count }}</div>
+          <div class="stat-label">تعداد نقش‌ها</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create user -->
+    <div class="section" id="create-user">
+      <div class="section-title">
+        <i class="fas fa-user-plus"></i>
+        ایجاد کاربر جدید
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label><i class="fas fa-user"></i> نام کاربری</label>
+          <input id="newUsername" type="text" class="input-glass" placeholder="نام کاربری را وارد کنید" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+
+        <div class="form-group">
+          <label><i class="fas fa-key"></i> رمز عبور</label>
+          <input id="newPassword" type="text" class="input-glass" placeholder="رمز عبور را وارد کنید" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+
+        <div class="form-group full">
+          <label><i class="fas fa-user-tag"></i> انتخاب نقش (گروه)</label>
+          <select id="newUserGroups" multiple class="input-glass multi-select">
+            {% for role in all_roles %}
+              <option value="{{ role.id }}">{{ role.name }}</option>
+            {% endfor %}
+          </select>
+          <small class="form-hint">💡 برای انتخاب چند نقش، با لمس گزینه‌ها انتخاب کنید (روی صفحه لمسی می‌توانید چند گزینه را انتخاب کنید)</small>
+        </div>
+
+        <div class="form-group full">
+          <label class="checkbox-line">
+            <input type="checkbox" id="newIsStaff">
+            <i class="fas fa-user-shield" style="color:var(--blue)"></i>
+            ادمین سیستم
+          </label>
+        </div>
+
+        <div class="form-group full">
+          <button onclick="createUser()" class="btn btn-success" style="align-self:flex-start">
+            <i class="fas fa-plus"></i>
+            ایجاد کاربر
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="section" id="users">
+      <div class="section-title">
+        <i class="fas fa-users"></i>
+        لیست کاربران
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>نام کاربری</th>
+              <th>نقش‌ها</th>
+              <th>نوع</th>
+              <th>وضعیت</th>
+              <th>عملیات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr id="user-row-{{ user.id }}">
+              <td>{{ user.id }}</td>
+              <td><strong>{{ user.username }}</strong></td>
+              <td>
+                {% for g in user.groups.all %}
+                  <span class="badge badge-success">{{ g.name }}</span>
+                {% empty %}
+                  <span style="color:var(--text-tertiary)">—</span>
+                {% endfor %}
+              </td>
+              <td>
+                {% if user.is_superuser %}
+                  <span class="badge badge-danger"><i class="fas fa-crown"></i> سوپر ادمین</span>
+                {% elif user.is_staff %}
+                  <span class="badge badge-primary"><i class="fas fa-user-shield"></i> ادمین</span>
+                {% else %}
+                  <span class="badge badge-info"><i class="fas fa-user"></i> کاربر</span>
+                {% endif %}
+              </td>
+              <td id="user-status-{{ user.id }}">
+                {% if user.is_active %}
+                  <span class="badge badge-success">● فعال</span>
+                {% else %}
+                  <span class="badge badge-danger">● مسدود</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button onclick="promptChangePassword({{ user.id }})" class="btn btn-primary btn-sm" title="تغییر رمز">
+                    <i class="fas fa-key"></i> رمز
+                  </button>
+
+                  {% if user.is_active %}
+                    <button onclick="blockUser({{ user.id }})" class="btn btn-purple btn-sm" title="مسدود کردن">
+                      <i class="fas fa-lock"></i> مسدود
+                    </button>
+                  {% else %}
+                    <button onclick="unblockUser({{ user.id }})" class="btn btn-success btn-sm" title="فعال‌سازی">
+                      <i class="fas fa-unlock"></i> فعال
+                    </button>
+                  {% endif %}
+
+                  {% if user.id != request.user.id %}
+                  <button onclick="confirmDeleteUser({{ user.id }}, '{{ user.username }}')" class="btn btn-danger btn-sm" title="حذف کاربر">
+                    <i class="fas fa-trash"></i> حذف
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Files -->
+    <div class="section" id="files">
+      <div class="section-title">
+        <i class="fas fa-folder-open"></i>
+        فایل‌های آپلود شده
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>نام فایل</th>
+              <th>کاربر</th>
+              <th>پوشه</th>
+              <th>تاریخ</th>
+              <th>عملیات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in history %}
+            <tr data-file-id="{{ f.id }}">
+              <td>{{ f.file.name }}</td>
+              <td>{{ f.uploaded_by.username }}</td>
+              <td>{{ f.folder_name|default:"—" }}</td>
+              <td>{{ f.uploaded_at|date:"Y-m-d H:i" }}</td>
+              <td>
+                <div class="row-actions">
+                  <a href="{% url 'download_file' f.id %}" class="btn btn-success btn-sm">
+                    <i class="fas fa-download"></i> دانلود
+                  </a>
+                  <button onclick="confirmDeleteFile({{ f.id }}, '{{ f.file.name }}')" class="btn btn-danger btn-sm">
+                    <i class="fas fa-trash"></i> حذف
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="empty-row">
+                <i class="fas fa-folder-open"></i>
+                فایلی یافت نشد
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
 </div>
-  
+
+<!-- ============ DELETE MODAL ============ -->
+<div id="deleteConfirmModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-icon">
+      <i class="fas fa-triangle-exclamation"></i>
+    </div>
+    <h3>تایید حذف</h3>
+    <p>
+      آیا از حذف <span id="deleteItemName" class="highlight"></span> اطمینان دارید؟
+    </p>
+    <div class="warning-box">
+      <i class="fas fa-circle-exclamation"></i>
+      <span>این عملیات غیرقابل بازگشت است و تمام اطلاعات مرتبط حذف خواهد شد.</span>
+    </div>
+    <input type="hidden" id="deleteItemId" value="">
+    <input type="hidden" id="deleteItemType" value="">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeDeleteModal()">
+        <i class="fas fa-xmark"></i> لغو
+      </button>
+      <button class="btn btn-danger" id="confirmDeleteBtn" onclick="executeDelete()">
+        <span id="deleteBtnText"><i class="fas fa-trash"></i> حذف</span>
+        <span id="deleteBtnLoading" style="display:none">
+          <span class="spinner"></span> در حال حذف...
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOASTS ============ -->
+<div class="toast-container" id="toastContainer"></div>
+
 <script>
-function scrollToSection(sectionId) {
-const element = document.getElementById(sectionId);
-if (element) {
-element.scrollIntoView({ behavior: 'smooth' });
-}
-}
-  
-function toast(message, type="info") {
-const div = document.createElement("div")
-div.className = `toast toast-${type}`
-div.textContent = message
-document.body.appendChild(div)
-setTimeout(() => div.remove(), 3000)
+/* =========================================================
+   ★ Theme Manager (Dark / Light)
+   ========================================================= */
+(function(){
+  const root = document.documentElement;
+  const btn = document.getElementById('themeToggle');
+  const meta = document.getElementById('themeColorMeta');
+
+  function applyMeta(){
+    if (!meta) return;
+    const isDark = root.classList.contains('dark');
+    meta.setAttribute('content', isDark ? '#0f172a' : '#eef1f6');
+  }
+
+  function applyTheme(theme){
+    // theme: 'dark' | 'light'
+    if (theme === 'dark') root.classList.add('dark');
+    else root.classList.remove('dark');
+    try { localStorage.setItem('theme', theme); } catch(e){}
+    applyMeta();
+  }
+
+  function toggleTheme(){
+    const isDark = root.classList.contains('dark');
+    applyTheme(isDark ? 'light' : 'dark');
+  }
+
+  if (btn) btn.addEventListener('click', toggleTheme);
+
+  // گوش دادن به تغییر تنظیمات سیستم (اگر کاربر دستی انتخاب نکرده)
+  try {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e) => {
+      const saved = localStorage.getItem('theme');
+      if (!saved) applyTheme(e.matches ? 'dark' : 'light');
+    };
+    if (mq.addEventListener) mq.addEventListener('change', handler);
+    else if (mq.addListener) mq.addListener(handler);
+  } catch(e){}
+
+  applyMeta();
+})();
+
+/* =========================================================
+   Config & Helpers
+   ========================================================= */
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content
+  || getCookie('csrftoken');
+
+function getCookie(name){
+  let v = null;
+  if (document.cookie && document.cookie !== ''){
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++){
+      const c = cookies[i].trim();
+      if (c.substring(0, name.length + 1) === name + '='){
+        v = decodeURIComponent(c.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return v;
 }
 
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-  
-async function createUser() {
-const username = document.getElementById("newUsername").value.trim();
-const password = document.getElementById("newPassword").value.trim();
-  
-if (!username || !password) {
-toast("لطفاً نام کاربری و رمز عبور را وارد کنید", "error");
-return;
-}
-  
-const res = await fetch('/api/admin-action/', {
-method: 'POST',
-headers: {'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken')},
-body: JSON.stringify({
-action: "create_user",
-username: username,
-password: password,
-is_staff: document.getElementById("newIsStaff").checked,
-groups: Array.from(
-document.getElementById("newUserGroups").selectedOptions
-            ).map(o => parseInt(o.value))
-        })
-    });
-  
-const data = await res.json();
-toast(data.success ? "✅ کاربر با موفقیت ایجاد شد" : "❌ " + data.msg, data.success ? "success" : "error");
-  
-if(data.success) location.reload();
-}
-  
-function promptChangePassword(id) {
-const p = prompt("رمز جدید را وارد کنید:");
-if(!p) return;
-  
-fetch('/api/admin-action/', {
-method: 'POST',
-headers: {'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken')},
-body: JSON.stringify({ action:"change_password", user_id:id, new_password:p })
-    }).then(r => r.json()).then(data => {
-toast(data.success ? "✅ رمز تغییر کرد" : "❌ خطا", data.success ? "success" : "error");
-if(data.success) location.reload();
-    });
-}
-  
-async function blockUser(id) {
-if(!confirm("آیا می‌خواهید این کاربر را مسدود کنید؟")) return;
-  
-const res = await fetch('/api/admin-action/', {
-method: 'POST',
-headers: {'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken')},
-body: JSON.stringify({ action:"block_user", user_id:id })
-    });
-const data = await res.json();
-toast(data.success ? "✅ کاربر مسدود شد" : "❌ خطا", data.success ? "success" : "error");
-if(data.success) location.reload();
-}
-  
-async function unblockUser(id) {
-const res = await fetch('/api/admin-action/', {
-method: 'POST',
-headers: {'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken')},
-body: JSON.stringify({ action:"unblock_user", user_id:id })
-    });
-const data = await res.json();
-toast(data.success ? "✅ کاربر فعال شد" : "❌ خطا", data.success ? "success" : "error");
-if(data.success) location.reload();
-}
-  
-async function deleteFile(id) {
-if(!confirm("آیا می‌خواهید این فایل را حذف کنید؟")) return;
-  
-const res = await fetch('/api/admin-action/', {
-method: 'POST',
-headers: { "Content-Type":"application/json", 'X-CSRFToken': getCookie('csrftoken') },
-body: JSON.stringify({ action:"delete_file", file_id:id })
-    });
-  
-const data = await res.json();
-toast(data.success ? "✅ فایل حذف شد" : "❌ خطا", data.success ? "success" : "error");
-  
-if(data.success){
-document.querySelector(`tr[data-file-id="${id}"]`).remove();
-    }
+function scrollToSection(id){
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-// ==================== توابع حذف با مودال ====================
+/* ============ Toast ============ */
+function toast(message, type = 'info'){
+  const container = document.getElementById('toastContainer');
+  const div = document.createElement('div');
+  const icon = type === 'success' ? 'fa-circle-check'
+             : type === 'error'   ? 'fa-circle-exclamation'
+             :                      'fa-circle-info';
+  div.className = `toast toast-${type}`;
+  div.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+  container.appendChild(div);
+  setTimeout(() => {
+    div.style.transition = 'opacity .3s, transform .3s';
+    div.style.opacity = '0';
+    div.style.transform = 'translateY(-18px)';
+    setTimeout(() => div.remove(), 320);
+  }, 3000);
+}
+
+/* ============ API helper ============ */
+async function apiAction(payload){
+  const res = await fetch('/api/admin-action/', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'X-CSRFToken': CSRF_TOKEN || getCookie('csrftoken'),
+    },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+/* =========================================================
+   Create User
+   ========================================================= */
+async function createUser(){
+  const username = document.getElementById('newUsername').value.trim();
+  const password = document.getElementById('newPassword').value.trim();
+
+  if (!username || !password){
+    toast('لطفاً نام کاربری و رمز عبور را وارد کنید', 'error');
+    return;
+  }
+
+  try {
+    const data = await apiAction({
+      action:'create_user',
+      username,
+      password,
+      is_staff: document.getElementById('newIsStaff').checked,
+      groups: Array.from(
+        document.getElementById('newUserGroups').selectedOptions
+      ).map(o => parseInt(o.value)),
+    });
+
+    if (data.success){
+      toast('کاربر با موفقیت ایجاد شد', 'success');
+      setTimeout(() => location.reload(), 700);
+    } else {
+      toast(data.msg || 'خطا در ایجاد کاربر', 'error');
+    }
+  } catch (e){
+    toast('خطا در ارتباط با سرور', 'error');
+  }
+}
+
+/* =========================================================
+   Change Password — Modal لمسی
+   ========================================================= */
+function promptChangePassword(id){
+  const existing = document.getElementById('pwModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'pwModal';
+  modal.className = 'modal-overlay open';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-icon" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af">
+        <i class="fas fa-key"></i>
+      </div>
+      <h3>تغییر رمز عبور</h3>
+      <p style="margin-bottom:20px">رمز جدید را برای این کاربر وارد کنید.</p>
+      <input type="text" id="pwModalInput" class="input-glass"
+             placeholder="رمز جدید" autocomplete="off" autocorrect="off"
+             autocapitalize="off" spellcheck="false"
+             style="text-align:center;font-size:1.05rem">
+      <div class="modal-actions" style="margin-top:22px">
+        <button class="btn btn-ghost" onclick="document.getElementById('pwModal').remove()">
+          <i class="fas fa-xmark"></i> لغو
+        </button>
+        <button class="btn btn-primary" onclick="submitChangePassword(${id})">
+          <i class="fas fa-check"></i> ثبت رمز
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.addEventListener('click', e => {
+    if (e.target === modal) modal.remove();
+  });
+
+  setTimeout(() => document.getElementById('pwModalInput')?.focus(), 100);
+}
+
+async function submitChangePassword(id){
+  const p = document.getElementById('pwModalInput')?.value.trim();
+  if (!p){
+    toast('رمز جدید را وارد کنید', 'error');
+    return;
+  }
+  try {
+    const data = await apiAction({
+      action:'change_password',
+      user_id:id,
+      new_password:p,
+    });
+    if (data.success){
+      toast('رمز عبور تغییر کرد', 'success');
+      document.getElementById('pwModal')?.remove();
+      setTimeout(() => location.reload(), 700);
+    } else {
+      toast(data.msg || 'خطا در تغییر رمز', 'error');
+    }
+  } catch (e){
+    toast('خطا در ارتباط با سرور', 'error');
+  }
+}
+
+/* =========================================================
+   Block / Unblock
+   ========================================================= */
+async function blockUser(id){
+  if (!confirm('آیا می‌خواهید این کاربر را مسدود کنید؟')) return;
+  try {
+    const data = await apiAction({ action:'block_user', user_id:id });
+    if (data.success){
+      toast('کاربر مسدود شد', 'success');
+      setTimeout(() => location.reload(), 700);
+    } else {
+      toast(data.msg || 'خطا', 'error');
+    }
+  } catch (e){ toast('خطا در ارتباط با سرور', 'error'); }
+}
+
+async function unblockUser(id){
+  try {
+    const data = await apiAction({ action:'unblock_user', user_id:id });
+    if (data.success){
+      toast('کاربر فعال شد', 'success');
+      setTimeout(() => location.reload(), 700);
+    } else {
+      toast(data.msg || 'خطا', 'error');
+    }
+  } catch (e){ toast('خطا در ارتباط با سرور', 'error'); }
+}
+
+/* =========================================================
+   Delete modal
+   ========================================================= */
 let deleteTargetId = null;
 let deleteTargetType = null;
 let deleteTargetName = '';
 
-function confirmDeleteUser(userId, username) {
-    deleteTargetId = userId;
-    deleteTargetType = 'user';
-    deleteTargetName = `کاربر "${username}"`;
-    document.getElementById('deleteItemName').textContent = deleteTargetName;
-    document.getElementById('deleteItemId').value = userId;
-    document.getElementById('deleteItemType').value = 'user';
-    document.getElementById('deleteConfirmModal').classList.add('open');
+function confirmDeleteUser(userId, username){
+  deleteTargetId = userId;
+  deleteTargetType = 'user';
+  deleteTargetName = `کاربر «${username}»`;
+  openDeleteModal();
 }
 
-function confirmDeleteFile(fileId, fileName) {
-    deleteTargetId = fileId;
-    deleteTargetType = 'file';
-    deleteTargetName = `فایل "${fileName}"`;
-    document.getElementById('deleteItemName').textContent = deleteTargetName;
-    document.getElementById('deleteItemId').value = fileId;
-    document.getElementById('deleteItemType').value = 'file';
-    document.getElementById('deleteConfirmModal').classList.add('open');
+function confirmDeleteFile(fileId, fileName){
+  deleteTargetId = fileId;
+  deleteTargetType = 'file';
+  deleteTargetName = `فایل «${fileName}»`;
+  openDeleteModal();
 }
 
-function closeDeleteModal() {
-    document.getElementById('deleteConfirmModal').classList.remove('open');
-    deleteTargetId = null;
-    deleteTargetType = null;
-    deleteTargetName = '';
-    document.getElementById('deleteBtnText').style.display = 'inline';
+function openDeleteModal(){
+  document.getElementById('deleteItemName').textContent = deleteTargetName;
+  document.getElementById('deleteItemId').value = deleteTargetId;
+  document.getElementById('deleteItemType').value = deleteTargetType;
+  document.getElementById('deleteConfirmModal').classList.add('open');
+  document.getElementById('deleteBtnText').style.display = 'inline-flex';
+  document.getElementById('deleteBtnLoading').style.display = 'none';
+  document.getElementById('confirmDeleteBtn').disabled = false;
+}
+
+function closeDeleteModal(){
+  document.getElementById('deleteConfirmModal').classList.remove('open');
+  deleteTargetId = null;
+  deleteTargetType = null;
+  deleteTargetName = '';
+}
+
+async function executeDelete(){
+  if (!deleteTargetId || !deleteTargetType){
+    toast('اطلاعات حذف کامل نیست', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('confirmDeleteBtn');
+  btn.disabled = true;
+  document.getElementById('deleteBtnText').style.display = 'none';
+  document.getElementById('deleteBtnLoading').style.display = 'inline-flex';
+
+  try {
+    const body = deleteTargetType === 'user'
+      ? { action:'delete_user', user_id: deleteTargetId }
+      : { action:'delete_file', file_id: deleteTargetId };
+
+    const data = await apiAction(body);
+
+    if (data.success){
+      toast(`${deleteTargetName} با موفقیت حذف شد`, 'success');
+
+      if (deleteTargetType === 'user'){
+        const row = document.getElementById(`user-row-${deleteTargetId}`);
+        if (row) row.remove();
+        const statNumber = document.querySelector('.stats-grid .stat-card:first-child .stat-number');
+        if (statNumber) statNumber.textContent = Math.max(0, parseInt(statNumber.textContent) - 1);
+      } else {
+        const row = document.querySelector(`tr[data-file-id="${deleteTargetId}"]`);
+        if (row) row.remove();
+        const statNumber = document.querySelector('.stats-grid .stat-card:nth-child(2) .stat-number');
+        if (statNumber) statNumber.textContent = Math.max(0, parseInt(statNumber.textContent) - 1);
+      }
+
+      closeDeleteModal();
+    } else {
+      toast(`خطا: ${data.msg || 'عملیات ناموفق'}`, 'error');
+      btn.disabled = false;
+      document.getElementById('deleteBtnText').style.display = 'inline-flex';
+      document.getElementById('deleteBtnLoading').style.display = 'none';
+    }
+  } catch (e){
+    console.error(e);
+    toast('خطا در ارتباط با سرور', 'error');
+    btn.disabled = false;
+    document.getElementById('deleteBtnText').style.display = 'inline-flex';
     document.getElementById('deleteBtnLoading').style.display = 'none';
-    document.getElementById('confirmDeleteBtn').disabled = false;
+  }
 }
 
-async function executeDelete() {
-    if (!deleteTargetId || !deleteTargetType) {
-        toast('اطلاعات حذف کامل نیست', 'error');
-        return;
-    }
-    
-    const btn = document.getElementById('confirmDeleteBtn');
-    btn.disabled = true;
-    document.getElementById('deleteBtnText').style.display = 'none';
-    document.getElementById('deleteBtnLoading').style.display = 'inline';
-    
-    try {
-        let url = '';
-        let body = {};
-        
-        if (deleteTargetType === 'user') {
-            url = '/api/admin-action/';
-            body = {
-                action: 'delete_user',
-                user_id: deleteTargetId
-            };
-        } else if (deleteTargetType === 'file') {
-            url = '/api/admin-action/';
-            body = {
-                action: 'delete_file',
-                file_id: deleteTargetId
-            };
-        }
-        
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(body)
-        });
-        
-        const data = await res.json();
-        
-        if (data.success) {
-            toast(`✅ ${deleteTargetName} با موفقیت حذف شد`, 'success');
-            
-            if (deleteTargetType === 'user') {
-                const row = document.getElementById(`user-row-${deleteTargetId}`);
-                if (row) row.remove();
-                // به‌روزرسانی آمار
-                const statNumber = document.querySelector('.stats-grid .stat-card:first-child .number');
-                if (statNumber) {
-                    const current = parseInt(statNumber.textContent);
-                    statNumber.textContent = current - 1;
-                }
-            } else if (deleteTargetType === 'file') {
-                const row = document.querySelector(`tr[data-file-id="${deleteTargetId}"]`);
-                if (row) row.remove();
-                const statNumber = document.querySelector('.stats-grid .stat-card:nth-child(2) .number');
-                if (statNumber) {
-                    const current = parseInt(statNumber.textContent);
-                    statNumber.textContent = current - 1;
-                }
-            }
-            
-            closeDeleteModal();
-        } else {
-            toast(`❌ خطا: ${data.msg || 'عملیات ناموفق'}`, 'error');
-            document.getElementById('deleteBtnText').style.display = 'inline';
-            document.getElementById('deleteBtnLoading').style.display = 'none';
-            btn.disabled = false;
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        toast('❌ خطا در ارتباط با سرور', 'error');
-        document.getElementById('deleteBtnText').style.display = 'inline';
-        document.getElementById('deleteBtnLoading').style.display = 'none';
-        btn.disabled = false;
-    }
-}
+/* ============ Close modal ============ */
+window.addEventListener('click', (event) => {
+  const modal = document.getElementById('deleteConfirmModal');
+  if (event.target === modal) closeDeleteModal();
+});
 
-// بستن مودال با کلیک بیرون
-window.onclick = function(event) {
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape'){
     const modal = document.getElementById('deleteConfirmModal');
-    if (event.target === modal) {
-        closeDeleteModal();
-    }
-}
-
-// بستن با کلید Escape
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        const modal = document.getElementById('deleteConfirmModal');
-        if (modal.classList.contains('open')) {
-            closeDeleteModal();
-        }
-    }
+    if (modal.classList.contains('open')) closeDeleteModal();
+    document.getElementById('pwModal')?.remove();
+  }
+  // ★ میانبر کیبورد برای تغییر تم: Ctrl/Cmd + Shift + D
+  if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'd'){
+    event.preventDefault();
+    document.getElementById('themeToggle')?.click();
+  }
 });
 </script>
-  
+
 </body>
 </html>

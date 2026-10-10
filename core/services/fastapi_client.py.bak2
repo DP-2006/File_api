@@ -1,0 +1,102 @@
+﻿"""HMAC client for AI service (FastAPI)."""
+import hmac
+import hashlib
+import time
+import json
+import base64
+import requests
+
+FASTAPI_URL = "http://127.0.0.1:9000"
+WEBHOOK_SECRET = "change-this-to-a-long-random-string-min-32-chars"
+
+
+def _sign(body_bytes: bytes, ts: str) -> str:
+    return hmac.new(
+        WEBHOOK_SECRET.encode(),
+        body_bytes + ts.encode(),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def call_fastapi(path: str, payload: dict, timeout: int = 300) -> dict:
+    """POST to FastAPI with HMAC auth. Returns JSON dict."""
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    ts = str(int(time.time()))
+    sig = _sign(body, ts)
+    r = requests.post(
+        FASTAPI_URL + path,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "X-Signature": sig,
+            "X-Timestamp": ts,
+        },
+        timeout=timeout,
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def analyze_file_via_ai(uploaded_file) -> dict:
+    """Take a Django UploadedFile, send to /file/analyze, return result dict.
+    Never raises - returns {'success': False, 'error': ...} on failure.
+    """
+    try:
+        uploaded_file.file.open("rb")
+        raw = uploaded_file.file.read()
+        uploaded_file.file.close()
+    except Exception as e:
+        return {"success": False, "error": f"read file failed: {e}"}
+
+    file_b64 = base64.b64encode(raw).decode("ascii")
+    filename = uploaded_file.file.name.split("/")[-1]
+
+    payload = {
+        "file_b64": file_b64,
+        "filename": filename,
+        "context": "",
+        "user_id": str(uploaded_file.uploaded_by_id),
+        "file_id": str(uploaded_file.id),
+    }
+
+    try:
+        return call_fastapi("/file/analyze", payload, timeout=300)
+    except Exception as e:
+        return {"success": False, "error": f"fastapi call failed: {e}"}
+
+
+def save_file_analysis(uploaded_file, ai_result: dict):
+    """Persist ai_result into FileAIAnalysis model. Never raises."""
+    try:
+        from core.models_file_analysis import FileAIAnalysis
+
+        decision = (ai_result or {}).get("decision") or {}
+        categories = decision.get("categories") or []
+        category = categories[0] if categories else None
+
+        severity = decision.get("severity") or "low"
+        if severity not in ("low", "medium", "high", "critical"):
+            severity = "low"
+
+        summary_parts = []
+        if decision.get("reason"):
+            summary_parts.append(str(decision["reason"]))
+        if decision.get("admin_summary"):
+            summary_parts.append(str(decision["admin_summary"]))
+        summary = "\n".join(summary_parts)[:2000] if summary_parts else None
+
+        FileAIAnalysis.objects.update_or_create(
+            file=uploaded_file,
+            defaults={
+                "user": uploaded_file.uploaded_by,
+                "analysis_json": ai_result or {},
+                "summary": summary,
+                "category": category,
+                "threat_level": severity,
+                "model_used": "gemma3:27b",
+            },
+        )
+        return True
+    except Exception as e:
+        print(f"[AI-SAVE] failed for {uploaded_file.id}: {e}")
+        return False

@@ -608,6 +608,24 @@
         <div class="chat-container glass" style="border-radius:var(--r-md);padding:18px;margin-top:8px">
           <div class="chat-toolbar" style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
             <button class="icon-btn" id="chatNewSession" title="جلسه جدید" style="width:auto;padding:8px 14px;font-size:13px">➕ جلسه جدید</button>
+            <input
+              type="text"
+              id="chatImageTopic"
+              maxlength="300"
+              placeholder="موضوع تصویر..."
+              style="width:180px;max-width:100%;background:var(--search);
+                     border:none;outline:none;color:var(--label);
+                     padding:9px 12px;border-radius:10px;font-family:inherit"
+            >
+            <button
+              class="icon-btn"
+              id="chatGenerateImage"
+              type="button"
+              disabled
+              style="width:auto;padding:8px 14px;font-size:13px"
+            >
+              🎨 تولید تصویر
+            </button>
             <span id="chatStatus" style="font-size:12px;color:var(--label-2)">آماده</span>
           </div>
           <div id="chatMessages" class="chat-messages" style="min-height:200px;max-height:420px;overflow-y:auto;padding:8px;background:var(--fill);border-radius:14px;margin-bottom:12px">
@@ -617,6 +635,7 @@
               برای شروع، روی «جلسه جدید» بزنید تا روی فایل‌های همین کاربر گفتگو کنید
             </div>
           </div>
+          <div id="chatImageResult" style="margin:12px 0"></div>
           <div class="chat-input-row" style="display:flex;gap:8px">
             <input type="text" id="chatInput" placeholder="سوال خود را بنویسید..." disabled
                    style="flex:1;min-width:0;background:var(--search);border:none;outline:none;color:var(--label);font-size:14px;font-family:inherit;padding:11px 14px;border-radius:12px">
@@ -659,6 +678,11 @@
     const input = chatEl('chatInput'), send = chatEl('chatSend');
     if(input) input.disabled = !enabled;
     if(send) send.disabled = !enabled || chatState.sending;
+
+    const imageBtn = chatEl('chatGenerateImage');
+    if (imageBtn) {
+      imageBtn.disabled = !enabled || chatState.sending;
+    }
   }
 
   function chatAppend(role, content){
@@ -768,6 +792,87 @@
     }
   }
 
+  async function chatGenerateImage() {
+    const status = chatEl('chatStatus');
+    const btn = chatEl('chatGenerateImage');
+    const resultBox = chatEl('chatImageResult');
+
+    if (!chatState.sessionId || !btn || btn.disabled) return;
+
+    const topic = (chatEl('chatImageTopic')?.value || '').trim();
+
+    if (!topic) {
+      if (status) status.textContent = 'ابتدا موضوع تصویر را وارد کنید';
+      chatEl('chatImageTopic')?.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ در حال تولید...';
+
+    if (resultBox) {
+      resultBox.textContent = 'در حال تولید تصویر، لطفاً صبر کنید...';
+    }
+
+    try {
+      const response = await fetch(
+        `/api/report-chat/${chatState.sessionId}/generate-image/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+          },
+          body: JSON.stringify({ topic })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.msg || 'تولید تصویر ناموفق بود');
+      }
+
+      let imageUrl = data.image_base64;
+
+      if (!imageUrl.startsWith('data:')) {
+        const mime = ['image/png', 'image/jpeg', 'image/webp']
+          .includes(data.mime_type)
+          ? data.mime_type
+          : 'image/png';
+
+        imageUrl = `data:${mime};base64,${imageUrl}`;
+      }
+
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.alt = topic;
+      img.loading = 'lazy';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '520px';
+      img.style.borderRadius = '12px';
+      img.style.display = 'block';
+
+      resultBox.replaceChildren(img);
+
+      if (data.image_prompt) {
+        const caption = document.createElement('p');
+        caption.textContent = `پرامپت: ${data.image_prompt}`;
+        caption.style.fontSize = '12px';
+        resultBox.appendChild(caption);
+      }
+
+      if (status) status.textContent = 'تصویر با موفقیت تولید شد';
+
+    } catch (error) {
+      if (resultBox) resultBox.textContent = error.message;
+      if (status) status.textContent = 'خطا در تولید تصویر';
+    } finally {
+      btn.textContent = '🎨 تولید تصویر';
+      btn.disabled = !chatState.sessionId;
+    }
+  }
+
   function chatBind(files, targetUserId){
     chatState.sessionId = null;
     chatState.filesForChat = files || [];
@@ -778,6 +883,7 @@
     if(!newBtn) return;
     newBtn.onclick = chatStartSession;
     chatEl('chatSend').onclick = chatSendMessage;
+    chatEl('chatGenerateImage').onclick = chatGenerateImage;
     chatEl('chatInput').onkeydown = (e) => {
       if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); chatSendMessage(); }
     };

@@ -248,8 +248,6 @@ urlpatterns = [
     path('api/my-files-for-chat/', views.my_files_for_chat_api, name='my_files_for_chat'),
     path('api/my-report-chat/start/', views.my_chat_start_api, name='my_report_chat_start'),
     path('api/my-report-chat/<int:session_id>/ask/', views.my_chat_ask_api, name='my_report_chat_ask'),
-    path('api/my-report-chat/sessions/', views.my_chat_sessions_api, name='my_chat_sessions'),
-    path('api/my-report-chat/<int:session_id>/history/', views.my_chat_history_api, name='my_chat_history'),
 
     #path('behavior-analysis-panel/', views.behavior_analysis_panel, name='behavior_analysis_panel'),
     path('behavior-analysis-panel/', views.behavior_analysis_panel_view, name='behavior_analysis_panel'),
@@ -262,10 +260,11 @@ urlpatterns = [
     path('api/report-chat/<int:session_id>/',   views.report_chat_detail_api,  name='report_chat_detail'),
     path('api/report-chat/<int:session_id>/ask/', views.report_chat_ask_api,   name='report_chat_ask'),
 
-    path('api/report-chat/<int:session_id>/generate-image/',
-        views.report_chat_generate_image_api,
-        name='report_chat_generate_image',
-        ),
+
+
+
+
+
     # ========== Roles & Permissions ==========
     path('roles/', views.get_all_roles, name='get_all_roles'),
     path('roles/create/', views.create_new_role, name='create_new_role'),

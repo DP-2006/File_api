@@ -1,75 +1,71 @@
-# core/services/report_chat_service.py
+﻿# core/services/report_chat_service.py
 """
-سرویس چت‌بات گزارشات (RAG-based از فایل‌های انتخاب‌شده).
-- context را از فایل‌ها + تحلیل AI + اطلاعات کاربر هدف می‌سازد
+سرویس چت با فایل‌ها (RAG-based).
+- کاملاً مستقل از FileAIAnalysis
+- محتوای خام فایل‌ها را استخراج می‌کند (متن → متن، عکس → base64)
 - به FastAPI `/chat/with-context` می‌فرستد
 - پیام‌ها را در ReportChatMessage ذخیره می‌کند
 """
 
+import base64
 import logging
+import os
 
 from core.models_report_chat import ReportChatSession, ReportChatMessage
-from core.models_file_analysis import FileAIAnalysis
 from core.services.ai_client import AIServiceClient
 from core.services.file_reader import FileReader
 
 log = logging.getLogger(__name__)
 
-# حداکثر طول متن هر فایل در context (کاراکتر)
-MAX_FILE_CHARS = 1500
-# حداکثر طول کل context
+MAX_FILE_CHARS = 3000
 MAX_CONTEXT_CHARS = 20000
+
+IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg'}
 
 
 class ReportChatService:
-    """سرویس چت با فایل‌های گزارشات"""
+    """سرویس چت با فایل‌های گزارشات (بدون وابستگی به تحلیل)"""
 
     def __init__(self, client: AIServiceClient = None):
         self.client = client or AIServiceClient()
 
-    # ------------------------------------------------------------
-    # ساخت context از فایل‌ها + تحلیل AI + اطلاعات کاربر
-    # ------------------------------------------------------------
+    def _is_image(self, fname: str) -> bool:
+        ext = os.path.splitext(fname or '')[1].lower()
+        return ext in IMAGE_EXTS
+
     def build_context(self, session: ReportChatSession) -> str:
-        """context متنی از همه فایل‌های جلسه + تحلیل AI + کاربر هدف می‌سازد"""
         parts = []
 
-        # اطلاعات کاربر هدف
         if session.target_user:
             u = session.target_user
             parts.append(
-                f"=== اطلاعات کاربر هدف ===\n"
+                f"=== اطلاعات کارر\n"
                 f"نام کاربری: {u.username}\n"
-                f"نام: {u.get_full_name() or '—'}\n"
-                f"نقش‌ها: {', '.join(u.groups.values_list('name', flat=True)) or 'ندارد'}\n"
-                f"ادمین: {'بله' if u.is_staff else 'خیر'}\n"
-                f"تاریخ عضویت: {u.date_joined.strftime('%Y-%m-%d')}"
+                f"نام: {u.get_full_name() or '—'}"
             )
 
-        # فایل‌ها
         for uploaded in session.files.all():
             block = self._build_file_block(uploaded)
-            parts.append(block)
+            if block:
+                parts.append(block)
             if sum(len(p) for p in parts) > MAX_CONTEXT_CHARS:
                 parts.append("[... بقیه فایل‌ها به دلیل حجم حذف شد ...]")
                 break
 
         if not parts:
-            return "(هیچ فایل یا کاربری انتخاب نشده است)"
-
+            return "(هیچ فایل متنی انتخاب نشده است)"
         return "\n\n".join(parts)
 
     def _build_file_block(self, uploaded) -> str:
-        """ساخت یک بلوک متنی برای یک فایل + تحلیل AI آن"""
-        # نام و نوع فایل
+
         try:
             fname = uploaded.file.name.split('/')[-1]
         except Exception:
             fname = str(uploaded)
 
-        ext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else 'unknown'
+        if self._is_image(fname):
+            return None  # عکس‌ها در context متنی نمی‌آیند
 
-        # خواندن محتوا
         try:
             info = FileReader.read_file(uploaded.file)
             content = (info.get('content') or '')[:MAX_FILE_CHARS]
@@ -77,65 +73,70 @@ class ReportChatService:
             log.warning(f"FileReader failed for {fname}: {e}")
             content = f"[خطا در خواندن فایل: {e}]"
 
-        # تحلیل AI (اگر هست)
-        analysis_lines = []
-        try:
-            ai = FileAIAnalysis.objects.filter(file=uploaded).first()
-            if ai:
-                analysis_lines.append(f"دسته: {ai.category or '—'}")
-                analysis_lines.append(f"سطح تهدید: {ai.threat_level or '—'}")
-                analysis_lines.append(f"مرتبط با کاربر: {'بله' if ai.is_related else 'خیر'} (امتیاز {ai.relevance_score:.2f})")
-                analysis_lines.append(f"موضوع غالب: {ai.top_topic or '—'}")
-                if ai.summary:
-                    analysis_lines.append(f"خلاصه AI: {ai.summary}")
-        except Exception as e:
-            log.warning(f"FileAIAnalysis lookup failed for {fname}: {e}")
-
-        analysis_block = "\n".join(analysis_lines) if analysis_lines else "(تحلیل AI موجود نیست)"
-
         return (
             f"=== فایل: {fname} ===\n"
-            f"نوع محتوا: {ext}\n"
-            f"آپلود توسط: {uploaded.uploaded_by.username if uploaded.uploaded_by else '—'}\n"
-            f"زمان آپلود: {uploaded.uploaded_at.strftime('%Y-%m-%d %H:%M') if uploaded.uploaded_at else '—'}\n"
-            f"--- تحلیل AI ---\n"
-            f"{analysis_block}\n"
-            f"--- محتوای فایل ---\n"
+            f"--- محتوای خام ---\n"
             f"{content}"
         )
 
-    # ------------------------------------------------------------
-    # فراخوانی FastAPI و ذخیره پیام‌ها
-    # ------------------------------------------------------------
+    def _collect_images_b64(self, session: ReportChatSession) -> list:
+        """همه عکس‌های فایل‌های انتخابی را base64 می‌کند."""
+        images = []
+        for uploaded in session.files.all():
+            try:
+                fname = uploaded.file.name.split('/')[-1]
+            except Exception:
+                continue
+            if not self._is_image(fname):
+                continue
+            try:
+                import os as _os
+                from django.conf import settings as _settings
+                raw = None
+                try:
+                    uploaded.file.open('rb')
+                    raw = uploaded.file.read()
+                    uploaded.file.close()
+                except FileNotFoundError:
+                    base = _os.path.basename(fname)
+                    for cand in [_os.path.join(_settings.MEDIA_ROOT, base),
+                                 _os.path.join(_settings.MEDIA_ROOT, 'uploads', base)]:
+                        if _os.path.exists(cand):
+                            with open(cand, 'rb') as fp:
+                                raw = fp.read()
+                            break
+                if raw is None:
+                    log.warning(f"image not found on disk: {fname}")
+                    continue
+                b64 = base64.b64encode(raw).decode('ascii')
+                images.append(b64)
+            except Exception as e:
+                log.warning(f"failed to read image {fname}: {e}")
+        return images
+
     def ask(self, session: ReportChatSession, question: str) -> dict:
-        """
-        سوال ادمین را به FastAPI می‌فرستد و پیام‌ها را ذخیره می‌کند.
-        returns: {success, answer, sources?, error?}
-        """
         if not question or not question.strip():
             return {'success': False, 'error': 'سوال خالی است'}
 
-        # ساخت context (اگر جلسه context آماده دارد، همان را استفاده کن)
-        if not session.context_text:
-            session.context_text = self.build_context(session)
-            session.save(update_fields=['context_text'])
+        # context متنی (فقط فایل‌های متنی)
+        # همیشه context را بازسازی کن (بدون cache)
+        session.context_text = self.build_context(session)
+        session.save(update_fields=['context_text'])
 
-        # تاریخچه ۱۰ پیام آخر
+        # عکس‌ها به صورت base64 (هر بار دوباره خوانده می‌شوند)
+        images_b64 = self._collect_images_b64(session)
+
         history = list(
-            session.messages
-            .order_by('created_at')
-            .values('role', 'content')[:50]
+            session.messages.order_by('created_at').values('role', 'content')[:50]
         )
         history = history[-10:]
 
-        # ذخیره پیام ادمین
         ReportChatMessage.objects.create(
             session=session,
             role='user',
             content=question,
         )
 
-        # فراخوانی FastAPI
         try:
             result = self.client.chat_with_context(
                 question=question,
@@ -143,6 +144,7 @@ class ReportChatService:
                 file_ids=[str(f.id) for f in session.files.all()],
                 history=history,
                 user_id=session.target_user_id or session.admin_id,
+                images_b64=images_b64,
             )
         except Exception as e:
             log.exception(f"chat_with_context failed: {e}")
@@ -153,7 +155,6 @@ class ReportChatService:
 
         answer = result.get('answer', '') or '(پاسخی دریافت نشد)'
 
-        # ذخیره پاسخ AI
         ReportChatMessage.objects.create(
             session=session,
             role='assistant',
@@ -161,7 +162,5 @@ class ReportChatService:
             ai_response_json=result,
         )
 
-        # به‌روزرسانی updated_at جلسه
         session.save(update_fields=['updated_at'])
-
         return {'success': True, 'answer': answer, 'raw': result}

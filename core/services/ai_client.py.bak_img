@@ -1,4 +1,4 @@
-﻿# core/services/ai_client.py
+# core/services/ai_client.py
 """
 کلاینت ارتباط امن (HMAC-SHA256) با سرویس FastAPI ai-service
 پورت پیش‌فرض: 9000
@@ -16,7 +16,7 @@ from django.conf import settings
 
 class AIServiceClient:
     def __init__(self, base_url: str = None, secret: str = None, timeout: int = 600):
-        self.base_url = (base_url or getattr(settings, 'AI_SERVICE_URL', 'http://127.0.0.1:8000')).rstrip('/')
+        self.base_url = (base_url or getattr(settings, 'AI_SERVICE_URL', 'http://127.0.0.1:9000')).rstrip('/')
         self.secret = (secret or getattr(settings, 'AI_SERVICE_SECRET', '')).encode('utf-8')
         self.timeout = timeout
         self.is_available = False
@@ -61,15 +61,27 @@ class AIServiceClient:
 
     # ---------- Chat with context ----------
     def chat_with_context(self, question, context_text="", file_ids=None,
-                          history=None, user_id=None, images_b64=None) -> dict:
+                          history=None, user_id=None) -> dict:
         return self._post("/chat/with-context", {
             "question": question,
             "context_text": context_text or "",
             "file_ids": file_ids or [],
             "history": history or [],
             "user_id": str(user_id) if user_id else None,
-            "images_b64": images_b64 or [],
         })
+
+
+_is_management = any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'createsuperuser', 'shell', 'test', 'check'])
+if not _is_management:
+    try:
+        ai_client = AIServiceClient()
+    except Exception as e:
+        print(f" خطا در ایجاد AIServiceClient: {e}")
+        ai_client = None
+else:
+    ai_client = None
+
+
 
     # ---------- File moderation (lightweight analysis) ----------
     def analyze_file(self, content: str, file_name: str = "", file_type: str = "") -> dict:
@@ -89,24 +101,3 @@ class AIServiceClient:
             "content": content[:5000],
             "context": f"file={file_name} type={file_type}",
         })
-
-    # ---------- Image generation ----------
-    def generate_image(self, topic: str, context_text: str) -> dict:
-        return self._post(
-            "/image-generation/generate",
-            {
-                "topic": topic,
-                "context_text": context_text,
-            },
-        )
-
-
-_is_management = any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'createsuperuser', 'shell', 'test', 'check'])
-if not _is_management:
-    try:
-        ai_client = AIServiceClient()
-    except Exception as e:
-        print(f" خطا در ایجاد AIServiceClient: {e}")
-        ai_client = None
-else:
-    ai_client = None
