@@ -90,15 +90,33 @@ class AIServiceClient:
             "context": f"file={file_name} type={file_type}",
         })
 
-    # ---------- Image generation ----------
-    def generate_image(self, topic: str, context_text: str) -> dict:
-        return self._post(
-            "/image-generation/generate",
-            {
-                "topic": topic,
-                "context_text": context_text,
-            },
-        )
+
+def generate_image(self, topic: str) -> dict:
+    """تصویر فقط بر اساس topic؛ context_text عمداً خالی است."""
+    return self._post(
+        "/image-generation/generate",
+        {"topic": topic, "context_text": ""}, 
+    )
+
+def chat_with_selected_files(self, question: str, file_ids: list[int],
+                             user_id=None, history=None) -> dict:
+    return self._post("/chat/with-context", {
+        "question": question,
+        "file_ids": file_ids,
+        "user_id": str(user_id) if user_id else None,
+        "history": history or [],
+    })
+
+
+def generate_presentation(self, topic: str, file_ids: list[int],
+                          user_id=None, slide_count: int = 8) -> dict:
+    return self._post("/presentation/generate", {
+        "topic": topic,
+        "file_ids": file_ids,
+        "user_id": str(user_id) if user_id else None,
+        "slide_count": slide_count,
+    })
+
 
 
 _is_management = any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'createsuperuser', 'shell', 'test', 'check'])
