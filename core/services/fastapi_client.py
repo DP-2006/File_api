@@ -119,3 +119,47 @@ def save_file_analysis(uploaded_file, ai_result: dict):
         print(f"[AI-SAVE] failed for {uploaded_file.id}: {e}")
         return False
 
+
+def analyze_file_against_role(uploaded_file, role_text: str) -> dict:    import base64
+    if not role_text or not role_text.strip():
+        raise ValueError("role_text خالی است")
+
+  
+    path = _resolve_file_path(uploaded_file)  
+    with open(path, "rb") as f:
+        raw = f.read()
+
+    file_b64 = base64.b64encode(raw).decode("ascii")
+    filename = os.path.basename(uploaded_file.file.name)
+    ext = os.path.splitext(filename)[1].lower()
+    is_image = ext in {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
+
+    payload = {
+        "role_text": role_text,
+        "file_b64": file_b64,
+        "filename": filename,
+        "is_image": is_image,
+    }
+
+    resp = call_fastapi("/role/analyze", payload, timeout=300)
+    if not resp or not resp.get("ok"):
+        raise RuntimeError(f"FastAPI پاسخ نامعتبر: {resp}")
+    return resp["result"]
+
+
+def _resolve_file_path(uploaded_file):
+    from django.conf import settings
+    import os
+
+    name = uploaded_file.file.name  
+    base = os.path.basename(name)
+
+    candidates = [
+        os.path.join(settings.MEDIA_ROOT, name),
+        os.path.join(settings.MEDIA_ROOT, base),
+        os.path.join(settings.MEDIA_ROOT, "uploads", base),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    raise FileNotFoundError(f"فایل پیدا نشد: {candidates}")
