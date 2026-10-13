@@ -77,34 +77,6 @@ class UploadedFile(models.Model):
         return self.file.name
 
 
-# class FileActionLog(models.Model):
-#     ACTION_CHOICES = [
-#         ('download', 'دانلود'),
-#         ('delete', 'حذف'),
-#         ('upload', 'آپلود'),
-#         ('send', 'ارسال'),
-#     ]
-    
-#     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-#     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
-#     file_name = models.CharField(max_length=255)
-#     file_size = models.BigIntegerField(null=True)
-#     ip_address = models.GenericIPAddressField(null=True)
-#     action_time = models.DateTimeField(auto_now_add=True)
-#     recipient_user = models.ForeignKey(
-#         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='received_file_logs'
-#     )
-#     details = models.TextField(blank=True, null=True)
-    
-#     class Meta:
-#         ordering = ['-action_time']
-    
-#     def __str__(self):
-#         return f"{self.user} - {self.action} - {self.file_name}"
-
-
-
-
 # core/models.py - به‌روزرسانی FileActionLog
 
 class FileActionLog(models.Model):
@@ -418,10 +390,10 @@ class UserActivity(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     # ارتباط با فایل (اختیاری)
     file = models.ForeignKey(UploadedFile, on_delete=models.SET_NULL, null=True, blank=True)
-    
+
     class Meta:
         ordering = ['-created_at']
         verbose_name = 'فعالیت کاربر'
@@ -429,8 +401,6 @@ class UserActivity(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.get_activity_type_display()} - {self.created_at}"
-
-
 
 class FileSizeSettings(models.Model):
     

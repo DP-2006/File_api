@@ -3,7 +3,6 @@ from django.contrib.auth.models import User
 
 
 class UserBehaviorAnalysis(models.Model):
-    """تحلیل رفتار کاربر بر اساس سوابق فایل‌ها و موضوعات"""
 
     user = models.OneToOneField(
         User,
