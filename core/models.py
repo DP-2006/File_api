@@ -8,6 +8,7 @@ from .models_user_behavior import UserBehaviorAnalysis
 from .models_report_chat import ReportChatSession, ReportChatMessage
 from .models_user_behavior import UserBehaviorAnalysis
 from .models_report_chat import ReportChatSession, ReportChatMessage
+from .models_role_profile import RoleProfile, RoleFileAccess
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     first_name = models.CharField(max_length=100, verbose_name="نام")
