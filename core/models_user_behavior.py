@@ -11,10 +11,8 @@ class UserBehaviorAnalysis(models.Model):
         verbose_name='کاربر'
     )
 
-    # JSON کامل تحلیل
     analysis_json = models.JSONField(default=dict, verbose_name='تحلیل کامل JSON')
 
-    # خلاصه‌های کلیدی
     total_files = models.IntegerField(default=0, verbose_name='تعداد کل فایل‌ها')
     related_files_count = models.IntegerField(default=0, verbose_name='فایل‌های مرتبط')
     unrelated_files_count = models.IntegerField(default=0, verbose_name='فایل‌های غیرمرتبط')
@@ -24,21 +22,18 @@ class UserBehaviorAnalysis(models.Model):
     related_percent = models.FloatField(default=0.0, verbose_name='درصد مرتبط')
     suspicious_percent = models.FloatField(default=0.0, verbose_name='درصد مشکوک')
 
-    # موضوعات غالب (لیست)
     top_topics = models.JSONField(
         default=list,
         verbose_name='موضوعات غالب (top 5)',
         help_text='[{"name": "...", "count": N, "weight": 0.8}, ...]'
     )
 
-    # توزیع انواع فایل
     file_types_distribution = models.JSONField(
         default=dict,
         verbose_name='توزیع انواع فایل',
         help_text='{"pdf": 10, "txt": 3, ...}'
     )
 
-    # خلاصه متنی از تحلیل LLM
     ai_summary = models.TextField(blank=True, null=True, verbose_name='خلاصه تحلیل AI')
 
     last_analyzed_at = models.DateTimeField(auto_now=True, verbose_name='آخرین تحلیل')

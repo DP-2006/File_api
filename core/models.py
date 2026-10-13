@@ -195,7 +195,6 @@ class AIThreatAlert(models.Model):
         return f"{self.file.file.name} - {self.severity} - {self.threat_type}"
 
 
-# اضافه کنید به انتهای core/models.py
 
 class SystemPermission(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -252,7 +251,6 @@ class AISettings(models.Model):
 
 
 
-# core/models.py - کامل کردن SystemSettings
 
 class SystemSettings(models.Model):
     # تنظیمات شبکه
@@ -310,24 +308,20 @@ class AINotification(models.Model):
     severity = models.CharField(max_length=20, choices=SEVERITY_CHOICES, default='info')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unread')
     
-    # ارتباط با فایل (اختیاری)
     file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='user_notifications')
     
-    # کاربری که نوتیفیکیشن برای اوست (ادمین‌ها)
     target_users = models.ManyToManyField(User, related_name='received_notifications', blank=True)
     
-    # متادیتا
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)
     
-    # کاربری که نوتیفیکیشن را ایجاد کرده (سیستم یا ادمین)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_notifications')
     
     class Meta:
         ordering = ['-created_at']
-        verbose_name = 'نوتیفیکیشن AI'
-        verbose_name_plural = 'نوتیفیکیشن‌های AI'
+        verbose_name = ' AI'
+        verbose_name_plural = ' AI'
     
     def __str__(self):
         return f"{self.title} - {self.created_at}"
@@ -339,23 +333,21 @@ class AINotification(models.Model):
     
     @classmethod
     def create_file_analysis_notification(cls, file_obj, analysis_result, threat_level='info'):
-        """ایجاد نوتیفیکیشن برای تحلیل فایل"""
-        # دریافت ادمین‌ها
         admins = User.objects.filter(is_staff=True)
         
-        title = f"📄 تحلیل فایل: {file_obj.file.name}"
+        title = f" تحلیل فایل: {file_obj.file.name}"
         
         if threat_level == 'critical':
             severity = 'critical'
-            message = f"⚠️ فایل {file_obj.file.name} آپلود شده توسط {file_obj.uploaded_by.username} دارای تهدید بحرانی است!\n\n"
+            message = f" فایل {file_obj.file.name} آپلود شده توسط {file_obj.uploaded_by.username} دارای تهدید بحرانی است!\n\n"
         elif threat_level == 'warning':
             severity = 'warning'
-            message = f"⚡ فایل {file_obj.file.name} آپلود شده توسط {file_obj.uploaded_by.username} نیاز به بررسی دارد.\n\n"
+            message = f" فایل {file_obj.file.name} آپلود شده توسط {file_obj.uploaded_by.username} نیاز به بررسی دارد.\n\n"
         else:
             severity = 'info'
-            message = f"📄 فایل {file_obj.file.name} توسط {file_obj.uploaded_by.username} آپلود شد.\n\n"
+            message = f" فایل {file_obj.file.name} توسط {file_obj.uploaded_by.username} آپلود شد.\n\n"
         
-        message += f"📊 نتیجه تحلیل:\n{analysis_result[:500]}..."
+        message += f" نتیجه تحلیل:\n{analysis_result[:500]}..."
         
         notification = cls.objects.create(
             title=title,
@@ -364,7 +356,7 @@ class AINotification(models.Model):
             severity=severity,
             file=file_obj,
             user=file_obj.uploaded_by,
-            created_by=None,  # سیستم
+            created_by=None,  
         )
         
         notification.target_users.set(admins)
@@ -372,7 +364,7 @@ class AINotification(models.Model):
 
 
 class UserActivity(models.Model):
-    """مدل ثبت فعالیت‌های کاربر"""
+  
     ACTIVITY_TYPES = [
         ('login', 'ورود'),
         ('logout', 'خروج'),
@@ -391,7 +383,6 @@ class UserActivity(models.Model):
     user_agent = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # ارتباط با فایل (اختیاری)
     file = models.ForeignKey(UploadedFile, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
@@ -452,10 +443,8 @@ class FileSizeSettings(models.Model):
         return self.max_download_size_mb * 1024 * 1024
 
 
-# core/models.py - اضافه کردن به انتهای فایل
 
 class RolePasswordPolicy(models.Model):
-    """سیاست رمز عبور به ازای هر نقش"""
     role = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='password_policy')
     min_password_length = models.IntegerField(default=8)
     require_uppercase = models.BooleanField(default=True)
@@ -474,7 +463,6 @@ class RolePasswordPolicy(models.Model):
 
 
 class RoleAssignment(models.Model):
-    """مدل اختصاص نقش به کاربر با تاریخ"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='role_assignments')
     role = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='assignments')
     assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='assigned_roles')
@@ -492,7 +480,6 @@ class RoleAssignment(models.Model):
 
 
 class BulkRoleAssignment(models.Model):
-    """مدل برای اختصاص نقش به گروهی از کاربران"""
     role = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='bulk_assignments')
     users = models.ManyToManyField(User, related_name='bulk_role_assignments')
     assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='bulk_assignments')
@@ -513,7 +500,6 @@ class BulkRoleAssignment(models.Model):
 
 
 class RolePermissionTemplate(models.Model):
-    """قالب دسترسی‌های نقش برای ایجاد سریع"""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     permissions = models.ManyToManyField(Permission, related_name='templates')

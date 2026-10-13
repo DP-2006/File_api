@@ -1,9 +1,3 @@
-# core/models_report_chat.py
-"""
-مدل‌های چت‌بات گزارشات (RAG-based) برای پنل ادمین.
-ادمین یک جلسه با مجموعه‌ای از فایل‌های انتخاب‌شده باز می‌کند و سوال می‌پرسد.
-"""
-
 from django.contrib.auth.models import User
 from django.db import models
 

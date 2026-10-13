@@ -1,8 +1,4 @@
 ﻿# core/services/ai_client.py
-"""
-کلاینت ارتباط امن (HMAC-SHA256) با سرویس FastAPI ai-service
-پورت پیش‌فرض: 9000
-"""
 
 import hashlib
 import hmac
@@ -54,12 +50,9 @@ class AIServiceClient:
             self.is_available = False
             return {'success': False, 'message': str(e)}
 
-    # ---------- RAG ----------
     def rag_query(self, question: str) -> dict:
-        """پرسش از RAG. خروجی: {answer: str, sources: list}"""
         return self._post("/rag/query", {"question": question})
 
-    # ---------- Chat with context ----------
     def chat_with_context(self, question, context_text="", file_ids=None,
                           history=None, user_id=None, images_b64=None) -> dict:
         return self._post("/chat/with-context", {
@@ -71,12 +64,7 @@ class AIServiceClient:
             "images_b64": images_b64 or [],
         })
 
-    # ---------- File moderation (lightweight analysis) ----------
-    def analyze_file(self, content: str, file_name: str = "", file_type: str = "") -> dict:
-        """
-        تحلیل سبک محتوای فایل از طریق FastAPI /moderate/text
-        خروجی معمول: {is_violation, categories, confidence, severity, reason, ...}
-        """
+    def analyze_file(self, content: str, file_name: str = "", file_type: str = "") -> dict:        
         if not content or not content.strip():
             return {
                 "is_violation": False,
@@ -92,7 +80,6 @@ class AIServiceClient:
 
 
 def generate_image(self, topic: str) -> dict:
-    """تصویر فقط بر اساس topic؛ context_text عمداً خالی است."""
     return self._post(
         "/image-generation/generate",
         {"topic": topic, "context_text": ""}, 
