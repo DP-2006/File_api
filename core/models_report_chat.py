@@ -1,9 +1,9 @@
+#models_report_chat.py
 from django.contrib.auth.models import User
 from django.db import models
 
 
 class ReportChatSession(models.Model):
-    """یک جلسه چت بین ادمین و AI روی مجموعه‌ای از فایل‌ها"""
 
     admin = models.ForeignKey(
         User,
@@ -56,7 +56,6 @@ class ReportChatSession(models.Model):
 
 
 class ReportChatMessage(models.Model):
-    """یک پیام در جلسه چت گزارشات"""
 
     ROLE_CHOICES = [
         ('user', 'ادمین'),

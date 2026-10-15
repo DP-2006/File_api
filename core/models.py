@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.contrib.auth.models import User, Group, Permission
 from django.utils import timezone
@@ -6,9 +5,9 @@ from .models_ai_conversation import AIConversation
 from .models_file_analysis import FileAIAnalysis
 from .models_user_behavior import UserBehaviorAnalysis
 from .models_report_chat import ReportChatSession, ReportChatMessage
-from .models_user_behavior import UserBehaviorAnalysis
-from .models_report_chat import ReportChatSession, ReportChatMessage
 from .models_role_profile import RoleProfile, RoleFileAccess
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     first_name = models.CharField(max_length=100, verbose_name="نام")
@@ -49,8 +48,6 @@ class PasswordPolicy(models.Model):
     def __str__(self):
         return "تنظیمات رمز عبور"
 
-        
-
 
 class GroupLeader(models.Model):
     group = models.OneToOneField(Group, on_delete=models.CASCADE)
@@ -78,8 +75,6 @@ class UploadedFile(models.Model):
         return self.file.name
 
 
-# core/models.py - به‌روزرسانی FileActionLog
-
 class FileActionLog(models.Model):
     ACTION_CHOICES = [
         ('download', 'دانلود'),
@@ -99,7 +94,6 @@ class FileActionLog(models.Model):
     )
     details = models.TextField(blank=True, null=True)
     
-    # ====== اضافه کردن فیلدهای جدید ======
     ai_analysis = models.TextField(blank=True, null=True, verbose_name='تحلیل AI')
     ai_summary = models.TextField(blank=True, null=True, verbose_name='خلاصه AI')
     threat_level = models.CharField(max_length=20, blank=True, null=True, verbose_name='سطح تهدید')
@@ -159,8 +153,6 @@ class LoginLog(models.Model):
         return f"{self.user.username} - {self.login_time} - {'Success' if self.success else 'Failed'}"
 
 
-
-
 class AIThreatAlert(models.Model):
     SEVERITY_CHOICES = [
         ('low', 'کم'),
@@ -194,8 +186,6 @@ class AIThreatAlert(models.Model):
     
     def __str__(self):
         return f"{self.file.file.name} - {self.severity} - {self.threat_type}"
-
-
 
 class SystemPermission(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -246,22 +236,17 @@ class AISettings(models.Model):
     
     @classmethod
     def get_settings(cls):
-        """دریافت یا ایجاد تنظیمات پیش‌فرض"""
         settings, created = cls.objects.get_or_create(pk=1)
         return settings
 
 
-
-
 class SystemSettings(models.Model):
-    # تنظیمات شبکه
     ip_address = models.CharField(max_length=255, default='', blank=True, verbose_name='IP Address')
     subnet_mask = models.CharField(max_length=255, default='', blank=True, verbose_name='Subnet Mask')
     default_gateway = models.CharField(max_length=255, default='', blank=True, verbose_name='Default Gateway')
     primary_dns = models.CharField(max_length=255, default='', blank=True, verbose_name='Primary DNS')
     secondary_dns = models.CharField(max_length=255, default='', blank=True, verbose_name='Secondary DNS')
     
-    # تنظیمات سرور Django (فقط نمایشی)
     server_ip = models.CharField(max_length=255, default='127.0.0.1', verbose_name='Server IP')
     server_port = models.IntegerField(default=8000, verbose_name='Server Port')
     allow_remote_access = models.BooleanField(default=False, verbose_name='Allow Remote Access')
@@ -280,7 +265,6 @@ class SystemSettings(models.Model):
     def get_settings(cls):
         settings, created = cls.objects.get_or_create(pk=1)
         return settings
-
 
 
 class AINotification(models.Model):
@@ -357,7 +341,7 @@ class AINotification(models.Model):
             severity=severity,
             file=file_obj,
             user=file_obj.uploaded_by,
-            created_by=None,  
+            created_by=None,
         )
         
         notification.target_users.set(admins)
@@ -365,7 +349,6 @@ class AINotification(models.Model):
 
 
 class UserActivity(models.Model):
-  
     ACTIVITY_TYPES = [
         ('login', 'ورود'),
         ('logout', 'خروج'),
@@ -394,32 +377,14 @@ class UserActivity(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.get_activity_type_display()} - {self.created_at}"
 
+
 class FileSizeSettings(models.Model):
-    
-    max_upload_size_mb = models.IntegerField(
-        default=100,
-        verbose_name="حداکثر حجم آپلود (مگابایت)"
-    )
-    max_download_size_mb = models.IntegerField(
-        default=200,
-        verbose_name="حداکثر حجم دانلود (مگابایت)"
-    )
-    warning_threshold_mb = models.IntegerField(
-        default=50,
-        verbose_name="آستانه هشدار حجم (مگابایت)"
-    )
-    allow_large_files = models.BooleanField(
-        default=True,
-        verbose_name="اجازه آپلود فایل‌های بزرگ"
-    )
+    max_upload_size_mb = models.IntegerField(default=100, verbose_name="حداکثر حجم آپلود (مگابایت)")
+    max_download_size_mb = models.IntegerField(default=200, verbose_name="حداکثر حجم دانلود (مگابایت)")
+    warning_threshold_mb = models.IntegerField(default=50, verbose_name="آستانه هشدار حجم (مگابایت)")
+    allow_large_files = models.BooleanField(default=True, verbose_name="اجازه آپلود فایل‌های بزرگ")
     updated_at = models.DateTimeField(auto_now=True)
-    updated_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="بروزرسانی توسط"
-    )
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="بروزرسانی توسط")
 
     class Meta:
         verbose_name = "تنظیمات حجم فایل"
@@ -431,18 +396,14 @@ class FileSizeSettings(models.Model):
 
     @classmethod
     def get_settings(cls):
-        """دریافت یا ایجاد تنظیمات پیش‌فرض"""
         settings, created = cls.objects.get_or_create(pk=1)
         return settings
 
     def get_max_upload_bytes(self):
-        """دریافت حداکثر حجم آپلود به بایت"""
         return self.max_upload_size_mb * 1024 * 1024
 
     def get_max_download_bytes(self):
-        """دریافت حداکثر حجم دانلود به بایت"""
         return self.max_download_size_mb * 1024 * 1024
-
 
 
 class RolePasswordPolicy(models.Model):
@@ -485,7 +446,7 @@ class BulkRoleAssignment(models.Model):
     users = models.ManyToManyField(User, related_name='bulk_role_assignments')
     assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='bulk_assignments')
     assigned_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, default='pending', 
+    status = models.CharField(max_length=20, default='pending',
                              choices=[('pending', 'در انتظار'), ('completed', 'تکمیل شده'), ('failed', 'خطا')])
     total_users = models.IntegerField(default=0)
     success_count = models.IntegerField(default=0)
@@ -513,105 +474,3 @@ class RolePermissionTemplate(models.Model):
     
     def __str__(self):
         return self.name
-
-class RoleProfile(models.Model):
-
-    group = models.OneToOneField(
-        Group,
-        on_delete=models.CASCADE,
-        related_name='role_profile',
-        verbose_name='نقش (گروه)',
-    )
-    title_fa = models.CharField(
-        max_length=150,
-        blank=True,
-        null=True,
-        verbose_name='عنوان فارسی سمت',
-        help_text='مثلاً: مدیر مالی، کارشناس منابع انسانی',
-    )
-    description = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name='شرح حال سمت',
-        help_text='توضیح کلی درباره این سمت و جایگاه آن در سازمان',
-    )
-    responsibilities = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name='وظایف',
-        help_text='فهرست وظایف این سمت (هر وظیفه در یک خط)',
-    )
-    role_prompt = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name='متن ارسالی به AI',
-        help_text='اگر خالی باشد، از description + responsibilities ساخته می‌شود',
-    )
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name='فعال',
-    )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='زمان ایجاد')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='آخرین ویرایش')
-
-    class Meta:
-        verbose_name = 'پروفایل نقش سازمانی'
-        verbose_name_plural = 'پروفایل نقش‌های سازمانی'
-
-    def __str__(self):
-        return f"{self.group.name} - {self.title_fa or '—'}"
-
-    def get_effective_role_text(self):
-        if self.role_prompt:
-            return self.role_prompt.strip()
-
-        parts = []
-        if self.title_fa:
-            parts.append(f"عنوان سمت: {self.title_fa}")
-        if self.description:
-            parts.append(f"شرح حال: {self.description}")
-        if self.responsibilities:
-            parts.append(f"وظایف:\n{self.responsibilities}")
-        return "\n\n".join(parts).strip()
-
-
-class RoleFileAccess(models.Model):
-    group = models.ForeignKey(
-        Group,
-        on_delete=models.CASCADE,
-        related_name='role_file_accesses',
-        verbose_name='نقش (گروه)',
-    )
-    uploaded_file = models.ForeignKey(
-        'core.UploadedFile',
-        on_delete=models.CASCADE,
-        related_name='role_accesses',
-        verbose_name='فایل',
-    )
-    granted_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='granted_role_file_accesses',
-        verbose_name='اعطاکننده',
-    )
-    granted_at = models.DateTimeField(auto_now_add=True, verbose_name='زمان اعطا')
-    note = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        verbose_name='یادداشت',
-    )
-
-    class Meta:
-        unique_together = ('group', 'uploaded_file')
-        ordering = ['-granted_at']
-        verbose_name = 'دسترسی فایل به نقش'
-        verbose_name_plural = 'دسترسی‌های فایل به نقش‌ها'
-        indexes = [
-            models.Index(fields=['group', '-granted_at']),
-        ]
-
-    def __str__(self):
-        return f"{self.group.name} → {self.uploaded_file.file.name}"
