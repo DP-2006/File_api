@@ -170,6 +170,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from . import views
 from .views import get_all_roles_detailed
+from core import views_role_profile as vrp
 
 # Import از views_management
 from .views_management import (
@@ -209,7 +210,8 @@ urlpatterns = [
     path('download/<int:file_id>/', views.download_file_view, name='download_file'),
     path('delete-my-file/', views.delete_my_file_view, name='delete_my_file'),
     path('debug-files/', views.debug_files_view, name='debug_files'),
-    
+
+
     # ========== Admin ==========
     path('admin-panel/', views.admin_panel_view, name='admin_panel'),
     path('super-admin-panel/', views.super_admin_panel, name='super_admin_panel'),
@@ -367,5 +369,11 @@ urlpatterns = [
 
     # پنل ساده کاربری (Account Management) — فقط برای کاربران عادی
     path('my-settings/', views.settings_panel_view,  name='settings_panel'),
+    path('api/role-profiles/', vrp.role_profiles_list_api, name='role_profiles_list'),
+    path('api/role-profile/<int:group_id>/', vrp.role_profile_get_api, name='role_profile_get'),
+    path('api/role-profile/<int:group_id>/save/', vrp.role_profile_save_api, name='role_profile_save'),
+    path('api/user/<int:user_id>/role-profiles/', vrp.user_role_profile_api, name='user_role_profile'),
+    path('api/user/<int:user_id>/assign-role/', vrp.assign_role_profile_to_user_api, name='assign_role'),
+    path('api/user/<int:user_id>/remove-role/', vrp.remove_role_profile_from_user_api, name='remove_role'),
 ]
 

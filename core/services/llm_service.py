@@ -7,28 +7,23 @@ import socket
 
 
 class LLMService:
-    """سرویس ارتباط با Ollama - با قابلیت انتخاب خودکار مدل"""
 
     def __init__(self, base_url: str = None, model: str = None):
-        # دریافت تنظیمات از دیتابیس 
         self._load_settings_from_db()
         
-        # اگر base_url مشخص نشده، از تنظیمات دیتابیس استفاده کن
         if base_url is None:
             base_url = self._get_base_url_from_settings()
         
-        # اگر model مشخص نشده، از تنظیمات دیتابیس استفاده کن
         if model is None and self._ai_settings:
             model = self._ai_settings.ollama_model
         
         self.base_url = base_url
         self.model = model
         self.is_available = self.check_connection()
-        print(f"🔗 اتصال به Ollama: {self.base_url}")
-        print(f"🤖 مدل: {self.model}")
+        print(f" اتصال به Ollama: {self.base_url}")
+        print(f" مدل: {self.model}")
     
     def _load_settings_from_db(self):
-        """بارگذاری تنظیمات از دیتابیس"""
         self._ai_settings = None
         try:
             # Import here to avoid circular imports
@@ -41,11 +36,9 @@ class LLMService:
             self._ai_settings = None
     
     def _get_base_url_from_settings(self) -> str:
-        """دریافت base_url از تنظیمات دیتابیس"""
         if self._ai_settings:
             return f"http://{self._ai_settings.ollama_host}:{self._ai_settings.ollama_port}"
         
-        # Fallback به مقادیر پیش‌فرض
         return "http://127.0.0.1:11434"
 
     def _get_local_ip(self):
@@ -60,7 +53,6 @@ class LLMService:
         except:
             pass
         
-        # روش جایگزین: استفاده از hostname
         try:
             hostname = socket.gethostname()
             ip = socket.gethostbyname(hostname)
@@ -83,21 +75,21 @@ class LLMService:
                 models = [tag.get('name') for tag in tags.get('models', [])]
                 
                 if not models:
-                    print(f"❌ هیچ مدلی در Ollama یافت نشد! (آدرس: {self.base_url})")
+                    print(f" هیچ مدلی در Ollama یافت نشد! (آدرس: {self.base_url})")
                     return False
                 
                 if self.model is None or self.model not in models:
                     self.model = models[0]
                     if not self._is_management_command():
-                        print(f"✅ AI متصل است - استفاده از مدل: {self.model}")
+                        print(f" AI متصل است - استفاده از مدل: {self.model}")
                 else:
                     if not self._is_management_command():
-                        print(f"✅ AI متصل است - مدل {self.model} آماده است")
+                        print(f" AI متصل است - مدل {self.model} آماده است")
                 
                 return True
             return False
         except Exception as e:
-            print(f"❌ خطا در اتصال به {self.base_url}: {e}")
+            print(f" خطا در اتصال به {self.base_url}: {e}")
             return False
     
     def reload_settings(self):
@@ -107,13 +99,12 @@ class LLMService:
         if self._ai_settings:
             self.model = self._ai_settings.ollama_model
         self.is_available = self.check_connection()
-        print(f"🔄 تنظیمات مجدداً بارگذاری شد: {self.base_url}")
+        print(f" تنظیمات مجدداً بارگذاری شد: {self.base_url}")
         return self.is_available
     
     def _call_llm_stream(self, prompt: str) -> str:
-        """ارسال درخواست با streaming برای جلوگیری از timeout"""
         if not self.is_available:
-            return "⚠️ AI در دسترس نیست. لطفاً Ollama را اجرا کنید."
+            return " AI در دسترس نیست. لطفاً Ollama را اجرا کنید."
         
         data = {
             "model": self.model,
@@ -155,9 +146,8 @@ class LLMService:
     def _call_llm(self, prompt: str) -> str:
         """نسخه ساده بدون streaming"""
         if not self.is_available:
-            return "⚠️ AI در دسترس نیست."
+            return " AI در دسترس نیست."
         
-        # کاهش حجم پرامپت برای سرعت بیشتر
         if len(prompt) > 3000:
             prompt = prompt[:3000] + "..."
         
@@ -190,7 +180,7 @@ class LLMService:
     def summarize_file(self, content: str, filename: str, detail_level: str = "summary") -> str:
         """خلاصه‌سازی فایل"""
         if not self.is_available:
-            return "⚠️ AI در دسترس نیست."
+            return " AI در دسترس نیست."
         
         if len(content) > 3000:
             content = content[:3000] + "..."
@@ -228,7 +218,7 @@ class LLMService:
     def analyze_user_behavior(self, user_data: dict, files_content: list) -> str:
         """تحلیل رفتار کاربر"""
         if not self.is_available:
-            return "⚠️ AI در دسترس نیست."
+            return " AI در دسترس نیست."
         
         user_info = f"""
 نام کاربری: {user_data.get('username')}
@@ -255,7 +245,7 @@ class LLMService:
     def analyze_user_personality(self, user_data: dict, files_content: str) -> str:
         """تحلیل شخصیت کاربر"""
         if not self.is_available:
-            return "⚠️ AI در دسترس نیست."
+            return " AI در دسترس نیست."
         
         # کاهش حجم محتوا
         if len(files_content) > 3000:
@@ -279,7 +269,6 @@ class LLMService:
         return self._call_llm_stream(prompt)
     
     def test_connection(self, host: str, port: int, model: str = None) -> dict:
-        """تست اتصال به Ollama"""
         base_url = f"http://{host}:{port}"
         
         try:
@@ -295,7 +284,6 @@ class LLMService:
                         'models': []
                     }
                 
-                # اگر مدل مشخص شده، بررسی کنیم که وجود دارد
                 if model and model not in models:
                     return {
                         'success': False,
@@ -305,7 +293,6 @@ class LLMService:
                 
                 selected_model = model if model and model in models else models[0]
                 
-                # تست generate با مدل انتخاب شده
                 test_data = {
                     "model": selected_model,
                     "prompt": "سلام",
@@ -358,15 +345,12 @@ class LLMService:
             }
 
 
-# ============================================================
-# ✅ ایجاد نمونه جهانی
-# ============================================================
 _is_management = any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'createsuperuser', 'shell', 'test', 'check'])
 if not _is_management:
     try:
         llm_service = LLMService()
     except Exception as e:
-        print(f"⚠️ خطا در ایجاد LLMService: {e}")
+        print(f" خطا در ایجاد LLMService: {e}")
         llm_service = None
 else:
     llm_service = None

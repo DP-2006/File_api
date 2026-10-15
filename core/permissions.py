@@ -27,14 +27,16 @@ SYSTEM_PERMISSIONS = {
     'resolve_ai_alerts': {'name': 'رفع هشدارهای AI', 'description': 'بررسی و رفع هشدارهای AI'},
     'super_admin_access': {'name': 'دسترسی سوپر ادمین', 'description': 'تمام دسترسی‌های سیستمی'},
 
-    # ===== دسترسی‌های سلف‌سرویس (پیش‌فرض همه کاربران لاگین‌شده) =====
+
     'view_own_profile':    {'name': 'مشاهده پروفایل خود',   'description': 'مشاهده اطلاعات خود'},
     'change_own_password': {'name': 'تغییر رمز خود',        'description': 'تغییر رمز عبور خود'},
     'change_own_username': {'name': 'تغییر نام کاربری خود', 'description': 'تغییر نام کاربری خود'},
     'view_settings':       {'name': 'مشاهده پنل تنظیمات',   'description': 'دسترسی به پنل تنظیمات'},
+
+
+    'manage_role_profile': {'name': 'مدیریت سمت سازمانی و شرح شغل', 'description': 'ایجاد و ویرایش پروفایل نقش سازمانی'},
 }
 
-# دسترسی‌هایی که هر کاربر لاگین‌شده به‌صورت پیش‌فرض دارد
 DEFAULT_USER_PERMISSIONS = {
     'view_dashboard',
     'upload_file',
@@ -64,15 +66,12 @@ def get_user_effective_permissions(user):
 
     permissions = set()
 
-    # دسترسی‌های پیش‌فرض همه کاربران
     permissions.update(DEFAULT_USER_PERMISSIONS)
 
-    # دسترسی‌های از طریق نقش‌ها
     for group in user.groups.all():
         for perm in group.permissions.all():
             permissions.add(perm.codename)
 
-    # دسترسی‌های مستقیم کاربر
     for perm in user.user_permissions.all():
         permissions.add(perm.codename)
 
@@ -86,7 +85,6 @@ def has_permission(user, permission_code):
     if user.is_superuser:
         return True
 
-    # دسترسی‌های پیش‌فرض کاربران لاگین‌شده
     if permission_code in DEFAULT_USER_PERMISSIONS:
         return True
 
@@ -97,12 +95,13 @@ def has_permission(user, permission_code):
     except SystemPermission.DoesNotExist:
         pass
 
+
+
     for group in user.groups.all():
         if group.permissions.filter(codename=permission_code).exists():
             return True
 
     return False
-
 
 def has_permission_by_roles(user, permission_codename):
     if not user or not user.is_authenticated:

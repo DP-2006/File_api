@@ -8,6 +8,114 @@ from .models_report_chat import ReportChatSession, ReportChatMessage
 from .models_role_profile import RoleProfile, RoleFileAccess
 
 
+class FileRoleAnalysis(models.Model):
+    """
+    تحلیل مرتبط بودن یک فایل با نقش و سمت سازمانی کاربرِ آپلودکننده.
+    مستقل از ai-service و بر اساس داده‌های محلی ساخته می‌شود.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'در انتظار'),
+        ('running', 'در حال اجرا'),
+        ('done', 'انجام شده'),
+        ('failed', 'خطا'),
+    ]
+
+    file = models.ForeignKey(
+        'core.UploadedFile',
+        on_delete=models.CASCADE,
+        related_name='role_analyses',
+        verbose_name='فایل'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='file_role_analyses',
+        verbose_name='کاربر آپلودکننده'
+    )
+    role_group = models.ForeignKey(
+        Group,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='file_role_analyses',
+        verbose_name='نقش (گروه) در زمان تحلیل'
+    )
+
+    # ---- متن‌های ورودی که تحلیل روی آن‌ها انجام شده ----
+    role_text_snapshot = models.TextField(
+        blank=True, null=True,
+        verbose_name='متن نقش (snapshot) در زمان تحلیل'
+    )
+    file_excerpt = models.TextField(
+        blank=True, null=True,
+        verbose_name='بخش استخراج‌شده از فایل'
+    )
+
+    # ---- نتایج تحلیل ----
+    relevance_score = models.FloatField(
+        default=0.0,
+        verbose_name='امتیاز مرتبط بودن با نقش (0..1)'
+    )
+    is_related = models.BooleanField(
+        default=False,
+        verbose_name='مرتبط با نقش؟'
+    )
+    keyword_hits = models.JSONField(
+        default=list, blank=True,
+        verbose_name='کلیدواژه‌های یافت‌شده',
+        help_text='[{"kw": "...", "count": N, "weight": 0.7}, ...]'
+    )
+    off_role_signals = models.JSONField(
+        default=list, blank=True,
+        verbose_name='سیگنال‌های خارج از نقش',
+        help_text='مواردی که نشان می‌دهد فایل ممکن است خارج از حیطه نقش باشد'
+    )
+    reasoning = models.TextField(
+        blank=True, null=True,
+        verbose_name='استدلال تحلیل'
+    )
+    risk_level = models.CharField(
+        max_length=10,
+        choices=[('low', 'کم'), ('medium', 'متوسط'), ('high', 'بالا')],
+        default='low',
+        verbose_name='سطح ریسک'
+    )
+
+    # ---- متادیتا ----
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default='pending',
+        verbose_name='وضعیت'
+    )
+    error_message = models.TextField(blank=True, null=True, verbose_name='پیام خطا')
+    engine_version = models.CharField(
+        max_length=20, default='v1', verbose_name='نسخه موتور تحلیل'
+    )
+    analyzed_at = models.DateTimeField(auto_now_add=True, verbose_name='زمان تحلیل')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='آخرین بروزرسانی')
+
+    class Meta:
+        ordering = ['-analyzed_at']
+        verbose_name = 'تحلیل نقش فایل'
+        verbose_name_plural = 'تحلیل‌های نقش فایل'
+        indexes = [
+            models.Index(fields=['user', '-analyzed_at']),
+            models.Index(fields=['file', '-analyzed_at']),
+            models.Index(fields=['is_related', '-analyzed_at']),
+            models.Index(fields=['risk_level', '-analyzed_at']),
+            models.Index(fields=['status']),
+        ]
+        # هر فایل برای هر کاربر فقط یک تحلیل فعال داشته باشد
+        constraints = [
+            models.UniqueConstraint(
+                fields=['file', 'user'],
+                name='uniq_file_user_role_analysis'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} → {self.file.file.name if self.file and self.file.file else 'file'} | related={self.is_related} score={self.relevance_score:.2f}"
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     first_name = models.CharField(max_length=100, verbose_name="نام")
