@@ -196,21 +196,20 @@ MULTI_AV = {
     },
 }
 
-# ==================== Celery ====================
-CELERY_BROKER_URL = 'amqp://admin:admin123@localhost:5672//'
-CELERY_RESULT_BACKEND = 'rpc://'   # یا 'redis://localhost:6379/0'
+CELERY_BROKER_URL = 'memory://'
+
+CELERY_RESULT_BACKEND = 'rpc://'   
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Tehran'
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 600        # 10 دقیقه
+CELERY_TASK_TIME_LIMIT = 600        
 CELERY_TASK_SOFT_TIME_LIMIT = 540
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 50
 
-# صف‌های جداگانه برای هر موتور
 CELERY_TASK_ROUTES = {
     'multi_av.tasks.scan_with_clamav':    {'queue': 'av_clamav'},
     'multi_av.tasks.scan_with_yara':      {'queue': 'av_yara'},
@@ -220,7 +219,6 @@ CELERY_TASK_ROUTES = {
     'multi_av.tasks.run_full_scan':       {'queue': 'av_orchestrator'},
 }
 
-# ==================== Multi-AV ====================
 MULTI_AV = {
     'ENABLED_ENGINES': ['clamav', 'yara', 'virustotal', 'ai', 'heuristic'],
     'VIRUSTOTAL_API_KEY': 'YOUR_API_KEY_HERE',
@@ -238,7 +236,6 @@ MULTI_AV = {
     'ENGINE_TIMEOUT': 300,
 }
 
-# Override DB for Docker
 import os as _os
 if _os.environ.get('DB_HOST'):
     DATABASES = {
@@ -256,6 +253,5 @@ if _os.environ.get('DB_HOST'):
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 
-# ==================== AI Service (FastAPI) ====================
 AI_SERVICE_URL = os.getenv('AI_SERVICE_URL', 'http://127.0.0.1:9000')
 AI_SERVICE_SECRET = os.getenv('AI_SERVICE_SECRET', 'change-this-to-a-long-random-string-min-32-chars')

@@ -62,8 +62,6 @@ class RoleAnalysisResult:
     def to_dict(self) -> dict:
         return asdict(self)
 
-
-# ---------- استخراج متن از فایل ----------
 def _extract_text_from_uploaded_file(uploaded: UploadedFile) -> str:
     """تلاش برای خواندن متن فایل. در صورت عدم پشتیبانی، رشته خالی."""
     if not uploaded or not uploaded.file:
@@ -71,7 +69,6 @@ def _extract_text_from_uploaded_file(uploaded: UploadedFile) -> str:
     name = (uploaded.file.name or '').lower()
     ext = os.path.splitext(name)[1]
 
-    # فقط فایل‌های متنی
     if ext not in TEXT_EXTENSIONS:
         return ''
 
