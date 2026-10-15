@@ -375,5 +375,9 @@ urlpatterns = [
     path('api/user/<int:user_id>/role-profiles/', vrp.user_role_profile_api, name='user_role_profile'),
     path('api/user/<int:user_id>/assign-role/', vrp.assign_role_profile_to_user_api, name='assign_role'),
     path('api/user/<int:user_id>/remove-role/', vrp.remove_role_profile_from_user_api, name='remove_role'),
+
+    path('api/user/<int:user_id>/role-analysis/', views.user_role_analysis_api, name='user_role_analysis_api'),
+    path('api/user/<int:user_id>/psychology/', views.user_psychology_api, name='user_psychology_api'),
+
 ]
 

@@ -132,7 +132,7 @@
 
   /* Segmented control با تیغه متحرک */
   .segmented{position:relative;display:flex;background:var(--seg);border-radius:14px;padding:3px;margin-bottom:18px}
-  .segmented::before{content:"";position:absolute;top:3px;bottom:3px;right:3px;width:calc((100% - 6px) / 3);border-radius:11px;background:var(--seg-thumb);box-shadow:0 3px 10px rgba(0,0,0,.2);transform:translateX(calc(var(--i,0) * -100%));transition:transform .45s var(--spring)}
+  .segmented::before{content:"";position:absolute;top:3px;bottom:3px;right:3px;width:calc((100% - 6px) / 4);border-radius:11px;background:var(--seg-thumb);box-shadow:0 3px 10px rgba(0,0,0,.2);transform:translateX(calc(var(--i,0) * -100%));transition:transform .45s var(--spring)}
   .segmented button{position:relative;z-index:1;flex:1;padding:9px;border:none;background:transparent;color:var(--label-2);font-weight:600;font-size:13.5px;cursor:pointer;transition:color .25s}
   .segmented button.active{color:var(--label)}
 
@@ -200,6 +200,17 @@
   .chat-typing i:nth-child(2){animation-delay:.2s}
   .chat-typing i:nth-child(3){animation-delay:.4s}
   @keyframes blink{0%,60%,100%{opacity:.3}30%{opacity:1}}
+
+  /* ── Psychology Card ────────────────────────────────── */
+  .psyCard {
+    background: var(--fill-2);
+    border: 1px solid var(--separator);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--label);
+  }
 
   @media (max-width:960px){
     body{padding:12px}
@@ -522,6 +533,9 @@
     const total = num(b.total_files), rel = num(b.related_files_count);
     const relatedPct = total > 0 ? Math.round(rel / total * 100) : 0;
 
+    /* ====== Psychological Tab: set current user id ====== */
+    window.currentUserId = user.id;
+
     const kpis = [
       {cls:'blue',   ic:'📁', v:total,                     l:'کل فایل‌ها'},
       {cls:'green',  ic:'✅', v:rel,                       l:'مرتبط'},
@@ -589,6 +603,7 @@
         <button data-tab="overview">نمای کلی</button>
         <button data-tab="files">فایل‌ها</button>
         <button data-tab="chat">💬 چت با AI</button>
+        <button data-tab="psychology">🧠 روانشناسی</button>
       </div>
 
       <div class="tab-section" id="tab-overview">
@@ -644,6 +659,16 @@
           </div>
         </div>
       </div>
+
+      <div class="tab-section" id="tab-psychology">
+        <div style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+            <h4 style="margin:0">🧠 تحلیل روانشناسی رفتار</h4>
+            <button type="button" onclick="psyRunFresh(window.currentUserId || 0)" class="btn btn-primary btn-sm" style="padding:8px 16px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer">تحلیل مجدد</button>
+          </div>
+          <div id="psyBox"></div>
+        </div>
+      </div>
     `;
 
     requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById('relRing').style.setProperty('--deg', relatedPct + '%')));
@@ -657,6 +682,9 @@
 
     const chatFiles = files.map(f => f.file_id).filter(Boolean);
     chatBind(chatFiles, d.user.id);
+
+    /* ====== Psychological Tab: load data ====== */
+    psyLoadForUser(user.id);
   }
 
   /* ── Live: به‌روزرسانی خودکار هر ۳۰ ثانیه (فقط وقتی تب فعال است) ── */
@@ -899,6 +927,58 @@
     const status = chatEl('chatStatus');
     if(status) status.textContent = `آماده (${chatState.filesForChat.length} فایل)`;
   }
+
+  /* ============ Psychology Tab ============ */
+  async function psyLoadForUser(userId) {
+    const box = document.getElementById('psyBox');
+    if (!box) return;
+    box.innerHTML = '<div style="padding:16px;color:var(--label-2)">در حال بارگذاری...</div>';
+    try {
+      const r = await fetch(`/api/user/${userId}/psychology/`, {credentials:'same-origin'});
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'خطا');
+      if (!j.data) {
+        box.innerHTML = '<div style="padding:16px;color:var(--label-3)">هنوز تحلیلی ذخیره نشده است. دکمه «تحلیل مجدد» را بزن.</div>';
+        return;
+      }
+      const d = j.data;
+      const color = d.risk_score >= 0.7 ? 'var(--red)' : (d.risk_score >= 0.35 ? 'var(--orange)' : 'var(--green)');
+      box.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+          <div class="psyCard"><b>ریسک</b><br><span style="color:${color};font-size:20px">${(d.risk_score||0).toFixed(2)}</span></div>
+          <div class="psyCard"><b>ناهنجاری</b><br><span style="font-size:20px">${(d.anomaly_score||0).toFixed(2)}</span></div>
+          <div class="psyCard"><b>فشار کاری</b><br><span style="font-size:20px">${(d.stress_index||0).toFixed(2)}</span></div>
+          <div class="psyCard"><b>نقش‌پذیری</b><br><span style="font-size:20px">${(d.role_fit_score||0).toFixed(2)}</span></div>
+        </div>
+        <div style="background:var(--fill);border:1px solid var(--separator);border-radius:8px;padding:12px;white-space:pre-wrap;line-height:1.8;color:var(--label)">
+${escapeHtml(d.narrative||'—')}
+        </div>
+        ${(d.signals && d.signals.length) ? `<div style="margin-top:8px;font-size:12px;color:var(--label-2)">سیگنال‌ها: ${d.signals.map(s=>escapeHtml(s.code)).join(' · ')}</div>` : ''}
+      `;
+    } catch (e) {
+      box.innerHTML = `<div style="padding:16px;color:var(--red)">خطا: ${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  async function psyRunFresh(userId) {
+    const box = document.getElementById('psyBox');
+    if (box) box.innerHTML = '<div style="padding:16px;color:var(--label-2)">در حال تحلیل با هوش مصنوعی (ممکن است ۱ تا ۳ دقیقه طول بکشد)...</div>';
+    try {
+      const r = await fetch(`/api/user/${userId}/psychology/`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {'X-CSRFToken': getCsrfToken()},
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'خطا');
+      psyLoadForUser(userId);
+    } catch (e) {
+      if (box) box.innerHTML = `<div style="padding:16px;color:var(--red)">خطا: ${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  /* make psyRunFresh accessible from inline onclick */
+  window.psyRunFresh = psyRunFresh;
 
   loadUsers();
 </script>

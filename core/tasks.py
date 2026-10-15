@@ -52,3 +52,39 @@ def analyze_file_role_async(self, uploaded_file_id: int, user_id: int):
             defaults={'status': 'failed', 'error_message': str(exc)[:2000]},
         )
         raise self.retry(exc=exc)
+
+
+
+@shared_task(
+    bind=True,
+    name='core.analyze_user_psychology_async',
+    max_retries=2,
+    default_retry_delay=60,
+    acks_late=True,
+)
+def analyze_user_psychology_async(self, user_id: int, persist: bool = True):
+    """تحلیل روانشناسی رفتار کاربر در پس‌زمینه."""
+    from django.contrib.auth.models import User
+    from core.services.user_behavior_psychology import analyze_user_psychology
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        logger.warning('analyze_user_psychology_async: user %s not found', user_id)
+        return {'ok': False, 'reason': 'user_not_found'}
+
+    try:
+        result = analyze_user_psychology(user, persist=persist)
+        logger.info(
+            'psychology done: user=%s risk=%.3f anomaly=%.3f',
+            user_id, result.risk_score, result.anomaly_score,
+        )
+        return {
+            'ok': True,
+            'user_id': user_id,
+            'risk_score': result.risk_score,
+            'recommended_action': result.recommended_action,
+        }
+    except Exception as exc:
+        logger.exception('psychology failed: %s', exc)
+        raise self.retry(exc=exc)

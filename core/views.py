@@ -3617,3 +3617,89 @@ def report_chat_generate_image_api(request, session_id):
             {"success": False, "msg": "خطا در تولید تصویر"},
             status=500,
         )
+
+
+
+
+
+
+
+
+# ============ Psychology & Role Analysis API ============
+
+@login_required
+@require_http_methods(["GET"])
+def user_role_analysis_api(request, user_id):
+    """دریافت تحلیل مرتبط بودن فایل‌های کاربر با نقش او."""
+    from django.contrib.auth.models import User
+    from core.models import FileRoleAnalysis
+
+    target = get_object_or_404(User, pk=user_id)
+    if not request.user.is_staff and request.user != target:
+        return JsonResponse({'ok': False, 'error': 'forbidden'}, status=403)
+
+    qs = FileRoleAnalysis.objects.filter(user=target, status='done')
+    items = list(qs.values(
+        'id', 'file_id', 'relevance_score', 'is_related',
+        'risk_level', 'reasoning', 'analyzed_at',
+    ))
+    total = qs.count()
+    related = qs.filter(is_related=True).count()
+
+    return JsonResponse({
+        'ok': True,
+        'user_id': user_id,
+        'summary': {
+            'total': total,
+            'related': related,
+            'unrelated': total - related,
+            'related_percent': round(100.0 * related / max(1, total), 2),
+        },
+        'items': items,
+    })
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def user_psychology_api(request, user_id):
+    """
+    GET: دریافت آخرین تحلیل روانشناسی ذخیره‌شده.
+    POST: اجرای تحلیل جدید (همگام؛ چون LLM ممکن است کند باشد).
+    """
+    from django.contrib.auth.models import User
+    from core.models_user_behavior import UserBehaviorAnalysis
+    from core.services.user_behavior_psychology import analyze_user_psychology
+
+    target = get_object_or_404(User, pk=user_id)
+    if not request.user.is_staff and request.user != target:
+        return JsonResponse({'ok': False, 'error': 'forbidden'}, status=403)
+
+    if request.method == 'POST':
+        try:
+            result = analyze_user_psychology(target, persist=True)
+            payload = result.to_dict()
+            return JsonResponse({'ok': True, 'fresh': True, 'data': payload})
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+    analysis = UserBehaviorAnalysis.objects.filter(user=target).first()
+    if not analysis:
+        return JsonResponse({'ok': True, 'fresh': False, 'data': None})
+
+    return JsonResponse({
+        'ok': True,
+        'fresh': False,
+        'data': analysis.analysis_json or {},
+        'meta': {
+            'total_files': analysis.total_files,
+            'related_files_count': analysis.related_files_count,
+            'unrelated_files_count': analysis.unrelated_files_count,
+            'suspicious_files_count': analysis.suspicious_files_count,
+            'relevance_avg': analysis.relevance_avg,
+            'related_percent': analysis.related_percent,
+            'suspicious_percent': analysis.suspicious_percent,
+            'top_topics': analysis.top_topics,
+            'file_types_distribution': analysis.file_types_distribution,
+            'last_analyzed_at': analysis.last_analyzed_at.isoformat(),
+        },
+    })
