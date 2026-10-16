@@ -942,7 +942,7 @@ def user_detail_api(request, user_id):
         ]
         user_org_role_id = None
         try:
-            urp = UserRoleProfile.objects.get(user=user)
+            urp = UserRoleProfile.objects.filter(user=user).first()
             if urp.role_profile:
                 user_org_role_id = urp.role_profile.id
         except UserRoleProfile.DoesNotExist:
@@ -3896,3 +3896,29 @@ def user_assign_org_role_api(request, user_id):
         'role_id': rp.id if rp else None,
         'title_fa': rp.title_fa if rp else '',
     })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def analyze_user_files_batch_api(request, user_id):
+    """شروع تحلیل batch همه فایل‌های کاربر در پس‌زمینه."""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
+
+    from django.contrib.auth.models import User
+    from core.models import UploadedFile
+
+    target = get_object_or_404(User, pk=user_id)
+    force = bool(request.data.get('force', False))
+
+    try:
+        from core.tasks import analyze_all_user_files
+        task = analyze_all_user_files.delay(target.id, force=force)
+        return Response({
+            'success': True,
+            'task_id': task.id,
+            'file_count': UploadedFile.objects.filter(uploaded_by=target, is_deleted=False).count(),
+            'msg': 'تحلیل در پس‌زمینه شروع شد',
+        })
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=500)

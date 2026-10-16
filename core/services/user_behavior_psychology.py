@@ -1,5 +1,6 @@
 ﻿# core/services/user_behavior_psychology.py
 import logging
+import time
 from collections import Counter
 from dataclasses import dataclass, field, asdict
 from datetime import timedelta
@@ -293,7 +294,43 @@ def _enrich_with_llm(
         return None
 
 
+def ensure_user_files_analyzed(user: User, time_budget_sec: int = 30) -> dict:
+    """
+    برای همه فایل‌های کاربر، در صورت نبود تحلیل، محتوا را استخراج و ذخیره کن.
+    با محدودیت زمانی کل (پیش‌فرض ۳۰ ثانیه) تا روانشناسی سریع برگردد.
+    خروجی: {'total': N, 'fresh': M, 'skipped': K}
+    """
+    from core.models import UploadedFile
+    from core.services.file_content_analyzer import ensure_file_analyzed
+
+    files = list(UploadedFile.objects.filter(uploaded_by=user, is_deleted=False))
+    total = len(files)
+    fresh = 0
+    skipped = 0
+    t0 = time.time()
+
+    for f in files:
+        if time.time() - t0 > time_budget_sec:
+            skipped = total - fresh
+            break
+        try:
+            res = ensure_file_analyzed(f)
+            if res and res.analyzed_at and (time.time() - t0) < time_budget_sec:
+                fresh += 1
+        except Exception as e:
+            logger.warning('ensure file analyzed fail file=%s err=%s', f.id, e)
+            continue
+
+    return {'total': total, 'fresh': fresh, 'skipped': max(0, total - fresh)}
+
 def analyze_user_psychology(user: User, persist: bool = True) -> PsychologyResult:
+    # اطمینان از تحلیل فایل‌ها (حداکثر ۳۰ ثانیه)
+    try:
+        _files_stats = ensure_user_files_analyzed(user, time_budget_sec=30)
+        logger.info('files analyzed: %s', _files_stats)
+    except Exception as e:
+        logger.warning('ensure_user_files_analyzed failed: %s', e)
+
     result = _compute_behavioral_patterns(user)
 
     role_fit, off_role_flag, suspicious = _compute_role_fit(user)

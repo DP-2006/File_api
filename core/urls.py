@@ -435,4 +435,7 @@ urlpatterns = [
     path('api/analyze-user/<int:user_id>/', views.analyze_user_view, name='analyze_user_api'),
     path('api/set-password-policy/', views.set_password_policy, name='set_password_policy_api'),
 
+
+    path('api/user/<int:user_id>/analyze-files/', views.analyze_user_files_batch_api, name='analyze_user_files_batch_api'),
+
 ]

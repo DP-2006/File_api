@@ -88,3 +88,33 @@ def analyze_user_psychology_async(self, user_id: int, persist: bool = True):
     except Exception as exc:
         logger.exception('psychology failed: %s', exc)
         raise self.retry(exc=exc)
+
+
+
+
+
+@shared_task(bind=True, name='core.analyze_all_user_files', max_retries=1, time_limit=1800)
+def analyze_all_user_files(self, user_id: int, force: bool = False):
+    """تحلیل batch همه فایل‌های کاربر در پس‌زمینه."""
+    from django.contrib.auth.models import User
+    from core.models import UploadedFile
+    from core.models_file_analysis import FileAIAnalysis
+    from core.services.file_content_analyzer import ensure_file_analyzed
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return {'ok': False, 'reason': 'user_not_found'}
+
+    files = list(UploadedFile.objects.filter(uploaded_by=user, is_deleted=False))
+    results = {'total': len(files), 'fresh': 0, 'failed': 0}
+
+    for f in files:
+        try:
+            ensure_file_analyzed(f, force=force)
+            results['fresh'] += 1
+        except Exception as e:
+            logger.warning('analyze_all fail file=%s err=%s', f.id, e)
+            results['failed'] += 1
+
+    return {'ok': True, **results}
