@@ -1058,7 +1058,7 @@ window.openRoleProfilesModal = async () => {
                 <span><i class="fas fa-briefcase" style="color:var(--blue)"></i> ${escapeHtml(rp.title_fa)} <span style="font-size:.7rem;color:#94a3b8">(${rp.users_count} کاربر)</span></span>
                 <div style="display:flex;gap:8px;align-items:center">
                   <label style="font-size:.75rem;font-weight:500;color:#64748b"><input type="checkbox" class="rpg-active" ${rp.is_active?'checked':''}> فعال</label>
-                  <button class="btn btn-ghost btn-sm" style="color:#dc2626;padding:4px 10px;min-height:30px" onclick="deleteRoleProfile(${rp.id}, '${escapeHtml(rp.title_fa)}')">🗑️</button>
+                  <button class="btn btn-ghost btn-sm" style="color:#dc2626;padding:4px 10px;min-height:30px" onclick="deleteRoleProfile(${rp.id}, '${escapeHtml(rp.title_fa)}')">🗑️</button><button class="btn btn-ghost btn-sm" style="padding:4px 10px;min-height:30px" onclick="openRpFilesModal(${rp.id}, '${escapeHtml(rp.title_fa)}')">📁 فایل‌ها</button>
                 </div>
               </div>
               <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px">
@@ -1127,7 +1127,84 @@ window.deleteRoleProfile = async (roleId, title) => {
     } else showToast(d.msg || 'خطا', 'error');
   } catch(e) { showToast('خطای شبکه', 'error'); }
 };
-</script>
+
+/* ============ Role Files Access Manager ============ */
+window.openRpFilesModal = async (roleId, roleTitle) => {
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = '<div class="modal-overlay open"><div class="modal-content"><div style="padding:40px;text-align:center">در حال بارگذاری...</div></div></div>';
+
+  let data;
+  try {
+    const r = await fetch(`/api/role-profiles/${roleId}/files/`, {credentials:'same-origin'});
+    data = await r.json();
+  } catch(e) { showToast('❌ خطای شبکه', 'error'); return; }
+
+  if (!data.success) { showToast('❌ ' + (data.msg||'خطا'), 'error'); return; }
+
+  const granted = new Set(data.granted_ids || []);
+  const allFiles = data.all_files || [];
+
+  root.innerHTML = `
+    <div class="modal-overlay open" id="rpFilesOverlay">
+      <div class="modal-content" style="max-width:900px">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-folder-open" style="color:var(--blue)"></i> فایل‌های مجاز سمت: ${escapeHtml(roleTitle)}</div>
+          <button class="modal-close" onclick="closeRpFilesModal()">×</button>
+        </div>
+        <div style="padding:8px 4px 16px;font-size:.8rem;color:#64748b">فایل‌های انتخاب‌شده به کاربران این سمت در بخش «فایل‌های دریافتی» داشبورد نمایش داده می‌شوند.</div>
+        <div style="margin-bottom:12px;display:flex;gap:8px">
+          <input type="text" id="rpFilesSearch" class="input-glass" placeholder="جستجوی فایل..." style="flex:1" oninput="filterRpFiles()">
+          <button class="btn btn-ghost btn-sm" onclick="selectAllRpFiles(true)">انتخاب همه</button>
+          <button class="btn btn-ghost btn-sm" onclick="selectAllRpFiles(false)">حذف همه</button>
+        </div>
+        <div id="rpFilesList" style="max-height:60vh;overflow-y:auto;border:1px solid var(--glass-stroke);border-radius:14px;padding:8px">
+          ${allFiles.length === 0 ? '<div style="text-align:center;padding:20px;color:#94a3b8">هیچ فایلی در سیستم وجود ندارد</div>' :
+            allFiles.map(f => `
+              <label class="rp-file-item" data-name="${escapeHtml((f.name||'').toLowerCase())}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer">
+                <input type="checkbox" class="rp-file-cb" value="${f.id}" ${granted.has(f.id) ? 'checked' : ''}>
+                <span style="flex:1;font-size:.85rem">${escapeHtml(f.name)}</span>
+                <span style="font-size:.72rem;color:#94a3b8">${escapeHtml(f.uploaded_by)} · ${escapeHtml(f.uploaded_at)}</span>
+              </label>
+            `).join('')}
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeRpFilesModal()">لغو</button>
+          <button class="btn btn-primary" onclick="saveRpFiles(${roleId})"><i class="fas fa-floppy-disk"></i> ذخیره</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('rpFilesOverlay')?.addEventListener('click', e => {
+    if (e.target.id === 'rpFilesOverlay') closeRpFilesModal();
+  });
+};
+
+window.closeRpFilesModal = () => { document.getElementById('modalRoot').innerHTML = ''; };
+
+window.filterRpFiles = () => {
+  const q = (document.getElementById('rpFilesSearch')?.value || '').toLowerCase().trim();
+  document.querySelectorAll('.rp-file-item').forEach(el => {
+    el.style.display = (!q || el.dataset.name.includes(q)) ? '' : 'none';
+  });
+};
+
+window.selectAllRpFiles = (on) => {
+  document.querySelectorAll('.rp-file-cb').forEach(cb => cb.checked = on);
+};
+
+window.saveRpFiles = async (roleId) => {
+  const ids = Array.from(document.querySelectorAll('.rp-file-cb:checked')).map(cb => parseInt(cb.value));
+  try {
+    const r = await fetch(`/api/role-profiles/${roleId}/files/set/`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken},
+      body: JSON.stringify({file_ids: ids}),
+    });
+    const d = await r.json();
+    showToast(d.success ? ('✅ ' + (d.msg||'ذخیره شد')) : ('❌ ' + (d.msg||'خطا')), d.success ? 'success' : 'error');
+    if (d.success) closeRpFilesModal();
+  } catch(e) { showToast('❌ خطای شبکه', 'error'); }
+};</script>
 </body>
 </html>window.saveAllRoleProfiles = async () => {
   const rows = Array.from(document.querySelectorAll('.rp-row'));

@@ -2,6 +2,10 @@
 import logging
 
 from django.db.models.signals import post_save
+
+from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save, pre_save
+
 from django.dispatch import receiver
 
 from core.models import UploadedFile
@@ -23,3 +27,12 @@ def trigger_file_role_analysis(sender, instance: UploadedFile, created: bool, **
         analyze_file_role_async.delay(instance.pk, instance.uploaded_by_id)
     except Exception as e:
         logger.warning('enqueue role_analysis failed: %s', e)
+
+@receiver(pre_save, sender=get_user_model(), dispatch_uid='core.user.enforce_staff_for_superuser')
+def enforce_superuser_is_staff(sender, instance, **kwargs):
+    """
+    سوپرادمین بدون is_staff در جنگو ناسازگار است.
+    هر جا is_superuser=True شود، is_staff هم خودکار True می‌شود.
+    """
+    if instance.is_superuser and not instance.is_staff:
+        instance.is_staff = True

@@ -355,6 +355,7 @@
         }
         .ios-file-card:active { transform: scale(0.97); }
         .ios-received-card { border-right: 3px solid var(--text-blue); }
+        .ios-org-card { border-right-color: #5856d6; }
 
         .ios-card-actions {
             display: flex;
@@ -965,11 +966,14 @@
         const ReceivedFileCard = React.memo(function ReceivedFileCard({ file, isStaff, downloadFile, analyzeFile, deleteReceivedFile }) {
             var fileIcon = getFileIcon(file.extension || '');
             var fileSize = formatFileSize(file.file_size_bytes || 0);
-            return React.createElement('div', { className: 'ios-file-card ios-received-card' },
+            return React.createElement('div', { className: 'ios-file-card ios-received-card' + (file.is_org_file ? ' ios-org-card' : '') },
                 React.createElement('div', { className: 'text-4xl ' + fileIcon.color },
                     React.createElement('i', { className: 'ph ' + fileIcon.icon })
                 ),
                 React.createElement('div', { className: 'w-full flex flex-col gap-1' },
+                    file.is_org_file ? React.createElement('span', {
+                        className: 'text-[10px] font-bold text-[#5856d6] bg-[rgba(88,86,214,0.12)] rounded-full px-2 py-0.5 self-center'
+                    }, '🏢 سازمانی') : null,
                     React.createElement('div', { className: 'text-sm font-semibold text-[var(--text-primary)] truncate px-1', title: file.name },
                         file.name.length > 18 ? file.name.substring(0, 18) + '...' : file.name
                     ),
@@ -978,8 +982,8 @@
                         React.createElement('span', null, fileSize)
                     ),
                     React.createElement('div', { className: 'ios-sender-info justify-center' },
-                        React.createElement('i', { className: 'ph ph-user' }),
-                        React.createElement('span', null, 'از طرف: ' + (file.sender_name || 'کاربر ناشناس'))
+                        React.createElement('i', { className: 'ph ' + (file.is_org_file ? 'ph-buildings' : 'ph-user') }),
+                        React.createElement('span', null, (file.is_org_file ? 'از سمت سازمانی: ' : 'از طرف: ') + (file.sender_name || 'کاربر ناشناس'))
                     )
                 ),
                 React.createElement('div', { className: 'ios-card-actions' },
@@ -993,7 +997,7 @@
                         className: 'ios-btn ios-btn-secondary',
                         title: 'تحلیل با AI'
                     }, React.createElement('i', { className: 'ph ph-robot' }), React.createElement('span', null, 'هوش مصنوعی')) : null,
-                    React.createElement('button', {
+                    (file.can_delete === false) ? null : React.createElement('button', {
                         onClick: function(e) { e.stopPropagation(); deleteReceivedFile(file.id); },
                         className: 'ios-btn ios-btn-danger',
                         title: 'حذف'

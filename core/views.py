@@ -206,6 +206,26 @@ def dashboard_view(request):
     ).order_by('-uploaded_at')
     print(f"فایل‌های دریافتی: {received_files.count()}")
 
+    # --- فایل‌های سازمانی بر اساس سمت‌های کاربر ---
+    from core.models_role_profile import UserRoleProfile, RoleFileAccess
+    org_role_ids = list(
+        UserRoleProfile.objects
+        .filter(user=request.user)
+        .values_list('role_profile_id', flat=True)
+    )
+    org_files = UploadedFile.objects.none()
+    if org_role_ids:
+        org_file_ids = RoleFileAccess.objects.filter(
+            role_profile_id__in=org_role_ids,
+            uploaded_file__isnull=False,
+            role_profile__isnull=False,
+        ).values_list('uploaded_file_id', flat=True)
+        org_files = UploadedFile.objects.filter(
+            id__in=org_file_ids,
+            is_deleted=False,
+        ).exclude(uploaded_by=request.user).order_by('-uploaded_at')
+    print(f"فایل‌های سازمانی: {org_files.count()}")
+
     if my_files.count() == 0 and received_files.count() == 0:
         all_files = UploadedFile.objects.filter(is_deleted=False)
         print(f"همه فایل‌های سیستم: {all_files.count()}")
@@ -245,8 +265,24 @@ def dashboard_view(request):
                 'extension': f.file.name[-4:].lower() if f.file.name else '',
                 'file_size_bytes': safe_file_size(f),
                 'sender_name': f.uploaded_by.username,
-                'sender_id': f.uploaded_by.id
+                'sender_id': f.uploaded_by.id,
+                'is_org_file': False,
+                'can_delete': True,
             } for f in received_files
+        ] + [
+            {
+                'id': f.id,
+                'name': f.file.name,
+                'url': f.file.url,
+                'size': safe_file_size(f),
+                'received_at': f.uploaded_at.strftime('%y/%m/%d - %H:%M'),
+                'extension': f.file.name[-4:].lower() if f.file.name else '',
+                'file_size_bytes': safe_file_size(f),
+                'sender_name': 'داده سازمانی',
+                'sender_id': None,
+                'is_org_file': True,
+                'can_delete': False,
+            } for f in org_files
         ]
     }
 
@@ -302,8 +338,6 @@ def dashboard_view(request):
         'received_files': received_files,
         'django_data': django_data
     })
-
-
 
 
 
@@ -381,22 +415,6 @@ def upload_files_view(request):
                 print(f"[AI] {f.name}: {ai_result.get('error')}")
         except Exception as e:
             print(f"[AI] {f.name} failed: {e}")
-
-    #         if analysis_result.get('success'):
-    #             notifications_created.append({
-    #                 'file': f.name,
-    #                 'threat_level': analysis_result.get('threat_level', 'info'),
-    #                 'notification_id': analysis_result.get('notification').id if analysis_result.get('notification') else None
-    #             })
-
-    #             if analysis_result.get('threat_level') in ['warning', 'critical']:
-    #                 threats_found.append({
-    #                     "file": f.name,
-    #                     "threat": analysis_result.get('threat_level', 'unknown'),
-    #                     "severity": analysis_result.get('threat_level', 'low')
-    #                 })
-    #     except Exception as e:
-    #         print(f"Error in AI analysis for {f.name}: {e}")
 
         try:
             scan_result = firewall.scan_file(uploaded_file)
@@ -3556,7 +3574,6 @@ def my_chat_history_api(request, session_id):
 
 
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def report_chat_generate_image_api(request, session_id):
@@ -3922,3 +3939,80 @@ def analyze_user_files_batch_api(request, user_id):
         })
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=500)
+        
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def role_profile_files_get_api(request, role_id):
+    """لیست فایل‌های مجاز یک سمت + همه فایل‌های سیستم."""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
+
+    from core.models_role_profile import RoleProfile, RoleFileAccess
+    from core.models import UploadedFile
+
+    rp = RoleProfile.objects.filter(id=role_id).first()
+    if not rp:
+        return Response({'success': False, 'msg': 'سمت یافت نشد'}, status=404)
+
+    granted_ids = set(
+        RoleFileAccess.objects.filter(role_profile=rp).values_list('uploaded_file_id', flat=True)
+    )
+
+    all_files = []
+    for f in UploadedFile.objects.filter(is_deleted=False).order_by('-uploaded_at')[:500]:
+        all_files.append({
+            'id': f.id,
+            'name': (f.file.name.split('/')[-1] if f.file and f.file.name else '—'),
+            'uploaded_at': f.uploaded_at.strftime('%Y-%m-%d %H:%M') if f.uploaded_at else '',
+            'uploaded_by': f.uploaded_by.username if f.uploaded_by else '',
+        })
+
+    return Response({
+        'success': True,
+        'role_id': rp.id,
+        'role_title': rp.title_fa or '',
+        'granted_ids': list(granted_ids),
+        'all_files': all_files,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def role_profile_files_set_api(request, role_id):
+    """ذخیره فایل‌های مجاز یک سمت."""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
+
+    from core.models_role_profile import RoleProfile, RoleFileAccess
+    from core.models import UploadedFile
+
+    rp = RoleProfile.objects.filter(id=role_id).first()
+    if not rp:
+        return Response({'success': False, 'msg': 'سمت یافت نشد'}, status=404)
+
+    file_ids = request.data.get('file_ids', [])
+    if not isinstance(file_ids, list):
+        file_ids = []
+    valid_ids = set(UploadedFile.objects.filter(id__in=file_ids, is_deleted=False).values_list('id', flat=True))
+
+    existing = set(
+        RoleFileAccess.objects.filter(role_profile=rp).values_list('uploaded_file_id', flat=True)
+    )
+    to_add = valid_ids - existing
+    to_remove = existing - valid_ids
+
+    RoleFileAccess.objects.filter(role_profile=rp, uploaded_file_id__in=to_remove).delete()
+    for fid in to_add:
+        RoleFileAccess.objects.create(
+            role_profile=rp,
+            uploaded_file_id=fid,
+            granted_by=request.user,
+        )
+
+    return Response({
+        'success': True,
+        'added': len(to_add),
+        'removed': len(to_remove),
+        'total': len(valid_ids),
+        'msg': f'{len(valid_ids)} فایل مجاز ثبت شد',
+    })
