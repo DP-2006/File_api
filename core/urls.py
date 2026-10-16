@@ -1,9 +1,12 @@
 ﻿
 
+# #urls.py core
 # from django.urls import path
 # from django.views.decorators.csrf import csrf_exempt
+
 # from . import views
 # from .views import get_all_roles_detailed
+# from core import views_role_profile as vrp
 
 # # Import از views_management
 # from .views_management import (
@@ -17,40 +20,39 @@
 #     get_users_by_role_api,
 #     bulk_block_users_api,
 #     bulk_change_password_api,
+#     update_role_api,  
 # )
-
-
-# # core/urls.py - کامل
-
-# from django.urls import path
-# from django.views.decorators.csrf import csrf_exempt
-
-# from . import views
-# from .views import get_all_roles_detailed
 
 # urlpatterns = [
     
 #     # ========== Auth ==========
-#     path('', views.login_view, name='login'),
-#     path('login/', csrf_exempt(views.login_view), name='login_view'),
+#     #path('', views.dashboard_view, name='dashboard'),
+#     # path('login/', csrf_exempt(views.login_view), name='login'),
+#     # path('', views.login_view, name='login'),
+#     # path('login/', csrf_exempt(views.login_view), name='login_view'),
+#     # path('logout/', views.logout_view, name='logout'),
+#     # path('logout-token/', views.log_out_view, name='logout_token'),
+    
+#     # ========== Auth ==========
+#     path('', views.dashboard_view, name='dashboard'),
+#     path('login/', csrf_exempt(views.login_view), name='login'),
 #     path('logout/', views.logout_view, name='logout'),
 #     path('logout-token/', views.log_out_view, name='logout_token'),
-    
+
 #     # ========== Dashboard ==========
 #     path('dashboard/', views.dashboard_view, name='dashboard'),
 #     path('upload/', views.upload_files_view, name='upload_files'),
 #     path('save-settings/', views.save_settings_view, name='save_settings'),
 #     path('download/<int:file_id>/', views.download_file_view, name='download_file'),
 #     path('delete-my-file/', views.delete_my_file_view, name='delete_my_file'),
-    
+#     path('debug-files/', views.debug_files_view, name='debug_files'),
+
+
 #     # ========== Admin ==========
 #     path('admin-panel/', views.admin_panel_view, name='admin_panel'),
 #     path('super-admin-panel/', views.super_admin_panel, name='super_admin_panel'),
-    
-#     # مسیرهای admin-action (هر دو نسخه)
 #     path('admin-action/', views.admin_action_view, name='admin_action'),
-#     path('api/admin-action/', views.admin_action_view, name='admin_action_api'),  # <--- مهم
-    
+#     path('api/admin-action/', views.admin_action_view, name='admin_action_api'),
 #     path('super-admin-action/', views.super_admin_action, name='super_admin_action'),
     
 #     # ========== Users ==========
@@ -67,7 +69,41 @@
 #     path('api/users-list/', views.get_users_list_api, name='get_users_list_api'),
 #     path('api/toggle-block/<int:user_id>/', views.toggle_block_user, name='toggle_block_user_api'),
 #     path('api/delete-user/<int:user_id>/', views.delete_user_by_id, name='delete_user_by_id_api'),
+#     path('api/users/<int:user_id>/detail/', views.user_detail_api, name='user_detail_api'),
+#     path('api/users/<int:user_id>/update/', views.user_update_api, name='user_update_api'),
+#     # ========== AI Conversations ==========
+#     path('api/ai-conversations/', views.ai_conversations_list_api, name='ai_conversations_list'),
+#     path('api/ai-conversations/stats/', views.ai_conversations_stats_api, name='ai_conversations_stats'),
+#     path('api/ai-conversations/by-user/<int:user_id>/', views.ai_conversations_by_user_api, name='ai_conversations_by_user'),    
+
+#     path('api/behavior-analysis/', views.behavior_analysis_list_api, name='behavior_analysis_list'),
+#     path('api/behavior-analysis/<int:user_id>/', views.behavior_analysis_detail_api, name='behavior_analysis_detail'),
+#     path('behavior-analysis-panel/', views.behavior_analysis_panel_view, name='behavior_analysis_panel'),
+
+#     # ========== MY REPORTS (User Self-Service) ==========
+#     path('my-reports/', views.my_reports_panel_view, name='my_reports_panel'),
+#     path('api/my-reports/', views.my_behavior_analysis_view, name='my_reports_api'),
+#     path('api/my-files-for-chat/', views.my_files_for_chat_api, name='my_files_for_chat'),
+#     path('api/my-report-chat/start/', views.my_chat_start_api, name='my_report_chat_start'),
+#     path('api/my-report-chat/<int:session_id>/ask/', views.my_chat_ask_api, name='my_report_chat_ask'),
+#     path('api/my-report-chat/sessions/', views.my_chat_sessions_api, name='my_chat_sessions'),
+#     path('api/my-report-chat/<int:session_id>/history/', views.my_chat_history_api, name='my_chat_history'),
+
+#     #path('behavior-analysis-panel/', views.behavior_analysis_panel, name='behavior_analysis_panel'),
+#     path('behavior-analysis-panel/', views.behavior_analysis_panel_view, name='behavior_analysis_panel'),
+
+
     
+
+#     # ========== Report Chat (Chatbot) ==========
+#     path('api/report-chat/start/',              views.report_chat_start_api,   name='report_chat_start'),
+#     path('api/report-chat/<int:session_id>/',   views.report_chat_detail_api,  name='report_chat_detail'),
+#     path('api/report-chat/<int:session_id>/ask/', views.report_chat_ask_api,   name='report_chat_ask'),
+
+#     path('api/report-chat/<int:session_id>/generate-image/',
+#         views.report_chat_generate_image_api,
+#         name='report_chat_generate_image',
+#         ),
 #     # ========== Roles & Permissions ==========
 #     path('roles/', views.get_all_roles, name='get_all_roles'),
 #     path('roles/create/', views.create_new_role, name='create_new_role'),
@@ -143,12 +179,12 @@
 #     path('api/file-size-settings/', views.get_file_size_settings_api, name='get_file_size_settings'),
 #     path('api/file-size-settings/save/', views.save_file_size_settings_api, name='save_file_size_settings'),
 
-
-#         # ========== Role Management Advanced ==========
+#     # ========== Role Management Advanced ==========
 #     path('api/roles/create-advanced/', create_role_advanced_api, name='create_role_advanced'),
 #     path('api/roles/<int:role_id>/password-policy/', get_role_password_policy_api, name='get_role_password_policy'),
 #     path('api/roles/<int:role_id>/password-policy/update/', update_role_password_policy_api, name='update_role_password_policy'),
 #     path('api/roles/<int:role_id>/users/', get_users_by_role_api, name='get_users_by_role'),
+#     path('api/roles/<int:role_id>/update/', update_role_api, name='update_role_api'),  # <--- استفاده از update_role_api که import شده
     
 #     # ========== Bulk Role Assignment ==========
 #     path('api/roles/assign-bulk/', assign_role_to_users_bulk_api, name='assign_role_bulk'),
@@ -159,12 +195,28 @@
 #     # ========== Bulk User Management ==========
 #     path('api/users/bulk-block/', bulk_block_users_api, name='bulk_block_users'),
 #     path('api/users/bulk-change-password/', bulk_change_password_api, name='bulk_change_password'),
-#     path('api/roles/<int:role_id>/update/', views.update_role_api, name='update_role_api'),
+
+#     path('api/me/profile/',         views.me_profile_api,         name='me_profile_api'),
+#     path('api/me/change-password/', views.me_change_password_api, name='me_change_password_api'),
+#     path('api/me/change-username/', views.me_change_username_api, name='me_change_username_api'),
+#     #path('settings/', views.settings_router_view, name='settings_router'),
+#         # Router — داشبورد به اینجا لینک می‌دهد
+#     path('settings/',    views.settings_router_view, name='settings_router'),
+
+#     # پنل ساده کاربری (Account Management) — فقط برای کاربران عادی
+#     path('my-settings/', views.settings_panel_view,  name='settings_panel'),
+#     path('api/role-profiles/', vrp.role_profiles_list_api, name='role_profiles_list'),
+#     path('api/role-profile/<int:group_id>/', vrp.role_profile_get_api, name='role_profile_get'),
+#     path('api/role-profile/<int:group_id>/save/', vrp.role_profile_save_api, name='role_profile_save'),
+#     path('api/user/<int:user_id>/role-profiles/', vrp.user_role_profile_api, name='user_role_profile'),
+#     path('api/user/<int:user_id>/assign-role/', vrp.assign_role_profile_to_user_api, name='assign_role'),
+#     path('api/user/<int:user_id>/remove-role/', vrp.remove_role_profile_from_user_api, name='remove_role'),
+
+#     path('api/user/<int:user_id>/psychology/', views.user_psychology_api, name='user_psychology_api'),
+
 # ]
 
-
-
-#urls.py core
+# urls.py core
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 
@@ -228,6 +280,8 @@ urlpatterns = [
     path('users/me/permissions/', views.my_permissions_view, name='my_permissions'),
     path('users/analyze/<int:user_id>/', views.analyze_user_view, name='analyze_user'),
     path('users/personality/<int:user_id>/', views.analyze_user_personality_view, name='analyze_personality'),
+    path('api/analyze-user-personality/<int:user_id>/', views.analyze_user_personality_view, name='analyze_user_personality_api'),
+    path('api/analyze-user/<int:user_id>/', views.analyze_user_view, name='analyze_user_api'),
     
     # API جدید برای کاربران (با api/ prefix)
     path('api/users-list/', views.get_users_list_api, name='get_users_list_api'),
@@ -369,15 +423,16 @@ urlpatterns = [
 
     # پنل ساده کاربری (Account Management) — فقط برای کاربران عادی
     path('my-settings/', views.settings_panel_view,  name='settings_panel'),
-    path('api/role-profiles/', vrp.role_profiles_list_api, name='role_profiles_list'),
-    path('api/role-profile/<int:group_id>/', vrp.role_profile_get_api, name='role_profile_get'),
-    path('api/role-profile/<int:group_id>/save/', vrp.role_profile_save_api, name='role_profile_save'),
-    path('api/user/<int:user_id>/role-profiles/', vrp.user_role_profile_api, name='user_role_profile'),
-    path('api/user/<int:user_id>/assign-role/', vrp.assign_role_profile_to_user_api, name='assign_role'),
-    path('api/user/<int:user_id>/remove-role/', vrp.remove_role_profile_from_user_api, name='remove_role'),
 
     path('api/user/<int:user_id>/role-analysis/', views.user_role_analysis_api, name='user_role_analysis_api'),
+    path('api/role-profiles/', views.role_profiles_list_all_api, name='role_profiles_list_all_api'),
+    path('api/role-profiles/save-bulk/', views.role_profiles_save_bulk_api, name='role_profiles_save_bulk_api'),
+    path('api/role-profiles/create/', views.role_profiles_create_api, name='role_profiles_create_api'),
+    path('api/role-profiles/<int:role_id>/delete/', views.role_profiles_delete_api, name='role_profiles_delete_api'),
+    path('api/user/<int:user_id>/assign-org-role/', views.user_assign_org_role_api, name='user_assign_org_role_api'),
     path('api/user/<int:user_id>/psychology/', views.user_psychology_api, name='user_psychology_api'),
+    path('api/analyze-user-personality/<int:user_id>/', views.analyze_user_personality_view, name='analyze_user_personality_api'),
+    path('api/analyze-user/<int:user_id>/', views.analyze_user_view, name='analyze_user_api'),
+    path('api/set-password-policy/', views.set_password_policy, name='set_password_policy_api'),
 
 ]
-

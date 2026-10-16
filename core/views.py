@@ -4,7 +4,7 @@ import socket
 import subprocess
 import platform
 import psutil
-
+from .models_report_chat import ReportChatSession
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User, Group, Permission
@@ -17,7 +17,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.db import models
 from django.db.models import Count, Q
-
+from .services.file_reader import FileReader
 # Import از serializers.py
 from .serializers import (
     GroupSerializer, UserSerializer, UploadedFileSerializer, 
@@ -33,7 +33,6 @@ from .services.llm_service import llm_service
 
 from .services.firewall_service import firewall
 #from .services.action_analyzer import action_analyzer
-#from .services.file_reader import FileReader
 from .services.ai_manager import ai_manager
 
 # Import مدل‌ها
@@ -48,6 +47,33 @@ from .models_ai_conversation import AIConversation
 from .permissions import has_permission, can_modify_user, check_permission, get_user_permissions_list
 from .models_file_analysis import FileAIAnalysis
 from .models_user_behavior import UserBehaviorAnalysis
+
+
+def validate_password_against_policy(user, new_password):
+    """اعتبارسنجی رمز عبور بر اساس RolePasswordPolicy و PasswordPolicy سراسری."""
+    policy = None
+    group = user.groups.first()
+    if group:
+        try:
+            policy = group.password_policy
+        except Exception:
+            policy = None
+    if policy is None:
+        policy = PasswordPolicy.objects.first()
+    if policy is None:
+        return True, ''
+    pwd = new_password or ''
+    if len(pwd) < (policy.min_password_length or 8):
+        return False, f'رمز عبور باید حداقل {policy.min_password_length} کاراکتر باشد'
+    if getattr(policy, 'require_uppercase', False) and not any(c.isupper() for c in pwd):
+        return False, 'رمز عبور باید حداقل یک حرف بزرگ داشته باشد'
+    if getattr(policy, 'require_lowercase', False) and not any(c.islower() for c in pwd):
+        return False, 'رمز عبور باید حداقل یک حرف کوچک داشته باشد'
+    if getattr(policy, 'require_digit', False) and not any(c.isdigit() for c in pwd):
+        return False, 'رمز عبور باید حداقل یک عدد داشته باشد'
+    if getattr(policy, 'require_special_char', False) and not any(not c.isalnum() for c in pwd):
+        return False, 'رمز عبور باید حداقل یک کاراکتر خاص داشته باشد'
+    return True, ''
 
 def get_or_create_settings(user):
     settings, created = UserSettings.objects.get_or_create(user=user)
@@ -502,10 +528,6 @@ def send_files_view(request):
         return Response({'success': False, 'msg': 'کاربر یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
 
 
-# =============================================
-# ============ Admin Views ============
-# =============================================
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def admin_panel_view(request):
@@ -783,11 +805,6 @@ def super_admin_action(request):
 
     return Response({'success': False, 'msg': 'اکشن نامعتبر'}, status=status.HTTP_400_BAD_REQUEST)
 
-
-# =============================================
-# ============ User Management ============
-# =============================================
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_users(request):
@@ -890,7 +907,7 @@ def delete_user_by_id(request, user_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_detail_api(request, user_id):
-    """دریافت اطلاعات کامل یک کاربر برای پنل ویرایش شبیه Django Admin"""
+    """دریافت اطلاعات کامل یک کاربر برای پنل ویرایش."""
     if not request.user.is_superuser:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -912,6 +929,25 @@ def user_detail_api(request, user_id):
             for p in Permission.objects.select_related('content_type').order_by('content_type__app_label', 'codename')
         ]
 
+        # --- سمت سازمانی (مستقل از Group) ---
+        from core.models_role_profile import RoleProfile, UserRoleProfile
+        role_profiles_list = [
+            {
+                'id': rp.id,
+                'code': rp.code or '',
+                'title_fa': rp.title_fa or '',
+                'is_active': rp.is_active,
+            }
+            for rp in RoleProfile.objects.filter(is_active=True).order_by('title_fa')
+        ]
+        user_org_role_id = None
+        try:
+            urp = UserRoleProfile.objects.get(user=user)
+            if urp.role_profile:
+                user_org_role_id = urp.role_profile.id
+        except UserRoleProfile.DoesNotExist:
+            pass
+
         return Response({
             'success': True,
             'user': {
@@ -927,92 +963,82 @@ def user_detail_api(request, user_id):
                 'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M:%S') if user.date_joined else None,
                 'groups_ids': user_groups_ids,
                 'user_permissions_ids': user_perms_ids,
+                'org_role_ids': list(UserRoleProfile.objects.filter(user=user).values_list('role_profile_id', flat=True)),
             },
             'all_groups': groups,
             'all_permissions': permissions,
+            'role_profiles': role_profiles_list,
         })
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def user_update_api(request, user_id):
-    """ذخیره تغییرات کاربر از پنل ویرایش شبیه Django Admin"""
+    """ذخیره تغییرات کاربر."""
     if not request.user.is_superuser:
-        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
-
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
     try:
         user = get_object_or_404(User, id=user_id)
         data = request.data
-
-        if user.id == request.user.id:
-            if 'is_active' in data and not data.get('is_active'):
-                return Response({'success': False, 'msg': 'نمی‌توانید خودتان را غیرفعال کنید'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # فیلدهای پایه
+        if user.id == request.user.id and 'is_active' in data and not data.get('is_active'):
+            return Response({'success': False, 'msg': 'نمی‌توانید خودتان را غیرفعال کنید'}, status=400)
         new_username = (data.get('username') or '').strip()
         if new_username and new_username != user.username:
             if User.objects.filter(username=new_username).exclude(id=user.id).exists():
-                return Response({'success': False, 'msg': 'نام کاربری تکراری است'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'success': False, 'msg': 'نام کاربری تکراری است'}, status=400)
             user.username = new_username
-
         user.email = data.get('email', user.email) or ''
         user.first_name = data.get('first_name', user.first_name) or ''
         user.last_name = data.get('last_name', user.last_name) or ''
-
-        # پرچم‌ها
-        if 'is_active' in data:
-            user.is_active = bool(data.get('is_active'))
-        if 'is_staff' in data:
-            user.is_staff = bool(data.get('is_staff'))
+        if 'is_active' in data: user.is_active = bool(data.get('is_active'))
+        if 'is_staff' in data: user.is_staff = bool(data.get('is_staff'))
         if 'is_superuser' in data:
             if user.id == request.user.id and not data.get('is_superuser'):
-                return Response({'success': False, 'msg': 'نمی‌توانید وضعیت سوپرادمین خودتان را حذف کنید'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'success': False, 'msg': 'نمی‌توانید وضعیت سوپرادمین خودتان را حذف کنید'}, status=400)
             user.is_superuser = bool(data.get('is_superuser'))
-
-        # گروه‌ها
-        if 'groups_ids' in data:
-            groups_ids = data.get('groups_ids') or []
-            user.groups.set(Group.objects.filter(id__in=groups_ids))
-
-        # دسترسی‌های مستقیم کاربر
-        if 'user_permissions_ids' in data:
-            perms_ids = data.get('user_permissions_ids') or []
-            user.user_permissions.set(Permission.objects.filter(id__in=perms_ids))
-
-        # رمز عبور (اختیاری)
+        if 'groups_ids' in data: user.groups.set(Group.objects.filter(id__in=(data.get('groups_ids') or [])))
+        if 'user_permissions_ids' in data: user.user_permissions.set(Permission.objects.filter(id__in=(data.get('user_permissions_ids') or [])))
+        if 'org_role_id' in data:
+            from core.models_role_profile import RoleProfile, UserRoleProfile
+            urp, _ = UserRoleProfile.objects.get_or_create(user=user)
+            rid = data.get('org_role_id')
+            if rid:
+                rp = RoleProfile.objects.filter(id=rid).first()
+                urp.role_profile = rp
+                if rp:
+                    if 'org_role_title' in data and data.get('org_role_title'): rp.title_fa = data.get('org_role_title')[:150]
+                    if 'org_role_desc' in data: rp.description = data.get('org_role_desc') or ''
+                    if 'org_role_resp' in data: rp.responsibilities = data.get('org_role_resp') or ''
+                    rp.save()
+            else:
+                urp.role_profile = None
+            urp.assigned_by = request.user
+            urp.save()
         new_password = data.get('new_password')
         if new_password:
-            if len(new_password) < 8:
-                return Response({'success': False, 'msg': 'رمز عبور باید حداقل ۸ کاراکتر باشد'}, status=status.HTTP_400_BAD_REQUEST)
+            ok, err = validate_password_against_policy(user, new_password)
+            if not ok: return Response({'success': False, 'msg': err}, status=400)
             user.set_password(new_password)
+        # سمت‌های سازمانی کاربر (ذخیره)
+        _raw = data.get("org_role_ids")
+        if _raw is not None:
+            from core.models_role_profile import RoleProfile, UserRoleProfile
+            if isinstance(_raw, (int, str)):
+                _raw = [_raw]
+            _ids = []
+            for x in _raw:
+                try: _ids.append(int(x))
+                except: pass
+            _valid = set(RoleProfile.objects.filter(id__in=_ids).values_list("id", flat=True))
+            _existing = set(UserRoleProfile.objects.filter(user=user).values_list("role_profile_id", flat=True))
+            UserRoleProfile.objects.filter(user=user, role_profile_id__in=(_existing - _valid)).delete()
+            for _rid in (_valid - _existing):
+                UserRoleProfile.objects.create(user=user, role_profile_id=_rid, assigned_by=request.user)
 
         user.save()
-
-        return Response({
-            'success': True,
-            'msg': f'اطلاعات کاربر {user.username} با موفقیت ذخیره شد',
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'is_active': user.is_active,
-                'is_staff': user.is_staff,
-                'is_superuser': user.is_superuser,
-                'groups_ids': list(user.groups.values_list('id', flat=True)),
-                'user_permissions_ids': list(user.user_permissions.values_list('id', flat=True)),
-            }
-        })
+        return Response({'success': True, 'msg': f'اطلاعات کاربر {user.username} ذخیره شد'})
     except Exception as e:
-        return Response({'success': False, 'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
+        return Response({'success': False, 'msg': str(e)}, status=400)
 def my_permissions_view(request):
     permissions = get_user_permissions_list(request.user)
     return Response({
@@ -2760,8 +2786,9 @@ def me_change_password_api(request):
     if not request.user.check_password(old_password):
         return Response({'success': False, 'msg': 'رمز عبور فعلی اشتباه است'}, status=400)
 
-    if len(new_password) < 8:
-        return Response({'success': False, 'msg': 'رمز جدید باید حداقل ۸ کاراکتر باشد'}, status=400)
+    _ok, _err = validate_password_against_policy(request.user, new_password)
+    if not _ok:
+        return Response({'success': False, 'msg': _err}, status=400)
 
     request.user.set_password(new_password)
     request.user.save()
@@ -2873,8 +2900,9 @@ def me_change_password_api(request):
         return Response({'success': False, 'msg': 'رمز فعلی و جدید را وارد کنید'}, status=400)
     if not request.user.check_password(old_password):
         return Response({'success': False, 'msg': 'رمز عبور فعلی اشتباه است'}, status=400)
-    if len(new_password) < 8:
-        return Response({'success': False, 'msg': 'رمز جدید باید حداقل ۸ کاراکتر باشد'}, status=400)
+    _ok, _err = validate_password_against_policy(request.user, new_password)
+    if not _ok:
+        return Response({'success': False, 'msg': _err}, status=400)
     request.user.set_password(new_password)
     request.user.save()
     update_session_auth_hash(request, request.user)
@@ -3048,7 +3076,8 @@ def ai_conversations_by_user_api(request, user_id):
 # ============ BEHAVIOR ANALYSIS API ==========
 # =============================================
 # from .models_file_analysis import FileAIAnalysis as _FAA  # noqa
-# from .models_user_behavior import UserBehaviorAnalysis as _UBA  # noqa
+# from .models_user_behavior import UserBehaviorAnalysis
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def behavior_analysis_list_api(request):
@@ -3481,7 +3510,7 @@ def my_reports_panel_view(request):
 def my_chat_sessions_api(request):
     """لیست جلسات چت خود کاربر."""
     try:
-        from .models_report_chat import ReportChatSession
+       
         sessions = ReportChatSession.objects.filter(admin=request.user).order_by('-updated_at')[:50]
         items = [{
             'id': s.id,
@@ -3619,14 +3648,6 @@ def report_chat_generate_image_api(request, session_id):
         )
 
 
-
-
-
-
-
-
-# ============ Psychology & Role Analysis API ============
-
 @login_required
 @require_http_methods(["GET"])
 def user_role_analysis_api(request, user_id):
@@ -3702,4 +3723,176 @@ def user_psychology_api(request, user_id):
             'file_types_distribution': analysis.file_types_distribution,
             'last_analyzed_at': analysis.last_analyzed_at.isoformat(),
         },
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def role_profiles_delete_api(request, group_id):
+    """حذف سمت سازمانی + نقش سیستمی."""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
+
+    protected = ['admin', 'superadmin', 'user']
+    g = Group.objects.filter(id=group_id).first()
+    if not g:
+        return Response({'success': False, 'msg': 'نقش یافت نشد'}, status=404)
+    if g.name.lower() in protected:
+        return Response({'success': False, 'msg': f'نقش {g.name} محافظت‌شده است'}, status=400)
+
+    name = g.name
+    try:
+        g.delete()
+        return Response({'success': True, 'msg': f'سمت {name} حذف شد'})
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=500)
+
+# =============================================
+# ============ Role Profiles (مستقل) ==========
+# =============================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def role_profiles_list_all_api(request):
+    """لیست همه سمت‌های سازمانی — مستقل از گروه."""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
+
+    from core.models_role_profile import RoleProfile
+    items = []
+    for rp in RoleProfile.objects.all().order_by('title_fa'):
+        items.append({
+            'id': rp.id,
+            'code': rp.code or '',
+            'title_fa': rp.title_fa or '',
+            'description': rp.description or '',
+            'responsibilities': rp.responsibilities or '',
+            'role_prompt': rp.role_prompt or '',
+            'is_active': rp.is_active,
+            'users_count': rp.users.count(),
+        })
+    return Response({'success': True, 'items': items})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def role_profiles_save_bulk_api(request):
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
+
+    from core.models_role_profile import RoleProfile
+    items = request.data.get('items', [])
+    if not isinstance(items, list):
+        return Response({'success': False, 'msg': 'items باید لیست باشد'}, status=400)
+
+    saved = 0
+    created = 0
+    for item in items:
+        try:
+            title = (item.get('title_fa') or '').strip()
+            if not title:
+                continue
+            rp_id = item.get('id')
+            rp = RoleProfile.objects.filter(id=rp_id).first() if rp_id else None
+            if rp is None:
+                code = (item.get('code') or '').strip() or None
+                if code and RoleProfile.objects.filter(code=code).exists():
+                    code = None
+                rp = RoleProfile.objects.create(
+                    code=code,
+                    title_fa=title[:150],
+                    description=item.get('description') or '',
+                    responsibilities=item.get('responsibilities') or '',
+                    role_prompt=item.get('role_prompt') or '',
+                    is_active=bool(item.get('is_active', True)),
+                )
+                created += 1
+            else:
+                rp.title_fa = title[:150]
+                rp.description = item.get('description') or ''
+                rp.responsibilities = item.get('responsibilities') or ''
+                rp.role_prompt = item.get('role_prompt') or ''
+                rp.is_active = bool(item.get('is_active', True))
+                rp.save()
+            saved += 1
+        except Exception as e:
+            print(f'[RoleProfile bulk] err={e}')
+
+    return Response({'success': True, 'saved': saved, 'created': created})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def role_profiles_create_api(request):
+    """ساخت سمت سازمانی جدید — مستقل از Group."""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
+
+    from core.models_role_profile import RoleProfile
+    data = request.data
+    code = (data.get('code') or '').strip() or None
+    title_fa = (data.get('title_fa') or '').strip()
+
+    if not title_fa:
+        return Response({'success': False, 'msg': 'عنوان فارسی الزامی است'}, status=400)
+    if code and RoleProfile.objects.filter(code=code).exists():
+        return Response({'success': False, 'msg': 'این کد سمت قبلاً استفاده شده'}, status=400)
+
+    try:
+        rp = RoleProfile.objects.create(
+            code=code,
+            title_fa=title_fa[:150],
+            description=data.get('description') or '',
+            responsibilities=data.get('responsibilities') or '',
+            role_prompt=data.get('role_prompt') or '',
+            is_active=bool(data.get('is_active', True)),
+        )
+        return Response({'success': True, 'id': rp.id, 'msg': f'سمت {title_fa} ساخته شد'})
+    except Exception as e:
+        return Response({'success': False, 'msg': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def role_profiles_delete_api(request, role_id):
+    """حذف سمت سازمانی."""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
+
+    from core.models_role_profile import RoleProfile
+    rp = RoleProfile.objects.filter(id=role_id).first()
+    if not rp:
+        return Response({'success': False, 'msg': 'سمت یافت نشد'}, status=404)
+
+    title = rp.title_fa
+    rp.delete()
+    return Response({'success': True, 'msg': f'سمت {title} حذف شد'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def user_assign_org_role_api(request, user_id):
+    """اختصاص سمت سازمانی به کاربر."""
+    if not request.user.is_superuser:
+        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
+
+    from core.models_role_profile import RoleProfile, UserRoleProfile
+    target = get_object_or_404(User, pk=user_id)
+    role_id = request.data.get('role_id')
+
+    if role_id:
+        rp = RoleProfile.objects.filter(id=role_id).first()
+        if not rp:
+            return Response({'success': False, 'msg': 'سمت یافت نشد'}, status=404)
+    else:
+        rp = None
+
+    obj, _ = UserRoleProfile.objects.get_or_create(user=target)
+    obj.role_profile = rp
+    obj.assigned_by = request.user
+    obj.save()
+
+    return Response({
+        'success': True,
+        'role_id': rp.id if rp else None,
+        'title_fa': rp.title_fa if rp else '',
     })

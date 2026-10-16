@@ -1,0 +1,87 @@
+﻿
+core\models.py:325:    ollama_host = models.CharField(max_length=255, default='localhost', 
+verbose_name='آدرس Host')
+core\models.py:326:    ollama_port = models.IntegerField(default=11434, verbose_name='پورت')
+core\models.py:327:    ollama_model = models.CharField(max_length=100, default='gemma3:27b', 
+verbose_name='مدل')
+core\models.py:340:        return f"AI Settings - {self.ollama_host}:{self.ollama_port}"
+core\models.py:343:        return f"http://{self.ollama_host}:{self.ollama_port}"
+core\serializers.py:293:            'id', 'ollama_host', 'ollama_port', 'ollama_model',
+core\views.py:412:def save_settings_view(request):
+core\views.py:1437:    ai_settings = AISettings.get_settings()
+core\views.py:1443:                'ollama_host': ai_settings.ollama_host,
+core\views.py:1444:                'ollama_port': ai_settings.ollama_port,
+core\views.py:1445:                'ollama_model': ai_settings.ollama_model,
+core\migrations\0004_aisettings.py:20:                ('ollama_host', 
+models.CharField(default='localhost', max_length=255, verbose_name='آدرس Host')),
+core\migrations\0004_aisettings.py:21:                ('ollama_port', 
+models.IntegerField(default=11434, verbose_name='پورت')),
+core\migrations\0004_aisettings.py:22:                ('ollama_model', 
+models.CharField(default='gemma3:27b', max_length=100, verbose_name='مدل')),
+core\services\ai_client.py:14:    def __init__(self, base_url: str = None, secret: str = None, 
+timeout: int = 600):
+core\services\ai_client.py:15:        self.base_url = (base_url or getattr(settings, 'AI_SERVICE_URL', 
+'http://127.0.0.1:8000')).rstrip('/')
+core\services\ai_client.py:34:        url = f"{self.base_url}{path}"
+core\services\ai_client.py:44:            r = requests.get(f"{self.base_url}/health", timeout=10)
+core\services\ai_manager.py:13:        return AISettings.get_settings()
+core\services\ai_manager.py:16:    def test_connection(host=None, port=None, model=None):
+core\services\ai_manager.py:18:        settings = AISettings.get_settings()
+core\services\ai_manager.py:20:        host = host or settings.ollama_host
+core\services\ai_manager.py:21:        port = port or settings.ollama_port
+core\services\ai_manager.py:22:        model = model or settings.ollama_model
+core\services\ai_manager.py:24:        base_url = f"http://{host}:{port}"
+core\services\ai_manager.py:36:            response = requests.get(f"{base_url}/api/tags", timeout=5)
+core\services\ai_manager.py:43:                result['message'] = f" اتصال به {base_url} برقرار است"
+core\services\ai_manager.py:59:            result['message'] = f" cant connect to ollama server is 
+ollama run ? {base_url}"
+core\services\ai_manager.py:70:        settings = AISettings.get_settings()
+core\services\ai_manager.py:71:        host = host or settings.ollama_host
+core\services\ai_manager.py:72:        port = port or settings.ollama_port
+core\services\ai_manager.py:74:        base_url = f"http://{host}:{port}"
+core\services\ai_manager.py:77:            response = requests.get(f"{base_url}/api/tags", timeout=5)
+core\services\ai_manager.py:84:                    'default': settings.ollama_model
+core\services\ai_manager.py:91:    def save_settings(data):
+core\services\ai_manager.py:94:            settings = AISettings.get_settings()
+core\services\ai_manager.py:96:            settings.ollama_host = data.get('host', 
+settings.ollama_host)
+core\services\ai_manager.py:97:            settings.ollama_port = int(data.get('port', 
+settings.ollama_port))
+core\services\ai_manager.py:98:            settings.ollama_model = data.get('model', 
+settings.ollama_model)
+core\services\fastapi_client.py:9:FASTAPI_URL = "http://127.0.0.1:9000"
+core\services\llm_service.py:11:    def __init__(self, base_url: str = None, model: str = None):
+core\services\llm_service.py:14:        if base_url is None:
+core\services\llm_service.py:15:            base_url = self._get_base_url_from_settings()
+core\services\llm_service.py:18:            model = self._ai_settings.ollama_model
+core\services\llm_service.py:20:        self.base_url = base_url
+core\services\llm_service.py:23:        print(f" اتصال به Ollama: {self.base_url}")
+core\services\llm_service.py:31:            self._ai_settings = AISettings.get_settings()
+core\services\llm_service.py:32:            print(f"تنظیمات AI از دیتابیس بارگذاری شد: 
+{self._ai_settings.ollama_host}:{self._ai_settings.ollama_port}")
+core\services\llm_service.py:38:    def _get_base_url_from_settings(self) -> str:
+core\services\llm_service.py:40:            return 
+f"http://{self._ai_settings.ollama_host}:{self._ai_settings.ollama_port}"
+core\services\llm_service.py:42:        return "http://127.0.0.1:11434"
+core\services\llm_service.py:72:            response = requests.get(f"{self.base_url}/api/tags", 
+timeout=10)
+core\services\llm_service.py:78:                    print(f" هیچ مدلی در Ollama یافت نشد! (آدرس: 
+{self.base_url})")
+core\services\llm_service.py:92:            print(f" خطا در اتصال به {self.base_url}: {e}")
+core\services\llm_service.py:98:        self.base_url = self._get_base_url_from_settings()
+core\services\llm_service.py:100:            self.model = self._ai_settings.ollama_model
+core\services\llm_service.py:102:        print(f" تنظیمات مجدداً بارگذاری شد: {self.base_url}")
+core\services\llm_service.py:105:    def _call_llm_stream(self, prompt: str) -> str:
+core\services\llm_service.py:121:                f"{self.base_url}/api/generate", 
+core\services\llm_service.py:146:    def _call_llm(self, prompt: str) -> str:
+core\services\llm_service.py:167:                f"{self.base_url}/api/generate", 
+core\services\llm_service.py:271:    def test_connection(self, host: str, port: int, model: str = 
+None) -> dict:
+core\services\llm_service.py:272:        base_url = f"http://{host}:{port}"
+core\services\llm_service.py:275:            response = requests.get(f"{base_url}/api/tags", timeout=5)
+core\services\llm_service.py:304:                    f"{base_url}/api/generate",
+core\services\llm_service.py:325:                'message': f'خطا در اتصال به {base_url}',
+core\services\user_behavior_psychology.py:211:        s = AISettings.get_settings()
+core\services\user_behavior_psychology.py:216:            'model': s.ollama_model or 'gemma3:27b',
+
+

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -385,6 +385,13 @@ body{
       </button>
     </div>
 
+    <div class="control-card">
+      <div class="control-label"><i class="fas fa-briefcase"></i><span>سمت‌های سازمانی</span></div>
+      <button class="btn btn-primary" id="openRoleProfilesBtn" onclick="openRoleProfilesModal()">
+        <i class="fas fa-pen-to-square"></i> مدیریت سمت‌ها
+      </button>
+    </div>
+
     <button class="btn btn-ghost" id="backHomeBtn" style="margin-top:auto">
       <i class="fas fa-arrow-right"></i> بازگشت
     </button>
@@ -437,6 +444,15 @@ body{
      ========================================================= -->
 <script>
 /* ============ Config ============ */
+window.showToast = window.showToast || function(msg, type){
+  const c = document.getElementById('toastContainer') || document.body;
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type === 'error' ? 'error' : 'success');
+  t.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);background:' + (type==='error'?'#ff453a':'#30d158') + ';color:#fff;padding:12px 22px;border-radius:12px;z-index:99999;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+};
 let currentUserId = parseInt(window.__CURRENT_USER_ID__ || '0', 10);
 if (!currentUserId && window.DJANGO_USER_ID) {
   currentUserId = parseInt(window.DJANGO_USER_ID, 10) || 0;
@@ -754,7 +770,15 @@ window.deleteUserById = async (id) => {
 };
 
 /* ============ User edit modal ============ */
-function openUserEditModal(data){
+async function openUserEditModal(data){
+  // دریافت تازه role_profiles از سرور
+  try {
+    const _r = await fetch('/api/role-profiles/', {credentials:'same-origin'});
+    const _d = await _r.json();
+    if (_d && _d.items) {
+      data.role_profiles = _d.items.map(rp => ({id: rp.id, code: rp.code||'', title_fa: rp.title_fa||'', is_active: rp.is_active}));
+    }
+  } catch(e) { console.warn('role profiles refresh failed', e); }
   const root = document.getElementById('modalRoot');
   const u = data.user;
   const allGroups = data.all_groups || [];
@@ -803,6 +827,16 @@ function openUserEditModal(data){
           <div>تاریخ عضویت: ${escapeHtml(u.date_joined || '—')}</div>
         </div>
 
+        <div class="section-title">سمت‌های سازمانی (چند انتخابی)</div>
+        <div class="perm-box" style="max-height:200px">
+          ${(data.role_profiles||[]).map(rp => `
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px">
+              <input type="checkbox" class="ue-org-role-cb" value="${rp.id}" ${(u.org_role_ids||[]).includes(rp.id) ? 'checked' : ''}>
+              <span>${escapeHtml(rp.title_fa)}${rp.code ? ' <span style=\'color:#94a3b8;font-size:.7rem\'>(' + escapeHtml(rp.code) + ')</span>' : ''}</span>
+            </label>
+          `).join('') || '<span style="font-size:.75rem;color:#94a3b8">هیچ سمتی تعریف نشده.</span>'}
+        </div>
+
         <div class="section-title">تغییر رمز عبور (اختیاری)</div>
         <input type="password" id="ue-password" class="input-glass" placeholder="رمز جدید (خالی بگذارید تا تغییر نکند)">
 
@@ -833,7 +867,16 @@ window.saveUserEdit = async (userId) => {
     is_staff: document.getElementById('ue-staff').checked,
     is_superuser: document.getElementById('ue-super').checked,
     groups_ids: Array.from(document.querySelectorAll('.ue-group-cb:checked')).map(cb => parseInt(cb.value)),
+    org_role_ids: Array.from(document.querySelectorAll('.ue-org-role-cb:checked')).map(cb => parseInt(cb.value)),
     user_permissions_ids: Array.from(document.querySelectorAll('.ue-perm-cb:checked')).map(cb => parseInt(cb.value)),
+    role_profiles: Array.from(document.querySelectorAll('.rp-card')).map(card => ({
+      group_id: parseInt(card.dataset.gid),
+      title_fa: card.querySelector('.rp-title').value.trim(),
+      description: card.querySelector('.rp-desc').value.trim(),
+      responsibilities: card.querySelector('.rp-resp').value.trim(),
+      role_prompt: card.querySelector('.rp-prompt').value.trim(),
+      is_active: card.querySelector('.rp-active').checked,
+    })),
   };
   const pwd = document.getElementById('ue-password').value;
   if (pwd) payload.new_password = pwd;
@@ -961,6 +1004,155 @@ window.addEventListener('DOMContentLoaded', async () => {
   await fetchInitialData();
   await loadUsers();
 });
+
+/* ============ Role Profiles Manager ============ */
+
+
+
+
+
+
+
+
+
+
+/* ============ Role Profiles Manager (independent) ============ */
+window.openRoleProfilesModal = async () => {
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = '<div class="modal-overlay open" id="rpOverlay"><div class="modal-content"><div style="padding:40px;text-align:center">در حال بارگذاری...</div></div></div>';
+  let data;
+  try {
+    const r = await fetch('/api/role-profiles/', {credentials:'same-origin'});
+    data = await r.json();
+  } catch(e) {
+    root.innerHTML = '<div class="modal-overlay open"><div class="modal-content"><div style="padding:20px;color:#dc2626">خطا در بارگذاری</div></div></div>';
+    return;
+  }
+  const items = data.items || [];
+  root.innerHTML = `
+    <div class="modal-overlay open" id="rpOverlay">
+      <div class="modal-content" style="max-width:1000px">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-briefcase" style="color:var(--blue)"></i> مدیریت سمت‌های سازمانی</div>
+          <button class="modal-close" onclick="closeRoleProfilesModal()">×</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button class="btn btn-success btn-sm" onclick="openNewRoleProfileForm()"><i class="fas fa-plus"></i> سمت جدید</button>
+        </div>
+        <div id="newRpForm" style="display:none;background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.25);border-radius:14px;padding:14px;margin-bottom:14px">
+          <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-field"><label>کد سمت (انگلیسی، اختیاری)</label><input type="text" id="newRpCode" class="input-glass" placeholder="finance_manager"></div>
+            <div class="form-field"><label>عنوان فارسی سمت *</label><input type="text" id="newRpTitle" class="input-glass" placeholder="مدیر مالی"></div>
+          </div>
+          <div class="form-field" style="margin-top:8px"><label>شرح حال</label><textarea id="newRpDesc" class="input-glass" rows="2"></textarea></div>
+          <div class="form-field" style="margin-top:8px"><label>وظایف (هر خط یک وظیفه)</label><textarea id="newRpResp" class="input-glass" rows="3"></textarea></div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn btn-primary btn-sm" onclick="createNewRoleProfile()"><i class="fas fa-floppy-disk"></i> ساخت</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('newRpForm').style.display='none'">لغو</button>
+          </div>
+        </div>
+        <div id="rpList" style="display:flex;flex-direction:column;gap:14px;max-height:65vh;overflow-y:auto;padding:4px">
+          ${items.length === 0 ? '<div style="text-align:center;padding:20px;color:#94a3b8">هیچ سمتی تعریف نشده. روی «سمت جدید» بزنید.</div>' : items.map(rp => `
+            <div class="rp-row" data-id="${rp.id}" style="background:rgba(248,250,252,.75);border:1px solid var(--glass-stroke);border-radius:14px;padding:14px">
+              <div style="font-weight:700;font-size:.88rem;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+                <span><i class="fas fa-briefcase" style="color:var(--blue)"></i> ${escapeHtml(rp.title_fa)} <span style="font-size:.7rem;color:#94a3b8">(${rp.users_count} کاربر)</span></span>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <label style="font-size:.75rem;font-weight:500;color:#64748b"><input type="checkbox" class="rpg-active" ${rp.is_active?'checked':''}> فعال</label>
+                  <button class="btn btn-ghost btn-sm" style="color:#dc2626;padding:4px 10px;min-height:30px" onclick="deleteRoleProfile(${rp.id}, '${escapeHtml(rp.title_fa)}')">🗑️</button>
+                </div>
+              </div>
+              <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px">
+                <div class="form-field"><label>کد سمت</label><input type="text" class="input-glass rpg-code" value="${escapeHtml(rp.code||'')}" disabled></div>
+                <div class="form-field"><label>عنوان فارسی</label><input type="text" class="input-glass rpg-title" value="${escapeHtml(rp.title_fa||'')}"></div>
+              </div>
+              <div class="form-field" style="margin-top:8px"><label>شرح حال</label><textarea class="input-glass rpg-desc" rows="2">${escapeHtml(rp.description||'')}</textarea></div>
+              <div class="form-field" style="margin-top:8px"><label>وظایف (هر خط یک وظیفه)</label><textarea class="input-glass rpg-resp" rows="3">${escapeHtml(rp.responsibilities||'')}</textarea></div>
+              <div class="form-field" style="margin-top:8px"><label>متن ارسالی به AI (اختیاری)</label><input type="text" class="input-glass rpg-prompt" value="${escapeHtml(rp.role_prompt||'')}"></div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeRoleProfilesModal()">لغو</button>
+          <button class="btn btn-primary" onclick="saveAllRoleProfiles()"><i class="fas fa-floppy-disk"></i> ذخیره تغییرات</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('rpOverlay')?.addEventListener('click', e => {
+    if (e.target.id === 'rpOverlay') closeRoleProfilesModal();
+  });
+};
+
+window.closeRoleProfilesModal = () => { document.getElementById('modalRoot').innerHTML = ''; };
+
+
+
+window.openNewRoleProfileForm = () => {
+  const el = document.getElementById('newRpForm');
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.createNewRoleProfile = async () => {
+  const code = document.getElementById('newRpCode').value.trim();
+  const title_fa = document.getElementById('newRpTitle').value.trim();
+  const description = document.getElementById('newRpDesc').value.trim();
+  const responsibilities = document.getElementById('newRpResp').value.trim();
+  if (!title_fa) { showToast('عنوان فارسی الزامی است', 'error'); return; }
+  try {
+    const r = await fetch('/api/role-profiles/create/', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken},
+      body: JSON.stringify({code, title_fa, description, responsibilities})
+    });
+    const d = await r.json();
+    if (d.success) {
+      showToast('سمت جدید ساخته شد', 'success');
+      closeRoleProfilesModal();
+      setTimeout(openRoleProfilesModal, 300);
+    } else showToast(d.msg || 'خطا', 'error');
+  } catch(e) { showToast('خطای شبکه', 'error'); }
+};
+
+window.deleteRoleProfile = async (roleId, title) => {
+  if (!confirm(`حذف سمت «${title}»؟`)) return;
+  try {
+    const r = await fetch(`/api/role-profiles/${roleId}/delete/`, {
+      method:'POST',
+      headers:{'X-CSRFToken':csrftoken}
+    });
+    const d = await r.json();
+    if (d.success) {
+      showToast('سمت حذف شد', 'success');
+      closeRoleProfilesModal();
+      setTimeout(openRoleProfilesModal, 300);
+    } else showToast(d.msg || 'خطا', 'error');
+  } catch(e) { showToast('خطای شبکه', 'error'); }
+};
 </script>
 </body>
-</html>
+</html>window.saveAllRoleProfiles = async () => {
+  const rows = Array.from(document.querySelectorAll('.rp-row'));
+  const items = rows.map(row => {
+    const id = row.dataset.id && row.dataset.id !== 'new' ? parseInt(row.dataset.id) : null;
+    return {
+      id: id,
+      code: (row.querySelector('.rpg-code')?.value || '').trim() || null,
+      title_fa: row.querySelector('.rpg-title').value.trim(),
+      description: row.querySelector('.rpg-desc').value.trim(),
+      responsibilities: row.querySelector('.rpg-resp').value.trim(),
+      is_active: row.querySelector('.rpg-active').checked,
+    };
+  }).filter(x => x.title_fa);
+
+  if (items.length === 0) { showToast('هیچ سمت معتبری برای ذخیره نیست', 'error'); return; }
+
+  try {
+    const r = await fetch('/api/role-profiles/save-bulk/', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken},
+      body: JSON.stringify({items})
+    });
+    const d = await r.json();
+    showToast(d.success ? '✅ سمت‌ها ذخیره شد (' + (d.saved||0) + ')' : ('❌ ' + (d.msg || 'خطا')), d.success ? 'success' : 'error');
+    if (d.success) { closeRoleProfilesModal(); setTimeout(openRoleProfilesModal, 300); }
+  } catch(e) { showToast('❌ خطای شبکه: ' + e.message, 'error'); }
+};

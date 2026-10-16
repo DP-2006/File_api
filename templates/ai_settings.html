@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="fa" dir="ltr">
 <head>
@@ -1625,11 +1625,7 @@
           errorEl.style.display = 'block';
           return;
         }
-        if (newPass.length < 8) {
-          errorEl.textContent = 'رمز عبور باید حداقل ۸ کاراکتر باشد.';
-          errorEl.style.display = 'block';
-          return;
-        }
+        // client-side min-length removed; server enforces RolePasswordPolicy
         if (newPass !== confirmPass) {
           errorEl.textContent = 'رمز عبور و تکرار آن یکسان نیستند.';
           errorEl.style.display = 'block';
@@ -1818,10 +1814,7 @@
         toast('کاربران و رمز عبور جدید را وارد کنید', 'error');
         return;
       }
-      if (bulkPassword.length < 8) {
-        toast('رمز عبور باید حداقل ۸ کاراکتر باشد', 'error');
-        return;
-      }
+      // client-side min-length removed; server enforces RolePasswordPolicy
       try {
         const response = await fetchWithAuth('/api/users/bulk-change-password/', {
           method: 'POST',

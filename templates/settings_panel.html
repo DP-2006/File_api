@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -304,7 +304,7 @@
     var newP = document.getElementById('new-password').value;
     var conf = document.getElementById('confirm-password').value;
     if (!oldP || !newP || !conf) { showToast('همه فیلدها را پر کنید', 'error'); return; }
-    if (newP.length < 8) { showToast('رمز جدید باید حداقل ۸ کاراکتر باشد', 'error'); return; }
+    // client-side min-length removed; server enforces RolePasswordPolicy
     if (newP !== conf) { showToast('رمز جدید و تکرار آن یکسان نیستند', 'error'); return; }
     this.disabled = true;
     api('/api/me/change-password/', {
