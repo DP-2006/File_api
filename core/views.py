@@ -18,6 +18,11 @@ from django.utils import timezone
 from django.db import models
 from django.db.models import Count, Q
 from .services.file_reader import FileReader
+
+from .models_report_chat import ReportChatSession, ReportChatMessage
+from .services.report_chat_service import ReportChatService
+
+
 # Import از serializers.py
 from .serializers import (
     GroupSerializer, UserSerializer, UploadedFileSerializer, 
@@ -237,7 +242,8 @@ def dashboard_view(request):
             'is_staff': request.user.is_staff,
             'is_superuser': request.user.is_superuser,
             'username': request.user.username,
-            'id': request.user.id
+            'id': request.user.id,
+            'can_view_reports': request.user.has_perm('core.view_userbehavioranalysis') or request.user.is_superuser,
         },
         'settings': {
             'font_size': settings.font_size,
@@ -2335,11 +2341,6 @@ def analyze_file_detail_view(request, file_id):
         messages.error(request, f'خطا در بارگذاری تحلیل فایل: {str(e)}')
         return redirect('dashboard')
 
-
-# =============================================
-# ============ Password Policy ============
-# =============================================
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def set_password_policy(request):
@@ -2358,10 +2359,6 @@ def set_password_policy(request):
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
-# =============================================
-# ============ File Summary ============
-# =============================================
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -2398,9 +2395,6 @@ def file_summary_view(request, file_id):
     return render(request, 'file_summary.html', {'file': file_obj})
 
 
-# =============================================
-# ============ Analyze All ============
-# =============================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -2437,11 +2431,6 @@ def analyze_all_users_view(request):
         'staff_users': staff_users
     })
 
-
-# =============================================
-# ============ LOGS API ============
-# =============================================
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_logs_api(request):
@@ -2449,13 +2438,11 @@ def get_logs_api(request):
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
     
-    # ترکیب لاگ‌های ورود و عملیات
     login_logs = LoginLog.objects.all().order_by('-login_time')[:100]
     action_logs = FileActionLog.objects.all().order_by('-action_time')[:100]
     
     logs = []
     
-    # لاگ‌های ورود
     for log in login_logs:
         logs.append({
             'time': log.login_time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -2463,7 +2450,6 @@ def get_logs_api(request):
             'message': f'ورود کاربر {log.user.username if log.user else "ناشناس"} از {log.ip_address}'
         })
     
-    # لاگ‌های عملیات
     for log in action_logs:
         level = log.threat_level or 'info'
         if level in ['critical', 'high']:
@@ -2479,7 +2465,6 @@ def get_logs_api(request):
             'message': f'{log.action} - {log.file_name} توسط {log.user.username if log.user else "سیستم"}'
         })
     
-    # مرتب‌سازی بر اساس زمان (جدیدترین اول)
     logs.sort(key=lambda x: x['time'], reverse=True)
     
     return Response({
@@ -2491,18 +2476,15 @@ def get_logs_api(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def clear_logs_api(request):
-    """پاک کردن لاگ‌ها"""
     if not request.user.is_superuser:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        # پاک کردن لاگ‌های ورود قدیمی (فقط 1000 تای آخر نگهداری می‌شود)
         total_login = LoginLog.objects.count()
         if total_login > 1000:
             to_delete = LoginLog.objects.order_by('login_time')[:total_login - 1000]
             to_delete.delete()
         
-        # پاک کردن لاگ‌های عملیات قدیمی
         total_action = FileActionLog.objects.count()
         if total_action > 1000:
             to_delete = FileActionLog.objects.order_by('action_time')[:total_action - 1000]
@@ -2519,9 +2501,6 @@ def clear_logs_api(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# =============================================
-# ============ USERS LIST API ============
-# =============================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -2534,7 +2513,6 @@ def get_users_list_api(request):
     user_list = []
     
     for user in users:
-        # دریافت نقش‌های کاربر
         roles = [{'id': g.id, 'name': g.name} for g in user.groups.all()]
         
         user_list.append({
@@ -2555,10 +2533,6 @@ def get_users_list_api(request):
     return Response(user_list)
 
 
-# =============================================
-# ============ ROLES API ============
-# =============================================
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_all_roles_api(request):
@@ -2570,7 +2544,6 @@ def get_all_roles_api(request):
     role_list = []
     
     for role in roles:
-        # دریافت تعداد کاربران دارای این نقش
         user_count = User.objects.filter(groups=role).count()
         
         role_list.append({
@@ -2583,10 +2556,6 @@ def get_all_roles_api(request):
     
     return Response(role_list)
 
-
-# =============================================
-# ============ ALL PERMISSIONS API ============
-# =============================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -2609,10 +2578,6 @@ def get_all_permissions_api(request):
     
     return Response(perm_list)
 
-
-# =============================================
-# ============ ROLE PERMISSIONS API ============
-# =============================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -2688,14 +2653,12 @@ def create_role_api(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def delete_role_api(request, role_id):
-    """حذف نقش"""
     if not request.user.is_superuser:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
         role = Group.objects.get(id=role_id)
         
-        # نقش‌های محافظت شده
         protected_roles = ['admin', 'superadmin', 'user']
         if role.name.lower() in protected_roles:
             return Response({'success': False, 'msg': f'نقش {role.name} قابل حذف نیست'}, 
@@ -2762,17 +2725,9 @@ def debug_files_view(request):
 
 
 
-
-
-
-# =============================================
-# ============ SELF-SERVICE APIs () ============
-# =============================================
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me_profile_api(request):
-    """دریافت اطلاعات پروفایل خود کاربر"""
     user = request.user
     return Response({
         'success': True,
@@ -2792,7 +2747,6 @@ def me_profile_api(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def me_change_password_api(request):
-    """تغییر رمز عبور خود کاربر"""
     from django.contrib.auth import update_session_auth_hash
 
     old_password = request.data.get('old_password', '')
@@ -2811,10 +2765,7 @@ def me_change_password_api(request):
     request.user.set_password(new_password)
     request.user.save()
 
-    # جلوگیری از logout شدن کاربر بعد از تغییر رمز
     update_session_auth_hash(request, request.user)
-
-    # ثبت لاگ
     try:
         FileActionLog.objects.create(
             user=request.user,
@@ -2832,7 +2783,6 @@ def me_change_password_api(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def me_change_username_api(request):
-    """تغییر نام کاربری خود کاربر"""
     new_username = (request.data.get('username') or '').strip()
 
     if not new_username:
@@ -2868,28 +2818,16 @@ def me_change_username_api(request):
         'new_username': new_username
     })
 
-# =============================================
-# ============ PUBLIC SETTINGS PANEL ============
-# =============================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def settings_panel_view(request):
-    """
-    پنل تنظیمات عمومی - برای همه کاربران قابل دسترس.
-    کاربر عادی فقط Account Management را می‌بیند.
-    ادمین‌ها پنل کامل را می‌بینند.
-    """
     return render(request, 'settings_panel.html', {
         'is_staff': request.user.is_staff,
         'is_superuser': request.user.is_superuser,
         'username': request.user.username,
     })
 
-
-# =============================================
-# ============ SELF-SERVICE APIs ============
-# =============================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -2940,27 +2878,14 @@ def me_change_username_api(request):
     request.user.username = new_username
     request.user.save()
     return Response({'success': True, 'msg': 'نام کاربری با موفقیت تغییر کرد', 'new_username': new_username})
-# =============================================
-# ============ SMART SETTINGS ROUTER ============
-# =============================================
 @login_required
 def settings_router_view(request):
-    """
-    تصمیم می‌گیرد کاربر به کدام پنل تنظیمات برود:
-    - ادمین / سوپرادمین / کسی که دسترسی view_settings دارد → /ai-settings/
-    - سایر کاربران → /settings/
-    """
     user = request.user
-    # سوپرادمین یا استف → پنل کامل AI
     if user.is_superuser or user.is_staff:
         return redirect('ai_settings')
-    # کاربری که از طریق گروه دسترسی لازم را دارد
     try:
         from .permissions import has_permission
         if has_permission(user, 'view_settings'):
-            # اگر واقعاً دسترسی ادمین دارد → AI settings
-            # اگر فقط دسترسی پیش‌فرض کاربر عادی است → settings
-            # تفکیک: اگر لااقل یکی از دسترسی‌های مدیریتی را دارد
             admin_perms = [
                 'view_users', 'create_user', 'edit_user', 'delete_user',
                 'block_user', 'change_password', 'assign_role',
@@ -2972,17 +2897,12 @@ def settings_router_view(request):
                     return redirect('ai_settings')
     except Exception:
         pass
-    # کاربر عادی → پنل تنظیمات کاربری
     return redirect('settings_panel')
     return redirect('settings_panel')
-# =============================================
-# ============ AI CONVERSATIONS API ============
-# =============================================
 from .models_ai_conversation import AIConversation as _AIConvModel  # noqa
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def ai_conversations_list_api(request):
-    """لیست گفتگوهای AI با فیلتر بر اساس کاربر، نوع، جستجو"""
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
     try:
@@ -3027,7 +2947,6 @@ def ai_conversations_list_api(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def ai_conversations_stats_api(request):
-    """آمار گفتگوها به تفکیک کاربر و نوع"""
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
     try:
@@ -3062,7 +2981,6 @@ def ai_conversations_stats_api(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def ai_conversations_by_user_api(request, user_id):
-    """گفتگوهای یک کاربر خاص"""
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
     try:
@@ -3090,16 +3008,10 @@ def ai_conversations_by_user_api(request, user_id):
         })
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-# =============================================
-# ============ BEHAVIOR ANALYSIS API ==========
-# =============================================
-# from .models_file_analysis import FileAIAnalysis as _FAA  # noqa
-# from .models_user_behavior import UserBehaviorAnalysis
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def behavior_analysis_list_api(request):
-    """لیست تحلیل رفتار همه کاربران — برای ادمین"""
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -3221,21 +3133,9 @@ def behavior_analysis_panel_view(request):
 
 
 
-
-
-
-# =============================================
-# ============ Report Chat API ================
-# =============================================
-
-from .models_report_chat import ReportChatSession, ReportChatMessage
-from .services.report_chat_service import ReportChatService
-
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def report_chat_start_api(request):
-    """ساخت جلسه چت جدید روی فایل‌های انتخاب‌شده + کاربر هدف"""
     if not request.user.is_staff:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'},
                         status=status.HTTP_403_FORBIDDEN)
@@ -3348,15 +3248,9 @@ def report_chat_detail_api(request, session_id):
         return Response({'success': False, 'msg': str(e)},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-# =============================================
-# ============ MY REPORTS (User Self-Service) =
-# =============================================
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_behavior_analysis_view(request):
-    """تحلیل رفتار خود کاربر لاگین‌شده + لیست فایل‌های تحلیل‌شده‌اش."""
     try:
         user = request.user
 
@@ -3418,10 +3312,6 @@ def my_behavior_analysis_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_files_for_chat_api(request):
-    """لیست فایل‌های قابل انتخاب کاربر برای چت RAG:
-       - فایل‌های آپلود شده توسط خودش
-       - فایل‌های دریافتی (sent_to_user == خودش)
-    """
     try:
         user = request.user
         uploaded = UploadedFile.objects.filter(uploaded_by=user, is_deleted=False)
@@ -3450,7 +3340,6 @@ def my_files_for_chat_api(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def my_chat_start_api(request):
-    """ساخت جلسه چت برای کاربر عادی روی فایل‌های انتخابی خودش/دریافتی."""
     try:
         from .models_report_chat import ReportChatSession
         from .services.report_chat_service import ReportChatService
@@ -3461,7 +3350,6 @@ def my_chat_start_api(request):
         if not file_ids:
             return Response({'success': False, 'msg': 'حداقل یک فایل انتخاب کنید'}, status=400)
 
-        # فقط فایل‌هایی که کاربر مالک یا دریافت‌کننده است
         allowed = UploadedFile.objects.filter(id__in=file_ids, is_deleted=False).filter(
             models.Q(uploaded_by=request.user) | models.Q(sent_to_user=request.user)
         ).distinct()
@@ -3519,7 +3407,6 @@ def my_chat_ask_api(request, session_id):
 
 @login_required
 def my_reports_panel_view(request):
-    """صفحه HTML گزارش‌های کاربر عادی."""
     return render(request, 'my-reports-panel.html')
 
 
@@ -3668,7 +3555,6 @@ def report_chat_generate_image_api(request, session_id):
 @login_required
 @require_http_methods(["GET"])
 def user_role_analysis_api(request, user_id):
-    """دریافت تحلیل مرتبط بودن فایل‌های کاربر با نقش او."""
     from django.contrib.auth.models import User
     from core.models import FileRoleAnalysis
 
@@ -3700,53 +3586,65 @@ def user_role_analysis_api(request, user_id):
 @login_required
 @require_http_methods(["GET", "POST"])
 def user_psychology_api(request, user_id):
-    """
-    GET: دریافت آخرین تحلیل روانشناسی ذخیره‌شده.
-    POST: اجرای تحلیل جدید (همگام؛ چون LLM ممکن است کند باشد).
-    """
     from django.contrib.auth.models import User
     from core.models_user_behavior import UserBehaviorAnalysis
-    from core.services.user_behavior_psychology import analyze_user_psychology
+    from core.models_role_profile import UserRoleProfile
+    from core.models import UploadedFile
+    from core.models_file_analysis import FileAIAnalysis
+    from core.services.ai_client import ai_client
 
     target = get_object_or_404(User, pk=user_id)
     if not request.user.is_staff and request.user != target:
         return JsonResponse({'ok': False, 'error': 'forbidden'}, status=403)
 
     if request.method == 'POST':
+        roles = list(UserRoleProfile.objects.filter(user=target).values_list('role_profile__title_fa', flat=True))
+        files_payload = []
+        for f in UploadedFile.objects.filter(uploaded_by=target, is_deleted=False)[:30]:
+            fa = FileAIAnalysis.objects.filter(file=f).first()
+            files_payload.append({
+                "name": (f.file.name.split('/')[-1] if f.file else '—'),
+                "kind": (fa.analysis_json.get('kind', 'unknown') if fa else 'unknown'),
+                "text_excerpt": (fa.analysis_json.get('text', '')[:2000] if fa else ''),
+                "top_topic": (fa.top_topic or '' if fa else ''),
+            })
+
+        payload = {
+            "user_id": target.id,
+            "username": target.username,
+            "org_roles": roles,
+            "files": files_payload,
+        }
+
         try:
-            result = analyze_user_psychology(target, persist=True)
-            payload = result.to_dict()
-            return JsonResponse({'ok': True, 'fresh': True, 'data': payload})
+            from core.services.ai_client import AIServiceClient
+            client = AIServiceClient()
+            result = client.analyze_psychology(payload)
         except Exception as e:
-            return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+            return JsonResponse({'ok': False, 'error': str(e)}, status=502)
+
+        UserBehaviorAnalysis.objects.update_or_create(
+            user=target,
+            defaults={
+                'analysis_json': result,
+                'ai_summary': result.get('narrative', ''),
+                'relevance_avg': result.get('role_fit_score', 0),
+            }
+        )
+        return JsonResponse({'ok': True, 'fresh': True, 'data': result})
 
     analysis = UserBehaviorAnalysis.objects.filter(user=target).first()
     if not analysis:
         return JsonResponse({'ok': True, 'fresh': False, 'data': None})
-
     return JsonResponse({
-        'ok': True,
-        'fresh': False,
+        'ok': True, 'fresh': False,
         'data': analysis.analysis_json or {},
-        'meta': {
-            'total_files': analysis.total_files,
-            'related_files_count': analysis.related_files_count,
-            'unrelated_files_count': analysis.unrelated_files_count,
-            'suspicious_files_count': analysis.suspicious_files_count,
-            'relevance_avg': analysis.relevance_avg,
-            'related_percent': analysis.related_percent,
-            'suspicious_percent': analysis.suspicious_percent,
-            'top_topics': analysis.top_topics,
-            'file_types_distribution': analysis.file_types_distribution,
-            'last_analyzed_at': analysis.last_analyzed_at.isoformat(),
-        },
     })
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def role_profiles_delete_api(request, group_id):
-    """حذف سمت سازمانی + نقش سیستمی."""
     if not request.user.is_superuser:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
 
@@ -3764,14 +3662,10 @@ def role_profiles_delete_api(request, group_id):
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=500)
 
-# =============================================
-# ============ Role Profiles (مستقل) ==========
-# =============================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def role_profiles_list_all_api(request):
-    """لیست همه سمت‌های سازمانی — مستقل از گروه."""
     if not request.user.is_superuser:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
 
@@ -3840,7 +3734,6 @@ def role_profiles_save_bulk_api(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def role_profiles_create_api(request):
-    """ساخت سمت سازمانی جدید — مستقل از Group."""
     if not request.user.is_superuser:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
 
@@ -3979,7 +3872,6 @@ def role_profile_files_get_api(request, role_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def role_profile_files_set_api(request, role_id):
-    """ذخیره فایل‌های مجاز یک سمت."""
     if not request.user.is_superuser:
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=403)
 

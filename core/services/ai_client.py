@@ -12,7 +12,7 @@ from django.conf import settings
 
 class AIServiceClient:
     def __init__(self, base_url: str = None, secret: str = None, timeout: int = 600):
-        self.base_url = (base_url or getattr(settings, 'AI_SERVICE_URL', 'http://127.0.0.1:8000')).rstrip('/')
+        self.base_url = (base_url or getattr(settings, 'AI_SERVICE_URL', 'http://127.0.0.1:9000')).rstrip('/')
         self.secret = (secret or getattr(settings, 'AI_SERVICE_SECRET', '')).encode('utf-8')
         self.timeout = timeout
         self.is_available = False
@@ -64,7 +64,7 @@ class AIServiceClient:
             "images_b64": images_b64 or [],
         })
 
-    def analyze_file(self, content: str, file_name: str = "", file_type: str = "") -> dict:        
+    def analyze_file(self, content: str, file_name: str = "", file_type: str = "") -> dict:
         if not content or not content.strip():
             return {
                 "is_violation": False,
@@ -78,40 +78,43 @@ class AIServiceClient:
             "context": f"file={file_name} type={file_type}",
         })
 
+    def generate_image(self, topic: str, context_text: str = "") -> dict:
+        return self._post(
+            "/image-generation/generate",
+            {"topic": topic, "context_text": context_text or ""},
+        )
 
-def generate_image(self, topic: str) -> dict:
-    return self._post(
-        "/image-generation/generate",
-        {"topic": topic, "context_text": ""}, 
-    )
+    def chat_with_selected_files(self, question: str, file_ids: list,
+                                 user_id=None, history=None) -> dict:
+        return self._post("/chat/with-context", {
+            "question": question,
+            "file_ids": file_ids or [],
+            "user_id": str(user_id) if user_id else None,
+            "history": history or [],
+        })
 
-def chat_with_selected_files(self, question: str, file_ids: list[int],
-                             user_id=None, history=None) -> dict:
-    return self._post("/chat/with-context", {
-        "question": question,
-        "file_ids": file_ids,
-        "user_id": str(user_id) if user_id else None,
-        "history": history or [],
-    })
+    def generate_presentation(self, topic: str, file_ids: list,
+                              user_id=None, slide_count: int = 8) -> dict:
+        return self._post("/presentation/generate", {
+            "topic": topic,
+            "file_ids": file_ids or [],
+            "user_id": str(user_id) if user_id else None,
+            "slide_count": slide_count,
+        })
 
-
-def generate_presentation(self, topic: str, file_ids: list[int],
-                          user_id=None, slide_count: int = 8) -> dict:
-    return self._post("/presentation/generate", {
-        "topic": topic,
-        "file_ids": file_ids,
-        "user_id": str(user_id) if user_id else None,
-        "slide_count": slide_count,
-    })
+    def analyze_psychology(self, payload: dict) -> dict:
+        """POST /psy/analyze به FastAPI."""
+        return self._post("/psy/analyze", payload)
 
 
-
-_is_management = any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'createsuperuser', 'shell', 'test', 'check'])
+_is_management = any(
+    cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'createsuperuser', 'shell', 'test', 'check']
+)
 if not _is_management:
     try:
         ai_client = AIServiceClient()
     except Exception as e:
-        print(f" خطا در ایجاد AIServiceClient: {e}")
+        print(f"خطا در ایجاد AIServiceClient: {e}")
         ai_client = None
 else:
     ai_client = None

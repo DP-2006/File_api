@@ -1704,7 +1704,7 @@
           toast(data.msg || 'خطا در ویرایش نقش', 'error');
         }
       } catch (error) {
-        if (error.message !== 'Unauthorized') toast('خطا در ارتباط با سرور', 'error');
+        if (error.message !== 'Unauthoriz  ed') toast('خطا در ارتباط با سرور', 'error');
       } finally {
         setEditLoading(false);
       }
@@ -1757,7 +1757,7 @@
       }
     };
 
-    const handleBulkAssignRole = async () => {
+    const handleBulkAssignRole = async () => {           
       if (!selectedRoleId || selectedUserIds.length === 0) {
         toast('نقش و کاربران را انتخاب کنید', 'error');
         return;

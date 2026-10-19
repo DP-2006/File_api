@@ -1743,6 +1743,13 @@
                                         React.createElement('span', null, 'فایل‌های دریافتی'),
                                         React.createElement('span', { className: 'mr-auto text-xs ios-text-muted' }, '(' + receivedFiles.length + ')')
                                     ),
+                                    (djangoData.user.can_view_reports) ? React.createElement('a', {
+                                        href: '/behavior-analysis-panel/',
+                                        className: 'ios-sidebar-item no-underline'
+                                    },
+                                        React.createElement('i', { className: 'ph ph-chart-line-up' }),
+                                        React.createElement('span', null, 'گزارشات هوش مصنوعی')
+                                    ) : null,
                                     React.createElement('a', {
                                         href: '/settings/',
                                         className: 'ios-sidebar-item no-underline'

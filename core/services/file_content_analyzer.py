@@ -1,4 +1,4 @@
-# core/services/file_content_analyzer.py
+﻿# core/services/file_content_analyzer.py
 """
 استخراج سریع محتوای فایل — بدون LLM.
 برای متن/PDF/DOCX/XLSX: خواندن مستقیم.
@@ -143,15 +143,20 @@ def _extract_sheet(uploaded_file) -> ContentResult:
 
 
 def _extract_image(uploaded_file) -> ContentResult:
+    """استخراج محتوای عکس با vision (gemma3:27b multimodal)."""
     res = ContentResult(kind='image')
     try:
         from PIL import Image
         from PIL.ExifTags import TAGS
+        import io, base64, requests
+        from core.models import AISettings
+
         f = _open_file(uploaded_file)
         img = Image.open(f)
         res.metadata['format'] = img.format
-        res.metadata['size'] = list(img.size)  # [w, h]
+        res.metadata['size'] = list(img.size)
         res.metadata['mode'] = img.mode
+
         try:
             exif = img._getexif() if hasattr(img, '_getexif') else None
             if exif:
@@ -163,19 +168,41 @@ def _extract_image(uploaded_file) -> ContentResult:
                 res.metadata['exif'] = exif_data
         except Exception:
             pass
-        w, h = img.size
-        fmt = img.format or ''
-        res.text = f"تصویر {fmt} با ابعاد {w}×{h} پیکسل"
+
+        try:
+            img.thumbnail((1024, 1024))
+            buf = io.BytesIO()
+            img.save(buf, format='JPEG', quality=85)
+            b64 = base64.b64encode(buf.getvalue()).decode()
+        except Exception as e:
+            res.error = f'resize fail: {e}'
+            return res
+        finally:
+            try: f.close()
+            except Exception: pass
+
+        try:
+            s = AISettings.get_settings()
+            url = f"http://{s.ollama_host}:{s.ollama_port}/api/generate"
+            payload = {
+                'model': s.ollama_model or 'gemma3:27b',
+                'prompt': 'این عکس چه چیزی را نشان می‌دهد؟ اگر متن، سند، یا اطلاعات حساس در تصویر هست، آن را هم بنویس. توضیح مختصر و دقیق (حداکثر ۲۰۰ کلمه، فارسی).',
+                'images': [b64],
+                'stream': False,
+                'options': {'temperature': 0.2, 'num_predict': 400},
+            }
+            r = requests.post(url, json=payload, timeout=180)
+            r.raise_for_status()
+            vision_text = r.json().get('response', '').strip()
+            res.text = vision_text or 'تصویر بدون توضیح'
+            res.metadata['vision'] = True
+        except Exception as e:
+            res.text = f"تصویر {res.metadata.get('format','')}"
+            res.metadata['vision'] = False
+            res.error = f'vision fail: {e}'
     except Exception as e:
         res.error = f'image fail: {e}'
-    finally:
-        try:
-            uploaded_file.file.close()
-        except Exception:
-            pass
     return res
-
-
 def extract_content(uploaded_file) -> ContentResult:
     """
     تشخیص نوع فایل و استخراج محتوا.
@@ -258,6 +285,24 @@ def ensure_file_analyzed(uploaded_file, force=False) -> 'FileAIAnalysis':  # noq
             'model_used': 'content_analyzer_v1',
         },
     )
+
+    # index خودکار به FastAPI (fail-safe)
+    try:
+        if content.text and content.text.strip():
+            from core.services.ai_client import AIServiceClient
+            _c = AIServiceClient()
+            _c._post("/rag/index-files", {
+                "files": [{
+                    "file_id": uploaded_file.id,
+                    "user_id": uploaded_file.uploaded_by_id,
+                    "file_name": (uploaded_file.file.name.split("/")[-1] if uploaded_file.file else ""),
+                    "chunks": [content.text[:3000]],
+                }]
+            })
+    except Exception as _e:
+        import logging
+        logging.getLogger(__name__).warning(f"rag index fail file={uploaded_file.id}: {_e}")
+
     return obj
 
 
