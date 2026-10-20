@@ -6,6 +6,7 @@
 هدف: < ۱ ثانیه هر فایل.
 """
 import logging
+import hashlib
 import os
 from dataclasses import dataclass, field, asdict
 
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 MAX_TEXT_CHARS = 4000        # حداکثر متن استخراجی
 MAX_PDF_PAGES = 5            # حداکثر صفحات PDF
-TEXT_EXTS = {'.txt', '.md', '.csv', '.log', '.json', '.xml', '.yaml', '.yml', '.ini', '.cfg', '.conf'}
+TEXT_EXTS = {'.txt', '.md', '.csv', '.log', '.json', '.xml', '.yaml', '.yml', '.ini', '.cfg', '.conf', '.py', '.js', '.ts', '.html', '.css', '.sql', '.ps1', '.psm1', '.psd1', '.bat', '.sh', '.rb', '.go', '.php', '.java', '.c', '.cpp', '.cs'}
 DOC_EXTS = {'.docx'}
 SHEET_EXTS = {'.xlsx', '.xlsm'}
 PDF_EXTS = {'.pdf'}
@@ -29,6 +30,23 @@ class ContentResult:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+def _compute_file_hash(uploaded_file) -> str:
+    """SHA-256 از name + size + mtime. برای idempotency."""
+    try:
+        f = uploaded_file.file
+        name = f.name or ''
+        size = f.size
+        try:
+            mtime = f.storage.get_modified_time(f.name).timestamp()
+        except Exception:
+            mtime = 0
+        raw = f"{name}|{size}|{int(mtime)}".encode('utf-8')
+        return hashlib.sha256(raw).hexdigest()
+    except Exception as e:
+        logger.warning(f'hash fail file={getattr(uploaded_file, "id", "?")}: {e}')
+        return ''
 
 
 def _open_file(uploaded_file):
@@ -236,32 +254,34 @@ def extract_content(uploaded_file) -> ContentResult:
 # ---------- اتصال به FileAIAnalysis ----------
 def ensure_file_analyzed(uploaded_file, force=False) -> 'FileAIAnalysis':  # noqa: F821
     """
-    اگر FileAIAnalysis برای این فایل موجود نبود (یا force=True)،
-    محتوا را استخراج و در DB ذخیره کن.
+    ??? FileAIAnalysis ???? ??? ???? ????? ???? (?? force=True)?
+    ????? ?? ??????? ? ?? DB ????? ??.
+    Idempotent ?? file_hash.
     """
     from core.models_file_analysis import FileAIAnalysis
 
     existing = FileAIAnalysis.objects.filter(file=uploaded_file).first()
+    current_hash = _compute_file_hash(uploaded_file)
+
     if existing and not force:
-        # اگر متن استخراجی خالی بود، دوباره تلاش کن
-        if existing.analysis_json and existing.analysis_json.get('text'):
+        if current_hash and existing.file_hash and existing.file_hash == current_hash:
             return existing
-        if existing.analysis_json and existing.analysis_json.get('kind') == 'image':
+        if not existing.file_hash and existing.analysis_json and existing.analysis_json.get('text'):
+            return existing
+        if not existing.file_hash and existing.analysis_json and existing.analysis_json.get('kind') == 'image' and existing.analysis_json.get('text'):
             return existing
 
     content = extract_content(uploaded_file)
 
-    # خلاصه اولیه (بدون LLM، سریع)
     if content.kind == 'image':
-        summary = content.text or 'تصویر'
-        top_topic = 'تصویر'
+        summary = content.text or '?????'
+        top_topic = '?????'
     elif content.text:
         summary = content.text[:300].strip()
-        # top_topic: از کلمات پرتکرار (بدون LLM)
         top_topic = _guess_topic(content.text)
     else:
-        summary = content.error or 'محتوای قابل استخراج نبود'
-        top_topic = 'نامشخص'
+        summary = content.error or '?????? ???? ??????? ????'
+        top_topic = '??????'
 
     data = {
         'kind': content.kind,
@@ -283,25 +303,25 @@ def ensure_file_analyzed(uploaded_file, force=False) -> 'FileAIAnalysis':  # noq
             'relevance_score': 0.0,
             'is_related': True,
             'model_used': 'content_analyzer_v1',
+            'file_hash': current_hash,
         },
     )
 
-    # index خودکار به FastAPI (fail-safe)
     try:
         if content.text and content.text.strip():
             from core.services.ai_client import AIServiceClient
             _c = AIServiceClient()
-            _c._post("/rag/index-files", {
-                "files": [{
-                    "file_id": uploaded_file.id,
-                    "user_id": uploaded_file.uploaded_by_id,
-                    "file_name": (uploaded_file.file.name.split("/")[-1] if uploaded_file.file else ""),
-                    "chunks": [content.text[:3000]],
+            _c._post('/rag/index-files', {
+                'files': [{
+                    'file_id': uploaded_file.id,
+                    'user_id': uploaded_file.uploaded_by_id,
+                    'file_name': (uploaded_file.file.name.split('/')[-1] if uploaded_file.file else ''),
+                    'chunks': [content.text[:3000]],
                 }]
             })
     except Exception as _e:
         import logging
-        logging.getLogger(__name__).warning(f"rag index fail file={uploaded_file.id}: {_e}")
+        logging.getLogger(__name__).warning(f'rag index fail file={uploaded_file.id}: {_e}')
 
     return obj
 

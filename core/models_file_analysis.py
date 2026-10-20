@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.contrib.auth.models import User
 
 
@@ -36,6 +36,7 @@ class FileAIAnalysis(models.Model):
     top_topic = models.CharField(max_length=255, blank=True, null=True, verbose_name='موضوع غالب')
 
     model_used = models.CharField(max_length=100, blank=True, null=True, verbose_name='مدل استفاده‌شده')
+    file_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True, verbose_name='هش محتوا (SHA-256)')
     analyzed_at = models.DateTimeField(auto_now_add=True, verbose_name='زمان تحلیل')
 
     class Meta:

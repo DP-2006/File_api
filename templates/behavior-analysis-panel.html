@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -1094,101 +1094,140 @@ function destroyCharts(){
   charts = {};
 }
 
+function tooltip(){
+  return {
+    backgroundColor: css('--tip'),
+    borderColor: css('--separator'),
+    borderWidth: 1,
+    titleColor: css('--label'),
+    bodyColor: css('--label-2'),
+    padding: 12,
+    cornerRadius: 12,
+    displayColors: false,
+    rtl: true,
+    textDirection: 'rtl',
+    titleFont: {weight: '700'},
+    bodyFont: {size: 12},
+    callbacks: { label: c => toFa(c.formattedValue) }
+  };
+}
+
 function buildCharts(d){
   destroyCharts();
-  const b = d.behavior, topics = b.top_topics || [], trend = d.trend || [];
-  const txt = css('--text-2'), grid = css('--border'), P = PALETTE();
-  const base = { responsive:true, maintainAspectRatio:false, color:txt };
-  const scaleY = {
-    beginAtZero:true, grid:{ color:grid },
-    border:{ display:false },
-    ticks:{ precision:0, color:txt, callback:v => toFa(v) }
-  };
+  const b = d.behavior || {};
+  const trend = d.trend || [];
+  const kindDist = d.kind_distribution || {};
+  const threatDist = d.threat_distribution || {};
+  const topicDist = d.topic_distribution || [];
+  const roleFit = d.role_fit_breakdown || [];
 
-  const cT = document.getElementById('chartTopics');
-  if(cT){
-    const total = topics.reduce((s,t) => s + num(t.count), 0);
-    charts.topics = new Chart(cT, {
-      type:'doughnut',
-      data:{
-        labels: topics.map(t => t.name),
-        datasets:[{
-          data: topics.map(t => num(t.count)),
-          backgroundColor: topics.map((_,i) => P[i % P.length]),
-          borderWidth: 0, hoverOffset: 8, spacing: 2, borderRadius: 4
-        }]
-      },
-      options:{
-        ...base, cutout:'66%',
-        animation:{ animateRotate:true, animateScale:true, duration:1200, easing:'easeOutQuart' },
-        plugins:{
-          centerText:{ text: toFa(total), sub:'مجموع' },
-          tooltip: tooltipCfg(),
-          legend:{
-            position:'bottom',
-            labels:{ usePointStyle:true, pointStyle:'circle', boxWidth:6, padding:12, color:txt, font:{size:11} }
-          }
-        },
-        onClick: (evt, elements) => {
-          if(elements.length){
-            const idx = elements[0].index;
-            const name = topics[idx]?.name;
-            if(name) showTopicDetail(name);
-          }
-        }
-      },
-      plugins:[centerText]
+  const txt = css('--label-2'), grid = css('--separator'), P = PALETTE();
+  const base = {responsive:true, maintainAspectRatio:false};
+  const scaleY = {beginAtZero:true, grid:{color:grid}, border:{display:false}, ticks:{precision:0, color:txt, callback:v => toFa(v)}};
+
+  /* ── Doughnut: توزیع نوع فایل (per-file) ── */
+  const cK = document.getElementById('chartKinds');
+  if (cK) {
+    const labels = Object.keys(kindDist);
+    const values = Object.values(kindDist);
+    const total = values.reduce((s,v) => s + v, 0);
+    if (labels.length) {
+      charts.kinds = new Chart(cK, {
+        type: 'doughnut',
+        data: { labels,
+          datasets: [{ data: values, backgroundColor: labels.map((_,i) => P[i % P.length]),
+            borderWidth: 0, hoverOffset: 10, spacing: 3, borderRadius: 8 }] },
+        options: { ...base, cutout: '68%',
+          animation: { animateRotate: true, animateScale: true, duration: 1600, easing: 'easeOutQuart' },
+          plugins: { centerText: {text: toFa(total), sub: 'فایل'},
+            tooltip: tooltip(),
+            legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14, color: txt, font: {size: 11}} } } },
+        plugins: [centerText]
+      });
+    } else {
+      cK.parentElement.innerHTML = '<div class="no-data" style="position:absolute;inset:0;display:grid;place-items:center">داده‌ای برای نمایش نیست</div>';
+    }
+  }
+
+  /* ── Bar: توزیع سطح تهدید (per-file) ── */
+  const cT = document.getElementById('chartThreats');
+  if (cT) {
+    const order = ['low', 'medium', 'high', 'critical'];
+    const labels = ['کم', 'متوسط', 'بالا', 'بحرانی'];
+    const values = order.map(k => threatDist[k] || 0);
+    const colors = ['#30D158', '#FF9F0A', '#FF453A', '#BF5AF2'];
+    charts.threats = new Chart(cT, {
+      type: 'bar',
+      data: { labels,
+        datasets: [{ data: values, backgroundColor: colors, borderRadius: 12, borderSkipped: false, categoryPercentage: .6, barPercentage: .75 }] },
+      options: { ...base,
+        animation: { duration: 1400, easing: 'easeOutQuart' },
+        plugins: { legend: {display:false}, tooltip: tooltip() },
+        scales: { x: {grid:{display:false}, border:{display:false}, ticks:{color:css('--label'), font:{size:12, weight:'600'}}}, y: scaleY } }
     });
   }
 
-  charts.related = new Chart(document.getElementById('chartRelated'), {
-    type:'bar',
-    data:{
-      labels:['مرتبط','غیرمرتبط'],
-      datasets:[{
-        data:[num(b.related_files_count), num(b.unrelated_files_count)],
-        backgroundColor:[hexA(css('--green'), .8), hexA(css('--red'), .8)],
-        borderRadius: 6, borderSkipped: false,
-        categoryPercentage:.5, barPercentage:.7
-      }]
-    },
-    options:{
-      ...base,
-      animation:{ duration:900, easing:'easeOutQuart' },
-      plugins:{ legend:{display:false}, tooltip:tooltipCfg() },
-      scales:{
-        x:{ grid:{display:false}, border:{display:false}, ticks:{ color:css('--text'), font:{size:12, weight:'600'} } },
-        y: scaleY
-      }
-    }
-  });
+  /* ── Line: روند روزانه (per-day, related/unrelated/suspicious) ── */
+  const cR = document.getElementById('chartTrend');
+  if (cR) {
+    const labels = trend.map(t => t.date);
+    charts.trend = new Chart(cR, {
+      type: 'line',
+      data: { labels,
+        datasets: [
+          { label: 'کل', data: trend.map(t => t.total), borderColor: css('--blue'), backgroundColor: vGrad(css('--blue'), .25, 0), borderWidth: 3, fill: true, tension: .35, pointRadius: 0, pointHoverRadius: 6 },
+          { label: 'مرتبط', data: trend.map(t => t.related), borderColor: css('--green'), backgroundColor: 'transparent', borderWidth: 2, borderDash: [5,4], tension: .35, pointRadius: 0, pointHoverRadius: 6 },
+          { label: 'مشکوک', data: trend.map(t => t.suspicious), borderColor: css('--red'), backgroundColor: 'transparent', borderWidth: 2, tension: .35, pointRadius: 0, pointHoverRadius: 6 },
+        ] },
+      options: { ...base, interaction: {mode:'index', intersect:false},
+        plugins: { legend: {display:true, position:'bottom', labels:{usePointStyle:true, pointStyle:'circle', boxWidth:8, padding:12, color:txt, font:{size:11}}}, tooltip: tooltip() },
+        scales: { x: {grid:{display:false}, border:{display:false}, ticks:{color:txt, maxTicksLimit:8}}, y: scaleY } }
+    });
+  }
 
-  const n = trend.length || 1;
-  const accent = css('--accent');
-  charts.trend = new Chart(document.getElementById('chartTrend'), {
-    type:'line',
-    data:{
-      labels: trend.map(t => t.date),
-      datasets:[{
-        label:'تعداد آپلود',
-        data: trend.map(t => num(t.count)),
-        borderColor: accent, borderWidth: 2.5, fill:true,
-        backgroundColor: vGrad(accent, .3, .02),
-        tension:.4, pointRadius:0, pointHoverRadius:5,
-        pointBackgroundColor: accent, pointBorderColor:'#fff', pointBorderWidth:2
-      }]
-    },
-    options:{
-      ...base,
-      interaction:{ mode:'index', intersect:false },
-      animation:{ duration:900, easing:'easeOutQuart' },
-      plugins:{ legend:{display:false}, tooltip:tooltipCfg() },
-      scales:{
-        x:{ grid:{display:false}, border:{display:false}, ticks:{ color:txt, maxTicksLimit:8 } },
-        y: scaleY
-      }
+  /* ── Bar افقی: انطباق نقش per-file ── */
+  const cF = document.getElementById('chartRoleFit');
+  if (cF) {
+    if (roleFit.length) {
+      const labels = roleFit.map(r => r.file_name.length > 24 ? r.file_name.slice(0,24) + '…' : r.file_name);
+      charts.roleFit = new Chart(cF, {
+        type: 'bar',
+        data: { labels,
+          datasets: [{ data: roleFit.map(r => r.relevance_score),
+            backgroundColor: roleFit.map(r => r.is_related ? css('--green') : css('--red')),
+            borderRadius: 8, borderSkipped: false, categoryPercentage: .7, barPercentage: .8 }] },
+        options: { ...base, indexAxis: 'y',
+          animation: { duration: 1200, easing: 'easeOutQuart' },
+          plugins: { legend: {display:false}, tooltip: tooltip() },
+          scales: { x: {beginAtZero:true, max:1, grid:{color:grid}, border:{display:false}, ticks:{color:txt, callback:v => toFa(v.toFixed(2))}},
+                    y: {grid:{display:false}, border:{display:false}, ticks:{color:css('--label'), font:{size:11}}} } }
+      });
+    } else {
+      cF.parentElement.innerHTML = '<div class="no-data" style="position:absolute;inset:0;display:grid;place-items:center">تحلیل نقش برای این کاربر نیست</div>';
     }
-  });
+  }
+
+  /* ── Doughnut: موضوعات غالب per-file ── */
+  const cTo = document.getElementById('chartTopics');
+  if (cTo) {
+    if (topicDist.length) {
+      const total = topicDist.reduce((s,t) => s + (t.count || 0), 0);
+      charts.topics = new Chart(cTo, {
+        type: 'doughnut',
+        data: { labels: topicDist.map(t => t.name),
+          datasets: [{ data: topicDist.map(t => t.count), backgroundColor: topicDist.map((_,i) => P[i % P.length]),
+            borderWidth: 0, hoverOffset: 10, spacing: 3, borderRadius: 8 }] },
+        options: { ...base, cutout: '68%',
+          animation: { animateRotate: true, animateScale: true, duration: 1600, easing: 'easeOutQuart' },
+          plugins: { centerText: {text: toFa(total), sub: 'برچسب'},
+            tooltip: tooltip(),
+            legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14, color: txt, font: {size: 11}} } } },
+        plugins: [centerText]
+      });
+    } else {
+      cTo.parentElement.innerHTML = '<div class="no-data" style="position:absolute;inset:0;display:grid;place-items:center">موضوعی استخراج نشده</div>';
+    }
+  }
 }
 
 /* ═══════════ Topic Detail ═══════════ */
@@ -1573,7 +1612,7 @@ function renderUser(d){
       </div>`;
 
   destroyCharts();
-  const hasTopics = (b.top_topics || []).length > 0;
+  const hasTopics = (d.topic_distribution || []).length > 0;
 
   document.getElementById('mainArea').innerHTML = `
     <div class="main-inner">
@@ -1622,26 +1661,27 @@ function renderUser(d){
       <div class="tab-panel" id="panel-overview">
         <div class="charts-grid">
           <div class="chart-card">
-            <h4>
-              <span>🍩 موضوعات غالب</span>
-              <span class="hint">برای جزئیات کلیک کنید</span>
-            </h4>
-            <div class="chart-body">
-              ${hasTopics ? '<canvas id="chartTopics" class="chart-canvas clickable"></canvas>' : '<div class="no-data">داده‌ای برای نمایش نیست</div>'}
-            </div>
+            <h4>🍩 توزیع نوع فایل</h4>
+            <div class="chart-body"><canvas id="chartKinds"></canvas></div>
           </div>
           <div class="chart-card">
-            <h4>📊 مرتبط / غیرمرتبط</h4>
-            <div class="chart-body"><canvas id="chartRelated"></canvas></div>
+            <h4>⚠️ توزیع سطح تهدید</h4>
+            <div class="chart-body"><canvas id="chartThreats"></canvas></div>
           </div>
           <div class="chart-card wide">
-            <h4>📈 روند آپلود (۳۰ روز اخیر)</h4>
+            <h4>📈 روند روزانه فایل‌ها (کل/مرتبط/مشکوک)</h4>
             <div class="chart-body"><canvas id="chartTrend"></canvas></div>
           </div>
+          <div class="chart-card wide">
+            <h4>🎯 انطباق هر فایل با نقش سازمانی</h4>
+            <div class="chart-body"><canvas id="chartRoleFit"></canvas></div>
+          </div>
+          <div class="chart-card wide">
+            <h4>🏷️ موضوعات غالب فایل‌ها</h4>
+            <div class="chart-body"><canvas id="chartTopics"></canvas></div>
+          </div>
         </div>
-        <div id="topicDetailWrap"></div>
       </div>
-
       <!-- FILES -->
       <div class="tab-panel" id="panel-files">${filesHtml}</div>
 

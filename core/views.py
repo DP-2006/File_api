@@ -967,7 +967,7 @@ def user_detail_api(request, user_id):
         user_org_role_id = None
         try:
             urp = UserRoleProfile.objects.filter(user=user).first()
-            if urp.role_profile:
+            if urp and urp.role_profile:
                 user_org_role_id = urp.role_profile.id
         except UserRoleProfile.DoesNotExist:
             pass
@@ -3066,13 +3066,29 @@ def behavior_analysis_detail_api(request, user_id):
         return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
 
     try:
-        user = get_object_or_404(User, id=user_id)
+        from collections import Counter
+        from datetime import timedelta
+        from django.db.models.functions import TruncDate
+        from core.models import UploadedFile, FileRoleAnalysis
 
+        user = get_object_or_404(User, id=user_id)
         behavior = UserBehaviorAnalysis.objects.filter(user=user).first()
-        analyses = FileAIAnalysis.objects.filter(user=user).select_related('file').order_by('-analyzed_at')[:200]
+        analyses = FileAIAnalysis.objects.filter(user=user).select_related('file').order_by('-analyzed_at')
 
         files = []
+        kind_counter = Counter()
+        threat_counter = Counter()
+        topic_counter = Counter()
+
         for a in analyses:
+            kind = (a.analysis_json or {}).get('kind', 'unknown') or 'unknown'
+            threat = (a.threat_level or 'low').lower()
+            topic = (a.top_topic or '').strip() or 'نامشخص'
+
+            kind_counter[kind] += 1
+            threat_counter[threat] += 1
+            topic_counter[topic] += 1
+
             files.append({
                 'id': a.id,
                 'file_id': a.file.id if a.file else None,
@@ -3083,26 +3099,46 @@ def behavior_analysis_detail_api(request, user_id):
                 'is_related': a.is_related,
                 'top_topic': a.top_topic or '',
                 'summary': a.summary or '',
-                'analyzed_at': a.analyzed_at.strftime('%Y-%m-%d %H:%M'),
+                'kind': kind,
+                'analyzed_at': a.analyzed_at.strftime('%Y-%m-%d %H:%M') if a.analyzed_at else '',
+                'analyzed_date': a.analyzed_at.strftime('%Y-%m-%d') if a.analyzed_at else '',
             })
 
-        from datetime import timedelta
-        from django.db.models.functions import TruncDate
-        since = timezone.now() - timedelta(days=30)
-        trend = (
-            FileAIAnalysis.objects
-            .filter(user=user, analyzed_at__gte=since)
-            .annotate(day=TruncDate('analyzed_at'))
-            .values('day')
-            .annotate(count=models.Count('id'))
-            .order_by('day')
-        )
+        # trend روزانه دقیق از analyzed_at
+        trend_map = {}
+        for f in files:
+            d = f['analyzed_date']
+            if not d:
+                continue
+            if d not in trend_map:
+                trend_map[d] = {'date': d, 'total': 0, 'related': 0, 'unrelated': 0, 'suspicious': 0}
+            trend_map[d]['total'] += 1
+            if f['is_related']:
+                trend_map[d]['related'] += 1
+            else:
+                trend_map[d]['unrelated'] += 1
+            if f['threat_level'] in ('high', 'critical'):
+                trend_map[d]['suspicious'] += 1
+
+        trend = sorted(trend_map.values(), key=lambda x: x['date'])
+
+        # role_fit_breakdown از FileRoleAnalysis
+        role_qs = FileRoleAnalysis.objects.filter(user=user, status='done').select_related('file')
+        role_fit_breakdown = []
+        for r in role_qs:
+            role_fit_breakdown.append({
+                'file_id': r.file.id if r.file else None,
+                'file_name': (r.file.file.name.split('/')[-1] if r.file and r.file.file else '—'),
+                'relevance_score': round(float(r.relevance_score or 0), 4),
+                'is_related': bool(r.is_related),
+                'risk_level': r.risk_level,
+            })
 
         return Response({
             'success': True,
             'user': {'id': user.id, 'username': user.username},
             'behavior': {
-                'total_files': behavior.total_files if behavior else 0,
+                'total_files': behavior.total_files if behavior else len(files),
                 'related_files_count': behavior.related_files_count if behavior else 0,
                 'unrelated_files_count': behavior.unrelated_files_count if behavior else 0,
                 'suspicious_files_count': behavior.suspicious_files_count if behavior else 0,
@@ -3114,14 +3150,16 @@ def behavior_analysis_detail_api(request, user_id):
                 'ai_summary': behavior.ai_summary if behavior else '',
             },
             'files': files,
-            'trend': [
-                {'date': t['day'].strftime('%Y-%m-%d'), 'count': t['count']}
-                for t in trend
+            'trend': trend,
+            'kind_distribution': dict(kind_counter),
+            'threat_distribution': dict(threat_counter),
+            'topic_distribution': [
+                {'name': k, 'count': v} for k, v in topic_counter.most_common(10)
             ],
+            'role_fit_breakdown': role_fit_breakdown,
         })
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 @login_required
 @ensure_csrf_cookie
 def behavior_analysis_panel_view(request):
@@ -3683,6 +3721,9 @@ def role_profiles_list_all_api(request):
             'users_count': rp.users.count(),
         })
     return Response({'success': True, 'items': items})
+
+
+
 
 
 @api_view(['POST'])
