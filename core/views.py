@@ -3492,13 +3492,6 @@ def my_chat_history_api(request, session_id):
     except Exception as e:
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
-
-
-
-
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def report_chat_generate_image_api(request, session_id):
