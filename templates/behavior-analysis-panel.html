@@ -1156,16 +1156,17 @@ function buildCharts(d){
     const colors = [css('--green'), css('--orange'), css('--teal'), css('--red')];
     const total = values.reduce((s,v) => s + v, 0);
     charts.matrix = new Chart(cM, {
-      type: 'doughnut',
+      type: 'bar',
       data: { labels,
         datasets: [{ data: values, backgroundColor: colors,
-          borderWidth: 0, hoverOffset: 10, spacing: 3, borderRadius: 8 }] },
-      options: { ...base, cutout: '65%',
-        animation: { animateRotate: true, animateScale: true, duration: 1400 },
-        plugins: { centerText: {text: total, sub: 'Files'},
-          tooltip: tooltip(),
-          legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 10, color: txt, font: {size: 10, family: 'Segoe UI, Arial'}} } } },
-      plugins: [centerText]
+          borderRadius: 8, borderSkipped: false, categoryPercentage: .6, barPercentage: .75 }] },
+      options: { ...base,
+        animation: { duration: 1200, easing: 'easeOutQuart' },
+        plugins: { legend: {display:false}, tooltip: tooltip() },
+        scales: { x: {grid:{display:false}, border:{display:false},
+          ticks:{color:css('--label'), font:{size:11, weight:'600', family:'Segoe UI, Arial'}}},
+          y: {beginAtZero:true, grid:{color:grid}, border:{display:false},
+          ticks:{precision:0, color:txt, family:'Segoe UI, Arial'}} } }
     });
   }
 
@@ -1230,6 +1231,34 @@ function buildCharts(d){
         plugins: [centerText]
       });
     }
+
+  /* 5) Line: Threat Trend */
+  const cTT = document.getElementById('chartThreatTrend');
+  if (cTT) {
+    const labels = trend.map(t => t.date);
+    const threatData = trend.map(t => (t.unrelated || 0) + (t.suspicious || 0));
+    charts.threatTrend = new Chart(cTT, {
+      type: 'line',
+      data: { labels,
+        datasets: [{
+          label: 'Threats',
+          data: threatData,
+          borderColor: css('--red'),
+          backgroundColor: vGrad(css('--red'), .3, 0),
+          borderWidth: 3, fill: true, tension: .35,
+          pointRadius: 4, pointHoverRadius: 7,
+          pointBackgroundColor: css('--red'),
+          pointBorderColor: '#fff', pointBorderWidth: 2,
+        }] },
+      options: { ...base, interaction: {mode:'index', intersect:false},
+        plugins: { legend: {display:false}, tooltip: tooltip() },
+        scales: { x: {grid:{display:false}, border:{display:false},
+          ticks:{color:txt, maxTicksLimit:8, font:{family:'Segoe UI, Arial'}}},
+          y: {beginAtZero:true, grid:{color:grid}, border:{display:false},
+          ticks:{precision:0, color:txt, font:{family:'Segoe UI, Arial'}}} } }
+    });
+  }
+
   }
 }
 
@@ -1726,6 +1755,14 @@ function renderUser(d){
       <!-- OVERVIEW -->
       <div class="tab-panel" id="panel-overview">
         <div class="charts-grid">
+          <div class="chart-card wide">
+            <h4>??? Dominant Topics (Click to drill down)</h4>
+          </div>
+          
+          <div class="chart-card wide">
+            <h4>??? Dominant Topics (Click to drill down)</h4>
+            <div class="chart-body"><canvas id="chartTopics"></canvas></div>
+          </div>
           <div class="chart-card">
             <h4>?? File Type Breakdown</h4>
             <div class="chart-body"><canvas id="chartKinds"></canvas></div>
@@ -1738,10 +1775,7 @@ function renderUser(d){
             <h4>?? Daily Activity &amp; Role Alignment</h4>
             <div class="chart-body"><canvas id="chartTrend"></canvas></div>
           </div>
-          <div class="chart-card wide">
-            <h4>??? Dominant Topics (Click to drill down)</h4>
-            <div class="chart-body"><canvas id="chartTopics"></canvas></div>
-          </div>
+          
         </div>
       </div>
       <!-- FILES -->
