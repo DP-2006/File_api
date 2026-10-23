@@ -106,6 +106,16 @@ class AIServiceClient:
         """POST /psy/analyze به FastAPI."""
         return self._post("/psy/analyze", payload)
 
+    def analyze_file_meta(self, payload: dict) -> dict:
+        """POST /analyze/file-meta ? summary/category/topics/sensitivity with LLM."""
+        return self._post("/analyze/file-meta", payload)
+
+    def analyze_file_matrix(self, payload: dict) -> dict:
+        """POST /psy/file-matrix ? ?????? ??? ?? ???? ?? ????? ??? ???????."""
+        return self._post("/psy/file-matrix", payload)
+
+
+
 
 _is_management = any(
     cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'createsuperuser', 'shell', 'test', 'check']

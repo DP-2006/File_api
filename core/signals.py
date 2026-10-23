@@ -22,11 +22,15 @@ def trigger_file_role_analysis(sender, instance: UploadedFile, created: bool, **
     if getattr(instance, 'is_deleted', False):
         return
 
-    from core.tasks import analyze_file_role_async
+    from core.tasks import analyze_file_role_async, analyze_file_meta_async
     try:
         analyze_file_role_async.delay(instance.pk, instance.uploaded_by_id)
     except Exception as e:
         logger.warning('enqueue role_analysis failed: %s', e)
+    try:
+        analyze_file_meta_async.delay(instance.pk)
+    except Exception as e:
+        logger.warning('enqueue file_meta failed: %s', e)
 
 @receiver(pre_save, sender=get_user_model(), dispatch_uid='core.user.enforce_staff_for_superuser')
 def enforce_superuser_is_staff(sender, instance, **kwargs):

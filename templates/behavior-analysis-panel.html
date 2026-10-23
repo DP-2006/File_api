@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -890,6 +890,7 @@
       transition-duration:.01ms !important;
     }
   }
+  canvas { font-family: Tahoma, sans-serif !important; }
 </style>
 </head>
 <body>
@@ -1032,7 +1033,7 @@ document.getElementById('themeBtn').addEventListener('click', () => {
 applyThemeMeta();
 
 /* ═══════════ Chart.js ═══════════ */
-Chart.defaults.font.family = "'Vazirmatn',-apple-system,sans-serif";
+Chart.defaults.font.family = 'Segoe UI, Arial, sans-serif';
 Chart.defaults.color = css('--text-2');
 const PALETTE = () => [
   css('--accent'), css('--green'), css('--orange'), css('--red'),
@@ -1052,7 +1053,7 @@ const tooltipCfg = () => ({
   textDirection: 'rtl',
   titleFont: { weight:'700', size:12 },
   bodyFont: { size:12 },
-  callbacks: { label: c => toFa(c.formattedValue) }
+  callbacks: { label: c => c.formattedValue }
 });
 
 const hexA = (hex, a) => {
@@ -1071,6 +1072,7 @@ const vGrad = (hex, a0=1, a1=.3) => ctx => {
 const centerText = {
   id:'centerText',
   afterDraw(c, _, o){
+      if (c.config.type !== 'doughnut' || !o.text) return;
     if(c.config.type !== 'doughnut' || !o.text) return;
     const {ctx, chartArea:a} = c;
     const x = (a.left+a.right)/2, y = (a.top+a.bottom)/2;
@@ -1106,30 +1108,28 @@ function tooltip(){
     displayColors: false,
     rtl: true,
     textDirection: 'rtl',
-    titleFont: {weight: '700'},
-    bodyFont: {size: 12},
-    callbacks: { label: c => toFa(c.formattedValue) }
+    titleFont: {weight: '700', family: 'Vazirmatn'},
+    bodyFont: {size: 12, family: 'Vazirmatn'},
+    callbacks: { label: c => c.formattedValue }
   };
 }
 
 function buildCharts(d){
   destroyCharts();
-  const b = d.behavior || {};
   const trend = d.trend || [];
   const kindDist = d.kind_distribution || {};
-  const threatDist = d.threat_distribution || {};
+  const matrix = d.matrix_2x2 || {org_related:0, org_unrelated:0, nonorg_related:0, nonorg_unrelated:0};
   const topicDist = d.topic_distribution || [];
-  const roleFit = d.role_fit_breakdown || [];
 
   const txt = css('--label-2'), grid = css('--separator'), P = PALETTE();
   const base = {responsive:true, maintainAspectRatio:false};
-  const scaleY = {beginAtZero:true, grid:{color:grid}, border:{display:false}, ticks:{precision:0, color:txt, callback:v => toFa(v)}};
 
-  /* ── Doughnut: توزیع نوع فایل (per-file) ── */
+  /* 1) Doughnut: ????? ??? ???? */
   const cK = document.getElementById('chartKinds');
   if (cK) {
-    const labels = Object.keys(kindDist);
-    const values = Object.values(kindDist);
+    let labels = Object.keys(kindDist);
+    let values = Object.values(kindDist);
+    if (!labels.length) { labels = ['No data']; values = [1]; }
     const total = values.reduce((s,v) => s + v, 0);
     if (labels.length) {
       charts.kinds = new Chart(cK, {
@@ -1138,97 +1138,163 @@ function buildCharts(d){
           datasets: [{ data: values, backgroundColor: labels.map((_,i) => P[i % P.length]),
             borderWidth: 0, hoverOffset: 10, spacing: 3, borderRadius: 8 }] },
         options: { ...base, cutout: '68%',
-          animation: { animateRotate: true, animateScale: true, duration: 1600, easing: 'easeOutQuart' },
-          plugins: { centerText: {text: toFa(total), sub: 'فایل'},
+          animation: { animateRotate: true, animateScale: true, duration: 1400 },
+          plugins: { centerText: {text: total, sub: 'Files'},
             tooltip: tooltip(),
-            legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14, color: txt, font: {size: 11}} } } },
+            legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 12, color: txt, font: {size: 12, family: 'Tahoma, Vazirmatn'}} } } },
         plugins: [centerText]
       });
-    } else {
-      cK.parentElement.innerHTML = '<div class="no-data" style="position:absolute;inset:0;display:grid;place-items:center">داده‌ای برای نمایش نیست</div>';
     }
   }
 
-  /* ── Bar: توزیع سطح تهدید (per-file) ── */
-  const cT = document.getElementById('chartThreats');
-  if (cT) {
-    const order = ['low', 'medium', 'high', 'critical'];
-    const labels = ['کم', 'متوسط', 'بالا', 'بحرانی'];
-    const values = order.map(k => threatDist[k] || 0);
-    const colors = ['#30D158', '#FF9F0A', '#FF453A', '#BF5AF2'];
-    charts.threats = new Chart(cT, {
-      type: 'bar',
+  /* 2) Doughnut: ?????? ??? */
+  const cM = document.getElementById('chartMatrix');
+  if (cM) {
+    const labels = ['Org Related', 'Org Unrelated', 'Non-Org Related', 'Non-Org Unrelated'];
+    let values = [matrix.org_related, matrix.org_unrelated, matrix.nonorg_related, matrix.nonorg_unrelated];
+    if (values.every(v => v === 0)) { values = [0, 0, 0, 0]; }
+    const colors = [css('--green'), css('--orange'), css('--teal'), css('--red')];
+    const total = values.reduce((s,v) => s + v, 0);
+    charts.matrix = new Chart(cM, {
+      type: 'doughnut',
       data: { labels,
-        datasets: [{ data: values, backgroundColor: colors, borderRadius: 12, borderSkipped: false, categoryPercentage: .6, barPercentage: .75 }] },
-      options: { ...base,
-        animation: { duration: 1400, easing: 'easeOutQuart' },
-        plugins: { legend: {display:false}, tooltip: tooltip() },
-        scales: { x: {grid:{display:false}, border:{display:false}, ticks:{color:css('--label'), font:{size:12, weight:'600'}}}, y: scaleY } }
+        datasets: [{ data: values, backgroundColor: colors,
+          borderWidth: 0, hoverOffset: 10, spacing: 3, borderRadius: 8 }] },
+      options: { ...base, cutout: '65%',
+        animation: { animateRotate: true, animateScale: true, duration: 1400 },
+        plugins: { centerText: {text: total, sub: 'Files'},
+          tooltip: tooltip(),
+          legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 10, color: txt, font: {size: 10, family: 'Segoe UI, Arial'}} } } },
+      plugins: [centerText]
     });
   }
 
-  /* ── Line: روند روزانه (per-day, related/unrelated/suspicious) ── */
+  /* 3) Dual-axis: ???? ?????? + ?????? ??? */
   const cR = document.getElementById('chartTrend');
   if (cR) {
-    const labels = trend.map(t => t.date);
+    const labels = trend.length ? trend.map(t => t.date) : ['No data'];
     charts.trend = new Chart(cR, {
-      type: 'line',
+      type: 'bar',
       data: { labels,
         datasets: [
-          { label: 'کل', data: trend.map(t => t.total), borderColor: css('--blue'), backgroundColor: vGrad(css('--blue'), .25, 0), borderWidth: 3, fill: true, tension: .35, pointRadius: 0, pointHoverRadius: 6 },
-          { label: 'مرتبط', data: trend.map(t => t.related), borderColor: css('--green'), backgroundColor: 'transparent', borderWidth: 2, borderDash: [5,4], tension: .35, pointRadius: 0, pointHoverRadius: 6 },
-          { label: 'مشکوک', data: trend.map(t => t.suspicious), borderColor: css('--red'), backgroundColor: 'transparent', borderWidth: 2, tension: .35, pointRadius: 0, pointHoverRadius: 6 },
+          { type:'bar', label: 'Total Uploads', data: trend.map(t => t.total),
+            backgroundColor: vGrad(css('--blue'), .8, .35), borderRadius: 8,
+            borderSkipped: false, categoryPercentage: .65, barPercentage: .8, yAxisID: 'y' },
+          { type:'bar', label: 'Org Files', data: trend.map(t => t.org || 0),
+            backgroundColor: vGrad(css('--green'), .8, .35), borderRadius: 8,
+            borderSkipped: false, categoryPercentage: .65, barPercentage: .8, yAxisID: 'y' },
+          { type:'line', label: 'Avg Role Relevance',
+            data: trend.map(t => t.avg_relevance || 0),
+            borderColor: css('--purple'), backgroundColor: 'transparent',
+            borderWidth: 3, tension: .35, pointRadius: 4, pointHoverRadius: 7,
+            pointBackgroundColor: css('--purple'), pointBorderColor: '#fff', pointBorderWidth: 2,
+            yAxisID: 'y1' },
         ] },
       options: { ...base, interaction: {mode:'index', intersect:false},
-        plugins: { legend: {display:true, position:'bottom', labels:{usePointStyle:true, pointStyle:'circle', boxWidth:8, padding:12, color:txt, font:{size:11}}}, tooltip: tooltip() },
-        scales: { x: {grid:{display:false}, border:{display:false}, ticks:{color:txt, maxTicksLimit:8}}, y: scaleY } }
+        plugins: { legend: {display:true, position:'bottom',
+          labels:{usePointStyle:true, pointStyle:'circle', boxWidth:8, padding:12, color:txt, font: {size: 11, family: 'Segoe UI, Arial'}}},
+          tooltip: tooltip() },
+        scales: {
+          x: {grid:{display:false}, border:{display:false}, ticks:{color:txt, maxTicksLimit:8}},
+          y: {beginAtZero:true, position:'left', grid:{color:grid}, border:{display:false},
+              ticks:{precision:0, color:txt, callback:v => toFa(v)}},
+          y1: {beginAtZero:true, max:1, position:'right', grid:{display:false}, border:{display:false},
+               ticks:{color:css('--purple'), callback:v => toFa(v.toFixed(2))}}
+        } }
     });
   }
 
-  /* ── Bar افقی: انطباق نقش per-file ── */
-  const cF = document.getElementById('chartRoleFit');
-  if (cF) {
-    if (roleFit.length) {
-      const labels = roleFit.map(r => r.file_name.length > 24 ? r.file_name.slice(0,24) + '…' : r.file_name);
-      charts.roleFit = new Chart(cF, {
-        type: 'bar',
-        data: { labels,
-          datasets: [{ data: roleFit.map(r => r.relevance_score),
-            backgroundColor: roleFit.map(r => r.is_related ? css('--green') : css('--red')),
-            borderRadius: 8, borderSkipped: false, categoryPercentage: .7, barPercentage: .8 }] },
-        options: { ...base, indexAxis: 'y',
-          animation: { duration: 1200, easing: 'easeOutQuart' },
-          plugins: { legend: {display:false}, tooltip: tooltip() },
-          scales: { x: {beginAtZero:true, max:1, grid:{color:grid}, border:{display:false}, ticks:{color:txt, callback:v => toFa(v.toFixed(2))}},
-                    y: {grid:{display:false}, border:{display:false}, ticks:{color:css('--label'), font:{size:11}}} } }
-      });
-    } else {
-      cF.parentElement.innerHTML = '<div class="no-data" style="position:absolute;inset:0;display:grid;place-items:center">تحلیل نقش برای این کاربر نیست</div>';
-    }
-  }
-
-  /* ── Doughnut: موضوعات غالب per-file ── */
+  /* 4) Doughnut: ??????? ?? drilldown */
   const cTo = document.getElementById('chartTopics');
   if (cTo) {
     if (topicDist.length) {
-      const total = topicDist.reduce((s,t) => s + (t.count || 0), 0);
+      const topN = topicDist.slice(0, 10);
+      const total = topN.reduce((s,t) => s + (t.count || 0), 0);
       charts.topics = new Chart(cTo, {
         type: 'doughnut',
-        data: { labels: topicDist.map(t => t.name),
-          datasets: [{ data: topicDist.map(t => t.count), backgroundColor: topicDist.map((_,i) => P[i % P.length]),
-            borderWidth: 0, hoverOffset: 10, spacing: 3, borderRadius: 8 }] },
-        options: { ...base, cutout: '68%',
-          animation: { animateRotate: true, animateScale: true, duration: 1600, easing: 'easeOutQuart' },
-          plugins: { centerText: {text: toFa(total), sub: 'برچسب'},
+        data: { labels: topN.map(t => t.name),
+          datasets: [{ data: topN.map(t => t.count),
+            backgroundColor: topN.map((_,i) => P[i % P.length]),
+            borderWidth: 0, hoverOffset: 12, spacing: 3, borderRadius: 8 }] },
+        options: { ...base, cutout: '65%',
+          onClick: (evt, els) => {
+            if (!els.length) return;
+            const idx = els[0].index;
+            const topic = topN[idx];
+            if (topic && topic.files) showTopicDrilldown(topic.name, topic.files);
+          },
+          animation: { animateRotate: true, animateScale: true, duration: 1400 },
+          plugins: { centerText: {text: total, sub: 'Topics'},
             tooltip: tooltip(),
-            legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14, color: txt, font: {size: 11}} } } },
+            legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 10, color: txt, font: {size: 10, family: 'Segoe UI, Arial'}} } } },
         plugins: [centerText]
       });
-    } else {
-      cTo.parentElement.innerHTML = '<div class="no-data" style="position:absolute;inset:0;display:grid;place-items:center">موضوعی استخراج نشده</div>';
     }
   }
 }
+
+function showTopicDrilldown(topicName, files) {
+  const existing = document.getElementById('topicDrillModal');
+  if (existing) existing.remove();
+
+  const total = files.length;
+  const orgCount = files.filter(f => f.is_org).length;
+  const nonorgCount = total - orgCount;
+  const relatedCount = files.filter(f => f.is_related).length;
+  const unrelatedCount = total - relatedCount;
+
+  const modal = document.createElement('div');
+  modal.id = 'topicDrillModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Segoe UI, Arial, sans-serif';
+
+  modal.innerHTML =
+    '<div style="background:rgba(28,28,30,.96);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:24px;max-width:720px;width:100%;max-height:88vh;overflow-y:auto;color:#fff">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">' +
+        '<h3 style="margin:0;font-size:20px;color:#fff">Topic: <span style="color:#0a84ff">' + topicName + '</span></h3>' +
+        '<button id="topicDrillClose" style="background:transparent;border:none;color:#fff;font-size:26px;cursor:pointer">?</button>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">' +
+        '<div style="background:rgba(255,255,255,.06);border-radius:16px;padding:12px;height:200px;position:relative"><canvas id="drillOrgChart"></canvas></div>' +
+        '<div style="background:rgba(255,255,255,.06);border-radius:16px;padding:12px;height:200px;position:relative"><canvas id="drillRelChart"></canvas></div>' +
+      '</div>' +
+      '<div style="background:rgba(255,255,255,.06);border-radius:16px;padding:16px">' +
+        '<div style="font-size:13px;color:rgba(255,255,255,.7);margin-bottom:10px">Files (' + total + ')</div>' +
+        files.map(function(f) {
+          const name = String(f.file_name || '?');
+          const kind = String(f.kind || '?');
+          const org = f.is_org ? 'ORG' : 'NON-ORG';
+          const rel = f.is_related ? 'RELATED' : 'UNRELATED';
+          return '<div style="padding:10px;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px">' +
+            '<div style="font-weight:600;direction:ltr;text-align:left">' + name + '</div>' +
+            '<div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">' + kind + ' ? ' + org + ' ? ' + rel + '</div>' +
+            '</div>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(modal);
+  document.getElementById('topicDrillClose').onclick = function() { modal.remove(); };
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+
+  // Org vs Non-Org doughnut
+  new Chart(document.getElementById('drillOrgChart'), {
+    type: 'doughnut',
+    data: { labels: ['Org', 'Non-Org'], datasets: [{ data: [orgCount, nonorgCount],
+      backgroundColor: ['#30D158', '#FF9F0A'], borderWidth: 0, hoverOffset: 8 }] },
+    options: { responsive:true, maintainAspectRatio:false, cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { color: '#fff', font: {size:11, family:'Segoe UI, Arial'}, usePointStyle:true, pointStyle:'circle', boxWidth:8 } } } }
+  });
+
+  // Related vs Unrelated doughnut
+  new Chart(document.getElementById('drillRelChart'), {
+    type: 'doughnut',
+    data: { labels: ['Related', 'Unrelated'], datasets: [{ data: [relatedCount, unrelatedCount],
+      backgroundColor: ['#0A84FF', '#FF453A'], borderWidth: 0, hoverOffset: 8 }] },
+    options: { responsive:true, maintainAspectRatio:false, cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { color: '#fff', font: {size:11, family:'Segoe UI, Arial'}, usePointStyle:true, pointStyle:'circle', boxWidth:8 } } } }
+  });
+}
+
 
 /* ═══════════ Topic Detail ═══════════ */
 function showTopicDetail(topicName){
@@ -1661,23 +1727,19 @@ function renderUser(d){
       <div class="tab-panel" id="panel-overview">
         <div class="charts-grid">
           <div class="chart-card">
-            <h4>🍩 توزیع نوع فایل</h4>
+            <h4>?? File Type Breakdown</h4>
             <div class="chart-body"><canvas id="chartKinds"></canvas></div>
           </div>
           <div class="chart-card">
-            <h4>⚠️ توزیع سطح تهدید</h4>
-            <div class="chart-body"><canvas id="chartThreats"></canvas></div>
+            <h4>?? Org vs Non-Org Matrix</h4>
+            <div class="chart-body"><canvas id="chartMatrix"></canvas></div>
           </div>
           <div class="chart-card wide">
-            <h4>📈 روند روزانه فایل‌ها (کل/مرتبط/مشکوک)</h4>
+            <h4>?? Daily Activity &amp; Role Alignment</h4>
             <div class="chart-body"><canvas id="chartTrend"></canvas></div>
           </div>
           <div class="chart-card wide">
-            <h4>🎯 انطباق هر فایل با نقش سازمانی</h4>
-            <div class="chart-body"><canvas id="chartRoleFit"></canvas></div>
-          </div>
-          <div class="chart-card wide">
-            <h4>🏷️ موضوعات غالب فایل‌ها</h4>
+            <h4>??? Dominant Topics (Click to drill down)</h4>
             <div class="chart-body"><canvas id="chartTopics"></canvas></div>
           </div>
         </div>

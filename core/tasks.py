@@ -118,3 +118,29 @@ def analyze_all_user_files(self, user_id: int, force: bool = False):
             results['failed'] += 1
 
     return {'ok': True, **results}
+
+@shared_task(
+    bind=True,
+    name='core.analyze_file_meta_async',
+    max_retries=2,
+    default_retry_delay=30,
+    acks_late=True,
+)
+def analyze_file_meta_async(self, uploaded_file_id: int):
+    """????? ???????? AI (summary/category/topics/sensitivity) ?? ????????."""
+    from core.models import UploadedFile
+    from core.services.file_content_analyzer import ensure_file_analyzed
+
+    try:
+        f = UploadedFile.objects.get(pk=uploaded_file_id, is_deleted=False)
+    except UploadedFile.DoesNotExist:
+        return {'ok': False, 'reason': 'file_not_found'}
+
+    try:
+        obj = ensure_file_analyzed(f, force=False)
+        logger.info('file_meta async done: file=%s category=%s', uploaded_file_id, obj.category)
+        return {'ok': True, 'file_id': uploaded_file_id, 'category': obj.category}
+    except Exception as exc:
+        logger.exception('file_meta async failed: %s', exc)
+        raise self.retry(exc=exc)
+

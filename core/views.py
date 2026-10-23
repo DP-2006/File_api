@@ -3062,104 +3062,243 @@ def behavior_analysis_list_api(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def behavior_analysis_detail_api(request, user_id):
-    if not request.user.is_staff:
-        return Response({'success': False, 'msg': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
+    if not (request.user.is_staff or request.user.is_superuser):
+        return Response({'success': False, 'msg': '?????? ???????'}, status=status.HTTP_403_FORBIDDEN)
 
     try:
         from collections import Counter
-        from datetime import timedelta
-        from django.db.models.functions import TruncDate
         from core.models import UploadedFile, FileRoleAnalysis
+        from core.models_role_profile import UserRoleProfile, RoleFileAccess
+        from core.services.ai_client import AIServiceClient
 
         user = get_object_or_404(User, id=user_id)
-        behavior = UserBehaviorAnalysis.objects.filter(user=user).first()
         analyses = FileAIAnalysis.objects.filter(user=user).select_related('file').order_by('-analyzed_at')
 
-        files = []
-        kind_counter = Counter()
-        threat_counter = Counter()
-        topic_counter = Counter()
+        # ---- ???????? ??????? (????? ?? ??????? ?????) ----
+        org_role_ids = list(
+            UserRoleProfile.objects.filter(user=user).values_list('role_profile_id', flat=True)
+        )
+        org_file_ids = set(
+            RoleFileAccess.objects.filter(role_profile_id__in=org_role_ids)
+            .values_list('uploaded_file_id', flat=True)
+        )
 
+        # ---- ??????? ??????? (????? ?????) ----
+        from core.models_role_profile import RoleProfile
+        org_roles = list(
+            RoleProfile.objects.filter(id__in=org_role_ids).values_list('title_fa', flat=True)
+        )
+
+        # ---- FileRoleAnalysis ???? relevance ----
+        role_map = {}
+        for r in FileRoleAnalysis.objects.filter(user=user, status='done'):
+            role_map[r.file_id] = r
+
+        # ---- ???? ???? ??????? + payload ???? FastAPI ----
+        files_list = []
+        fastapi_payload_files = []
         for a in analyses:
             kind = (a.analysis_json or {}).get('kind', 'unknown') or 'unknown'
-            threat = (a.threat_level or 'low').lower()
-            topic = (a.top_topic or '').strip() or 'نامشخص'
+            topics_ai = (a.analysis_json or {}).get('topics_ai') or []
+            summary_ai = (a.analysis_json or {}).get('summary_ai') or ''
+            category_ai = (a.analysis_json or {}).get('category_ai') or ''
 
-            kind_counter[kind] += 1
-            threat_counter[threat] += 1
-            topic_counter[topic] += 1
+            fid = a.file.id if a.file else None
+            is_org = fid in org_file_ids if fid else False
 
-            files.append({
+            r_analysis = role_map.get(fid) if fid else None
+            is_related = bool(r_analysis.is_related) if r_analysis else bool(a.is_related)
+            relevance = float(r_analysis.relevance_score) if r_analysis else float(a.relevance_score or 0)
+            risk_level = r_analysis.risk_level if r_analysis else (a.threat_level or 'low')
+
+            files_list.append({
                 'id': a.id,
-                'file_id': a.file.id if a.file else None,
-                'file_name': a.file.file.name.split('/')[-1] if a.file and a.file.file else '—',
-                'category': a.category,
-                'threat_level': a.threat_level,
-                'relevance_score': a.relevance_score,
-                'is_related': a.is_related,
-                'top_topic': a.top_topic or '',
-                'summary': a.summary or '',
+                'file_id': fid,
+                'file_name': (a.file.file.name.split('/')[-1] if a.file and a.file.file else '?'),
+                'category': category_ai or a.category or '',
+                'top_topic': ', '.join(topics_ai[:3]) if topics_ai else (a.top_topic or ''),
+                'topics_ai': topics_ai,
+                'summary': summary_ai or (a.summary or ''),
                 'kind': kind,
+                'threat_level': a.threat_level or 'low',
+                'relevance_score': round(relevance, 4),
+                'is_related': is_related,
+                'is_org': is_org,
+                'risk_level': risk_level,
                 'analyzed_at': a.analyzed_at.strftime('%Y-%m-%d %H:%M') if a.analyzed_at else '',
                 'analyzed_date': a.analyzed_at.strftime('%Y-%m-%d') if a.analyzed_at else '',
             })
 
-        # trend روزانه دقیق از analyzed_at
+            fastapi_payload_files.append({
+                'file_id': fid or 0,
+                'file_name': (a.file.file.name.split('/')[-1] if a.file and a.file.file else ''),
+                'kind': kind,
+                'text_excerpt': ((a.analysis_json or {}).get('text', '') or '')[:1200],
+                'topics_ai': topics_ai[:5],
+                'is_org': is_org,
+            })
+
+        # ---- ?????? ??? (?????? ?? FileRoleAnalysis.quadrant) ----
+        matrix_counts = {
+            'org_related': 0, 'org_unrelated': 0,
+            'nonorg_related': 0, 'nonorg_unrelated': 0,
+        }
+        matrix_items = []
+
+        # ??? ??? ??????? quadrant ??????
+        needs_ai = []
+        for f_item in files_list:
+            fid = f_item['file_id']
+            if not fid:
+                continue
+            r = role_map.get(fid)
+            if r and r.quadrant:
+                # ?? ?????
+                matrix_items.append({
+                    'file_id': fid,
+                    'is_related': f_item['is_related'],
+                    'is_org': f_item['is_org'],
+                    'quadrant': r.quadrant,
+                    'relevance': float(r.relevance_score or 0),
+                    'reason': (r.reasoning or '')[:200],
+                })
+                if r.quadrant in matrix_counts:
+                    matrix_counts[r.quadrant] += 1
+            else:
+                needs_ai.append(f_item)
+
+        # ??? ???? ???????? ???? quadrant? FastAPI ??? ???
+        if needs_ai:
+            try:
+                payload_files = [p for p in fastapi_payload_files
+                                 if any(nf['file_id'] == p['file_id'] for nf in needs_ai)]
+                client = AIServiceClient()
+                matrix_result = client.analyze_file_matrix({
+                    'user_id': user.id,
+                    'username': user.username,
+                    'org_roles': org_roles,
+                    'files': payload_files,
+                })
+                if matrix_result and 'items' in matrix_result:
+                    for it in matrix_result.get('items', []):
+                        fid = it.get('file_id')
+                        quad = it.get('quadrant', '')
+                        if not fid or not quad:
+                            continue
+                        # ????? ?? FileRoleAnalysis
+                        role_obj, _ = FileRoleAnalysis.objects.get_or_create(
+                            file_id=fid, user=user,
+                            defaults={'status': 'done'}
+                        )
+                        role_obj.is_org = bool(it.get('is_org'))
+                        role_obj.is_related = bool(it.get('is_related'))
+                        role_obj.relevance_score = float(it.get('relevance', 0))
+                        role_obj.quadrant = quad
+                        role_obj.reasoning = str(it.get('reason', ''))[:500]
+                        role_obj.status = 'done'
+                        role_obj.save()
+
+                        matrix_items.append(it)
+                        if quad in matrix_counts:
+                            matrix_counts[quad] += 1
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f'matrix AI fail: {e}')
+
+        # ---- trend ?????? ???? ----
         trend_map = {}
-        for f in files:
+        for f in files_list:
             d = f['analyzed_date']
             if not d:
                 continue
             if d not in trend_map:
-                trend_map[d] = {'date': d, 'total': 0, 'related': 0, 'unrelated': 0, 'suspicious': 0}
+                trend_map[d] = {'date': d, 'total': 0, 'org': 0, 'nonorg': 0,
+                                'related': 0, 'suspicious': 0,
+                                '_rel_sum': 0.0, '_rel_cnt': 0}
             trend_map[d]['total'] += 1
+            if f['is_org']:
+                trend_map[d]['org'] += 1
+            else:
+                trend_map[d]['nonorg'] += 1
             if f['is_related']:
                 trend_map[d]['related'] += 1
-            else:
-                trend_map[d]['unrelated'] += 1
             if f['threat_level'] in ('high', 'critical'):
                 trend_map[d]['suspicious'] += 1
+            rs = float(f.get('relevance_score') or 0)
+            if rs > 0:
+                trend_map[d]['_rel_sum'] += rs
+                trend_map[d]['_rel_cnt'] += 1
+
+        for v in trend_map.values():
+            v['avg_relevance'] = round(v['_rel_sum'] / v['_rel_cnt'], 4) if v['_rel_cnt'] > 0 else 0.0
+            del v['_rel_sum']
+            del v['_rel_cnt']
 
         trend = sorted(trend_map.values(), key=lambda x: x['date'])
 
-        # role_fit_breakdown از FileRoleAnalysis
-        role_qs = FileRoleAnalysis.objects.filter(user=user, status='done').select_related('file')
-        role_fit_breakdown = []
-        for r in role_qs:
-            role_fit_breakdown.append({
-                'file_id': r.file.id if r.file else None,
-                'file_name': (r.file.file.name.split('/')[-1] if r.file and r.file.file else '—'),
-                'relevance_score': round(float(r.relevance_score or 0), 4),
-                'is_related': bool(r.is_related),
-                'risk_level': r.risk_level,
-            })
+        # ---- ????? ??? ???? ----
+        kind_counter = Counter(f['kind'] for f in files_list)
+
+        # ---- ??????? ???? (?? topics_ai ??? ???????) + file_ids ???? drilldown ----
+        topic_files = {}
+        for f in files_list:
+            for t in (f['topics_ai'] or [])[:5]:
+                if not t:
+                    continue
+                t = str(t).strip()[:80]
+                if not t:
+                    continue
+                if t not in topic_files:
+                    topic_files[t] = []
+                topic_files[t].append({
+                    'file_id': f['file_id'],
+                    'file_name': f['file_name'],
+                    'kind': f['kind'],
+                    'is_org': f['is_org'],
+                    'is_related': f['is_related'],
+                })
+
+        topic_distribution = [
+            {'name': k, 'count': len(v), 'files': v}
+            for k, v in sorted(topic_files.items(), key=lambda x: -len(x[1]))[:15]
+        ]
+
+        # ---- ???? ??? ----
+        total_files = len(files_list)
+        related_cnt = sum(1 for f in files_list if f['is_related'])
+        unrelated_cnt = total_files - related_cnt
+        suspicious_cnt = sum(1 for f in files_list if f['threat_level'] in ('high', 'critical'))
+        relevance_avg = round(sum(f['relevance_score'] for f in files_list) / max(1, total_files), 4)
 
         return Response({
             'success': True,
-            'user': {'id': user.id, 'username': user.username},
+            'user': {'id': user.id, 'username': user.username, 'org_roles': org_roles},
             'behavior': {
-                'total_files': behavior.total_files if behavior else len(files),
-                'related_files_count': behavior.related_files_count if behavior else 0,
-                'unrelated_files_count': behavior.unrelated_files_count if behavior else 0,
-                'suspicious_files_count': behavior.suspicious_files_count if behavior else 0,
-                'relevance_avg': behavior.relevance_avg if behavior else 0.0,
-                'related_percent': behavior.related_percent if behavior else 0.0,
-                'suspicious_percent': behavior.suspicious_percent if behavior else 0.0,
-                'top_topics': behavior.top_topics if behavior else [],
-                'file_types_distribution': behavior.file_types_distribution if behavior else {},
-                'ai_summary': behavior.ai_summary if behavior else '',
+                'total_files': total_files,
+                'related_files_count': related_cnt,
+                'unrelated_files_count': unrelated_cnt,
+                'suspicious_files_count': suspicious_cnt,
+                'relevance_avg': relevance_avg,
+                'related_percent': round(100.0 * related_cnt / max(1, total_files), 2),
+                'suspicious_percent': round(100.0 * suspicious_cnt / max(1, total_files), 2),
+                'top_topics': [{'name': k, 'count': len(v)} for k, v in
+                               sorted(topic_files.items(), key=lambda x: -len(x[1]))[:5]],
+                'file_types_distribution': dict(kind_counter),
+                'ai_summary': '',
             },
-            'files': files,
+            'files': files_list,
             'trend': trend,
             'kind_distribution': dict(kind_counter),
-            'threat_distribution': dict(threat_counter),
-            'topic_distribution': [
-                {'name': k, 'count': v} for k, v in topic_counter.most_common(10)
-            ],
-            'role_fit_breakdown': role_fit_breakdown,
+            'matrix_2x2': matrix_counts,
+            'matrix_items': matrix_items,
+            'topic_distribution': topic_distribution,
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return Response({'success': False, 'msg': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @login_required
 @ensure_csrf_cookie
 def behavior_analysis_panel_view(request):

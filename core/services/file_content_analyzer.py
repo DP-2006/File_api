@@ -276,12 +276,12 @@ def ensure_file_analyzed(uploaded_file, force=False) -> 'FileAIAnalysis':  # noq
     if content.kind == 'image':
         summary = content.text or '?????'
         top_topic = '?????'
-    elif content.text:
+    elif content.text and content.text.strip():
         summary = content.text[:300].strip()
         top_topic = _guess_topic(content.text)
     else:
         summary = content.error or '?????? ???? ??????? ????'
-        top_topic = '??????'
+        top_topic = '?????? ?? ????? ????'
 
     data = {
         'kind': content.kind,
@@ -322,6 +322,39 @@ def ensure_file_analyzed(uploaded_file, force=False) -> 'FileAIAnalysis':  # noq
     except Exception as _e:
         import logging
         logging.getLogger(__name__).warning(f'rag index fail file={uploaded_file.id}: {_e}')
+
+
+    # ????? ???????? AI (summary, category, topics, sensitivity)
+    if content.text and content.text.strip():
+        try:
+            from core.services.ai_client import AIServiceClient
+            _c = AIServiceClient()
+            _meta = _c.analyze_file_meta({
+                'file_id': uploaded_file.id,
+                'file_name': (uploaded_file.file.name.split('/')[-1] if uploaded_file.file else ''),
+                'kind': content.kind,
+                'text_excerpt': content.text[:2000],
+                'existing_topic': top_topic,
+            })
+            if _meta and not _meta.get('error'):
+                data['summary_ai'] = _meta.get('summary_ai', '')
+                data['category_ai'] = _meta.get('category_ai', 'unknown')
+                data['topics_ai'] = _meta.get('topics_ai', [])
+                data['sensitivity'] = _meta.get('sensitivity', 'low')
+                data['ai_confidence'] = _meta.get('confidence', 0.0)
+                obj.analysis_json = data
+                if _meta.get('summary_ai'):
+                    obj.summary = _meta['summary_ai'][:1000]
+                if _meta.get('category_ai') and _meta['category_ai'] != 'unknown':
+                    obj.category = _meta['category_ai']
+                if _meta.get('topics_ai'):
+                    obj.top_topic = ', '.join(_meta['topics_ai'][:3])[:255]
+                if _meta.get('sensitivity') in ('medium', 'high', 'critical'):
+                    obj.threat_level = _meta['sensitivity']
+                obj.save()
+        except Exception as _e:
+            import logging
+            logging.getLogger(__name__).warning(f'file_meta AI fail file={uploaded_file.id}: {_e}')
 
     return obj
 
