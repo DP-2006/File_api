@@ -32,7 +32,7 @@ class AIManager:
         }
         
         try:
-            # تست اتصال پایه
+           
             response = requests.get(f"{base_url}/api/tags", timeout=5)
             
             if response.status_code == 200:
@@ -45,11 +45,10 @@ class AIManager:
                 result['version'] = data.get('version', 'نامشخص')
                 result['details'] = {
                     'total_models': len(models),
-                    'available_models': models[:10],  # فقط 10 مدل اول
+                    'available_models': models[:10], 
                     'is_model_available': model in models
                 }
                 
-                # بررسی وجود مدل انتخابی
                 if model not in models:
                     result['message'] += f"\n⚠️ Model '{model}' cant find any model : {', '.join(models[:5])}"
             else:

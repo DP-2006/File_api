@@ -3115,6 +3115,7 @@ def behavior_analysis_detail_api(request, user_id):
                 'id': a.id,
                 'file_id': fid,
                 'file_name': (a.file.file.name.split('/')[-1] if a.file and a.file.file else '?'),
+                'file_url': (a.file.file.url if a.file and a.file.file else ''),
                 'category': category_ai or a.category or '',
                 'top_topic': ', '.join(topics_ai[:3]) if topics_ai else (a.top_topic or ''),
                 'topics_ai': topics_ai,
@@ -3253,6 +3254,8 @@ def behavior_analysis_detail_api(request, user_id):
                 topic_files[t].append({
                     'file_id': f['file_id'],
                     'file_name': f['file_name'],
+                    'file_url': f.get('file_url', ''),
+                    'summary': f.get('summary', ''),
                     'kind': f['kind'],
                     'is_org': f['is_org'],
                     'is_related': f['is_related'],

@@ -257,7 +257,6 @@ class ActionAnalyzer:
 ✅ فایل سالم است و مشکلی ندارد.
 """
         
-        # ایجاد نوتیفیکیشن فقط برای خود کاربر
         notification = AINotification.objects.create(
             title=title,
             message=message,

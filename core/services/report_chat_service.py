@@ -12,6 +12,7 @@ import logging
 import os
 
 from core.models_report_chat import ReportChatSession, ReportChatMessage
+from core.models_file_analysis import FileAIAnalysis
 from core.services.ai_client import AIServiceClient
 from core.services.file_reader import FileReader
 
@@ -33,16 +34,45 @@ class ReportChatService:
         ext = os.path.splitext(fname or '')[1].lower()
         return ext in IMAGE_EXTS
 
-    def build_context(self, session: ReportChatSession) -> str:
+    def build_context(self, session):
         parts = []
-
         if session.target_user:
-            u = session.target_user
-            parts.append(
-                f"=== اطلاعات کارر\n"
-                f"نام کاربری: {u.username}\n"
-                f"نام: {u.get_full_name() or '—'}"
-            )
+            try:
+                prof = session.target_user.userprofile
+                parts.append("=== اطلاعات کاربر\nنام کاربری: " + session.target_user.username)
+            except Exception:
+                parts.append("=== اطلاعات کاربر\nنام کاربری: " + session.target_user.username)
+
+        for f in session.files.all():
+            try:
+                if not f.file or not f.file.storage.exists(f.file.name):
+                    continue
+                ai = FileAIAnalysis.objects.filter(file=f).first()
+                if ai and ai.analysis_json:
+                    text = ai.analysis_json.get('text', '') or ''
+                    summary_ai = ai.analysis_json.get('summary_ai', '') or ''
+                    topics = ai.analysis_json.get('topics_ai', []) or []
+                    if summary_ai or text:
+                        parts.append("=== فایل: " + f.file.name.split('/')[-1] + " ===")
+                        if summary_ai:
+                            parts.append("خلاصه: " + summary_ai)
+                        if topics:
+                            parts.append("موضوعات: " + ', '.join(topics))
+                        if text:
+                            parts.append("محتوا: " + text[:1500])
+                        continue
+                from core.services.file_content_analyzer import extract_content
+                content = extract_content(f)
+                if content.text:
+                    parts.append("=== فایل: " + f.file.name.split('/')[-1] + " ===")
+                    parts.append("محتوا: " + content.text[:1500])
+            except Exception:
+                continue
+
+        context = "\n".join(parts)
+        if len(context) > MAX_CONTEXT_CHARS:
+            context = context[:MAX_CONTEXT_CHARS]
+        return context
 
         for uploaded in session.files.all():
             block = self._build_file_block(uploaded)

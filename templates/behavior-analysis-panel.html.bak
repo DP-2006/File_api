@@ -1,2130 +1,1704 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0B0B0F" id="themeColor">
-<title>گزارشات هوش مصنوعی — داشبورد تحلیل</title>
-
-<script>
-  (function(){
-    var t; try{ t = localStorage.getItem('theme'); }catch(e){}
-    if(!t) t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    document.documentElement.dataset.theme = t;
-  })();
-</script>
-<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
-<link rel="stylesheet" href="{% static 'vendor/vazirmatn/vazirmatn.css' %}">
-
-<style>
-  /* ───────── Design Tokens ───────── */
-  :root, [data-theme="dark"]{
-    color-scheme: dark;
-    --bg: #0B0B0F;
-    --bg-elev: #131318;
-    --bg-elev-2: #1A1A21;
-    --bg-hover: #1F1F27;
-    --border: #26262F;
-    --border-strong: #32323D;
-
-    --text: #EDEDF0;
-    --text-2: #A0A0AC;
-    --text-3: #6B6B78;
-
-    --accent: #6366F1;
-    --accent-hover: #7C7FF5;
-    --accent-soft: rgba(99,102,241,.14);
-
-    --green: #22C55E;
-    --green-soft: rgba(34,197,94,.14);
-    --red: #EF4444;
-    --red-soft: rgba(239,68,68,.14);
-    --orange: #F59E0B;
-    --orange-soft: rgba(245,158,11,.14);
-    --blue: #3B82F6;
-    --blue-soft: rgba(59,130,246,.14);
-    --purple: #A855F7;
-    --purple-soft: rgba(168,85,247,.14);
-    --teal: #14B8A6;
-
-    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
-    --shadow-md: 0 4px 16px rgba(0,0,0,.35);
-    --shadow-lg: 0 12px 40px rgba(0,0,0,.5);
-
-    --r-sm: 8px;
-    --r-md: 12px;
-    --r-lg: 16px;
-    --r-xl: 20px;
-    --ease: cubic-bezier(.4,0,.2,1);
-  }
-
-  [data-theme="light"]{
-    color-scheme: light;
-    --bg: #F7F7F9;
-    --bg-elev: #FFFFFF;
-    --bg-elev-2: #FAFAFC;
-    --bg-hover: #F0F0F4;
-    --border: #E5E5EA;
-    --border-strong: #D5D5DD;
-
-    --text: #18181B;
-    --text-2: #52525B;
-    --text-3: #8A8A94;
-
-    --accent: #4F46E5;
-    --accent-hover: #4338CA;
-    --accent-soft: rgba(79,70,229,.08);
-
-    --green: #16A34A;
-    --green-soft: rgba(22,163,74,.1);
-    --red: #DC2626;
-    --red-soft: rgba(220,38,38,.1);
-    --orange: #D97706;
-    --orange-soft: rgba(217,119,6,.1);
-    --blue: #2563EB;
-    --blue-soft: rgba(37,99,235,.1);
-    --purple: #9333EA;
-    --purple-soft: rgba(147,51,234,.1);
-    --teal: #0D9488;
-
-    --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
-    --shadow-md: 0 4px 16px rgba(0,0,0,.06);
-    --shadow-lg: 0 12px 40px rgba(0,0,0,.08);
-  }
-
-  /* ───────── Reset ───────── */
-  *, *::before, *::after{ box-sizing:border-box; margin:0; padding:0; }
-  html{ scroll-behavior:smooth; }
-  body{
-    font-family:'Vazirmatn',-apple-system,BlinkMacSystemFont,'Segoe UI',Tahoma,sans-serif;
-    background:var(--bg); color:var(--text);
-    min-height:100vh; min-height:100dvh;
-    font-size:14px; line-height:1.6;
-    -webkit-font-smoothing:antialiased;
-    transition: background .3s var(--ease), color .3s var(--ease);
-  }
-  button{ font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
-  input, select{ font-family:inherit; }
-  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
-  ::-webkit-scrollbar{ width:8px; height:8px; }
-  ::-webkit-scrollbar-track{ background:transparent; }
-  ::-webkit-scrollbar-thumb{ background:var(--border-strong); border-radius:4px; }
-  ::-webkit-scrollbar-thumb:hover{ background:var(--text-3); }
-
-  /* ───────── App Shell ───────── */
-  .app{
-    display:grid;
-    grid-template-columns: 280px 1fr;
-    grid-template-rows: 56px 1fr;
-    grid-template-areas:
-      "header header"
-      "sidebar main";
-    height:100vh; height:100dvh;
-  }
-
-  /* ───────── Header ───────── */
-  .header{
-    grid-area: header;
-    display:flex; align-items:center; gap:16px;
-    padding:0 20px;
-    background:var(--bg-elev);
-    border-bottom:1px solid var(--border);
-    z-index:20;
-  }
-  .brand{
-    display:flex; align-items:center; gap:10px;
-    font-weight:700; font-size:15px; white-space:nowrap;
-  }
-  .brand-mark{
-    width:28px; height:28px; border-radius:8px;
-    background:linear-gradient(135deg, var(--accent), var(--purple));
-    display:grid; place-items:center; color:#fff; font-size:14px; font-weight:800;
-  }
-  .header-divider{ width:1px; height:20px; background:var(--border); }
-  .breadcrumb{
-    display:flex; align-items:center; gap:6px;
-    font-size:13px; color:var(--text-2);
-  }
-  .breadcrumb a{ color:var(--text-2); text-decoration:none; }
-  .breadcrumb a:hover{ color:var(--text); }
-  .breadcrumb .sep{ color:var(--text-3); }
-  .breadcrumb .current{ color:var(--text); font-weight:500; }
-
-  /* نام کاربر در هدر (جایگزین نوار بزرگ) */
-  .header-user{
-    display:none;
-    align-items:center; gap:8px;
-    padding:4px 10px 4px 4px;
-    border-radius:999px;
-    background:var(--bg-elev-2);
-    border:1px solid var(--border);
-  }
-  .header-user.visible{ display:inline-flex; }
-  .header-user .avatar{
-    width:26px; height:26px; font-size:11px;
-  }
-  .header-user .hu-name{
-    font-size:13px; font-weight:600;
-    max-width:140px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-
-  .header-actions{
-    margin-inline-start:auto;
-    display:flex; align-items:center; gap:8px;
-  }
-  .live-badge{
-    display:inline-flex; align-items:center; gap:6px;
-    padding:5px 10px; border-radius:999px;
-    font-size:12px; font-weight:600;
-    background:var(--green-soft); color:var(--green);
-  }
-  .live-badge .dot{
-    width:6px; height:6px; border-radius:50%; background:var(--green);
-    animation:pulse 1.8s infinite;
-  }
-  @keyframes pulse{
-    0%{ box-shadow:0 0 0 0 rgba(34,197,94,.6); }
-    100%{ box-shadow:0 0 0 8px rgba(34,197,94,0); }
-  }
-
-  .icon-btn{
-    width:34px; height:34px; border-radius:8px;
-    display:inline-grid; place-items:center;
-    color:var(--text-2);
-    transition: background .15s, color .15s;
-  }
-  .icon-btn:hover{ background:var(--bg-hover); color:var(--text); }
-  .icon-btn.spinning svg{ animation:spin .7s linear infinite; }
-  @keyframes spin{ to{ transform:rotate(360deg); } }
-  .theme-btn .sun{ display:none; }
-  [data-theme="light"] .theme-btn .sun{ display:block; }
-  [data-theme="light"] .theme-btn .moon{ display:none; }
-
-  /* ───────── Sidebar ───────── */
-  .sidebar{
-    grid-area: sidebar;
-    background:var(--bg-elev);
-    border-inline-end:1px solid var(--border);
-    display:flex; flex-direction:column;
-    min-height:0;
-  }
-  .sidebar-head{
-    padding:16px 16px 12px;
-    display:flex; align-items:center; justify-content:space-between;
-  }
-  .sidebar-title{
-    font-size:12px; font-weight:600; text-transform:uppercase;
-    letter-spacing:.05em; color:var(--text-3);
-  }
-  .count-badge{
-    font-size:11px; font-weight:700;
-    padding:2px 8px; border-radius:999px;
-    background:var(--accent-soft); color:var(--accent);
-  }
-  .search-wrap{
-    padding:0 12px 12px;
-  }
-  .search{
-    display:flex; align-items:center; gap:8px;
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:var(--r-md);
-    padding:7px 10px;
-    transition: border-color .15s, background .15s;
-  }
-  .search:focus-within{ border-color:var(--accent); background:var(--bg-elev); }
-  .search svg{ color:var(--text-3); flex-shrink:0; }
-  .search input{
-    flex:1; min-width:0;
-    background:none; border:none; outline:none;
-    color:var(--text); font-size:13px;
-  }
-  .search input::placeholder{ color:var(--text-3); }
-
-  .user-list{
-    flex:1; overflow-y:auto;
-    padding:0 8px 12px;
-  }
-  .user-item{
-    display:flex; align-items:center; gap:10px;
-    width:100%; padding:9px 10px; border-radius:var(--r-md);
-    text-align:right; color:var(--text);
-    transition: background .12s;
-    border:1px solid transparent;
-  }
-  .user-item:hover{ background:var(--bg-hover); }
-  .user-item.active{
-    background:var(--accent-soft);
-    border-color:rgba(99,102,241,.3);
-  }
-  .avatar{
-    width:36px; height:36px; border-radius:50%;
-    flex-shrink:0;
-    display:grid; place-items:center;
-    font-size:14px; font-weight:700; color:#fff;
-  }
-  .avatar.lg{ width:56px; height:56px; font-size:22px; }
-  .u-info{ flex:1; min-width:0; }
-  .u-name{
-    display:block; font-size:13px; font-weight:600;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .u-stats{
-    display:block; font-size:11px; color:var(--text-3);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-
-  /* ───────── Main ───────── */
-  .main{
-    grid-area: main;
-    overflow-y:auto;
-    background:var(--bg);
-  }
-  .main-inner{
-    max-width:1280px; margin:0 auto;
-    padding:24px;
-  }
-
-  /* ─── کارت واحد آمار (ادغام KPI ها) ─── */
-  .stats-card{
-    background:var(--bg-elev);
-    border:1px solid var(--border);
-    border-radius:var(--r-lg);
-    padding:14px 16px;
-    margin-bottom:18px;
-    box-shadow:var(--shadow-sm);
-  }
-  .stats-card-head{
-    display:flex; align-items:center; justify-content:space-between;
-    margin-bottom:12px;
-  }
-  .stats-card-title{
-    font-size:12px; font-weight:600;
-    color:var(--text-3);
-    text-transform:uppercase; letter-spacing:.05em;
-  }
-  .stats-actions{
-    display:flex; gap:6px;
-  }
-  .stats-add-btn{
-    display:inline-flex; align-items:center; gap:4px;
-    padding:4px 10px; border-radius:999px;
-    font-size:11px; font-weight:600;
-    background:var(--accent-soft); color:var(--accent);
-    border:1px solid transparent;
-    transition: all .15s;
-  }
-  .stats-add-btn:hover{ background:var(--accent); color:#fff; }
-
-  .stats-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));
-    gap:0;
-    border-radius:var(--r-md);
-    overflow:hidden;
-    border:1px solid var(--border);
-    background:var(--bg-elev-2);
-  }
-  .stat-cell{
-    padding:10px 12px;
-    text-align:center;
-    border-inline-end:1px solid var(--border);
-    position:relative;
-    transition: background .15s;
-  }
-  .stat-cell:last-child{ border-inline-end:none; }
-  .stat-cell:hover{ background:var(--bg-hover); }
-  .stat-cell .sv{
-    font-size:20px; font-weight:700; line-height:1.1;
-    font-variant-numeric:tabular-nums;
-  }
-  .stat-cell .sl{
-    font-size:11px; color:var(--text-3);
-    margin-top:3px;
-    white-space:nowrap;
-  }
-  .stat-cell.blue .sv{ color:var(--blue); }
-  .stat-cell.green .sv{ color:var(--green); }
-  .stat-cell.red .sv{ color:var(--red); }
-  .stat-cell.orange .sv{ color:var(--orange); }
-  .stat-cell.purple .sv{ color:var(--purple); }
-  .stat-cell.teal .sv{ color:var(--teal); }
-
-  /* کارت های سفارشی */
-  .custom-stats-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
-    gap:10px;
-    margin-top:12px;
-  }
-  .custom-stat{
-    background:var(--bg-elev-2);
-    border:1px solid var(--border);
-    border-radius:var(--r-md);
-    padding:12px 14px;
-    position:relative;
-    animation:fadeIn .25s var(--ease);
-  }
-  .custom-stat .cs-label{
-    font-size:11px; color:var(--text-3);
-    margin-bottom:4px;
-    display:flex; align-items:center; justify-content:space-between;
-    gap:6px;
-  }
-  .custom-stat .cs-label .rm{
-    width:18px; height:18px; border-radius:4px;
-    display:grid; place-items:center;
-    color:var(--text-3); font-size:12px;
-    opacity:0; transition: opacity .15s, background .15s;
-  }
-  .custom-stat:hover .cs-label .rm{ opacity:1; }
-  .custom-stat .cs-label .rm:hover{ background:var(--red-soft); color:var(--red); }
-  .custom-stat .cs-value{
-    font-size:22px; font-weight:700;
-    color:var(--accent);
-    font-variant-numeric:tabular-nums;
-  }
-  .custom-stat .cs-formula{
-    font-size:10px; color:var(--text-3);
-    margin-top:2px;
-    direction:ltr; text-align:right;
-  }
-
-  /* فرم ساخت کارت سفارشی */
-  .custom-stat-form{
-    margin-top:12px;
-    padding:12px 14px;
-    background:var(--bg-elev-2);
-    border:1px dashed var(--border-strong);
-    border-radius:var(--r-md);
-    display:grid;
-    grid-template-columns: 1fr 1fr 1fr auto;
-    gap:8px;
-    align-items:end;
-    animation:fadeIn .2s var(--ease);
-  }
-  .custom-stat-form label{
-    display:block;
-    font-size:11px; color:var(--text-3);
-    margin-bottom:4px;
-  }
-  .custom-stat-form input,
-  .custom-stat-form select{
-    width:100%;
-    padding:6px 10px;
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:6px;
-    color:var(--text);
-    font-size:12px;
-    outline:none;
-    transition: border-color .15s;
-  }
-  .custom-stat-form input:focus,
-  .custom-stat-form select:focus{ border-color:var(--accent); }
-  .custom-stat-form .form-actions{
-    display:flex; gap:6px;
-  }
-  .custom-stat-form .btn-sm{
-    padding:6px 12px; border-radius:6px;
-    font-size:11px; font-weight:600;
-    background:var(--accent); color:#fff;
-    border:none;
-    transition: background .15s;
-  }
-  .custom-stat-form .btn-sm:hover{ background:var(--accent-hover); }
-  .custom-stat-form .btn-sm.secondary{
-    background:var(--bg); color:var(--text-2);
-    border:1px solid var(--border);
-  }
-  .custom-stat-form .btn-sm.secondary:hover{ background:var(--bg-hover); color:var(--text); }
-
-  @media (max-width: 700px){
-    .custom-stat-form{ grid-template-columns:1fr 1fr; }
-    .custom-stat-form .form-actions{ grid-column:1 / -1; }
-  }
-
-  /* Tabs */
-  .tabs{
-    display:flex; gap:4px;
-    border-bottom:1px solid var(--border);
-    margin-bottom:20px;
-    overflow-x:auto;
-  }
-  .tab{
-    display:inline-flex; align-items:center; gap:6px;
-    padding:10px 14px;
-    font-size:13px; font-weight:500;
-    color:var(--text-2);
-    border-bottom:2px solid transparent;
-    margin-bottom:-1px;
-    white-space:nowrap;
-    transition: color .15s, border-color .15s;
-  }
-  .tab:hover{ color:var(--text); }
-  .tab.active{ color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
-
-  .tab-panel{ display:none; animation:fadeIn .25s var(--ease); }
-  .tab-panel.active{ display:block; }
-  @keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
-
-  /* Charts */
-  .charts-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:16px;
-    margin-bottom:16px;
-  }
-  .chart-card{
-    background:var(--bg-elev);
-    border:1px solid var(--border);
-    border-radius:var(--r-lg);
-    padding:16px;
-    height:320px;
-    display:flex; flex-direction:column;
-  }
-  .chart-card.wide{ grid-column:1 / -1; height:300px; }
-  .chart-card h4{
-    font-size:13px; font-weight:600; color:var(--text-2);
-    margin-bottom:12px;
-    display:flex; align-items:center; justify-content:space-between;
-    gap:8px;
-  }
-  .chart-card h4 .hint{
-    font-size:11px; font-weight:400;
-    color:var(--text-3);
-  }
-  .chart-body{ flex:1; min-height:0; position:relative; }
-  .no-data{
-    display:grid; place-items:center; height:100%;
-    color:var(--text-3); font-size:13px;
-  }
-  .chart-canvas.clickable{ cursor:pointer; }
-
-  /* جزئیات موضوع (بعد از کلیک روی نمودار) */
-  .topic-detail{
-    margin-top:12px;
-    background:var(--bg-elev);
-    border:1px solid var(--border);
-    border-radius:var(--r-lg);
-    padding:16px;
-    animation:fadeIn .25s var(--ease);
-  }
-  .topic-detail-head{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px; margin-bottom:12px;
-  }
-  .topic-detail-title{
-    display:flex; align-items:center; gap:10px;
-    font-size:14px; font-weight:600;
-  }
-  .topic-detail-title .dot{
-    width:10px; height:10px; border-radius:50%;
-  }
-  .topic-detail-close{
-    width:28px; height:28px; border-radius:6px;
-    display:grid; place-items:center;
-    color:var(--text-3);
-    transition: background .15s, color .15s;
-  }
-  .topic-detail-close:hover{ background:var(--bg-hover); color:var(--text); }
-  .topic-detail-stats{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(120px,1fr));
-    gap:8px;
-    margin-bottom:12px;
-  }
-  .topic-detail-stat{
-    background:var(--bg-elev-2);
-    border:1px solid var(--border);
-    border-radius:var(--r-md);
-    padding:10px 12px;
-    text-align:center;
-  }
-  .topic-detail-stat .lbl{
-    font-size:11px; color:var(--text-3); margin-bottom:2px;
-  }
-  .topic-detail-stat .val{
-    font-size:16px; font-weight:700;
-  }
-  .topic-files-list{
-    max-height:220px; overflow-y:auto;
-    border:1px solid var(--border);
-    border-radius:var(--r-md);
-  }
-  .topic-file-row{
-    display:flex; align-items:center; gap:10px;
-    padding:8px 12px;
-    border-bottom:1px solid var(--border);
-    font-size:12px;
-  }
-  .topic-file-row:last-child{ border-bottom:none; }
-  .topic-file-row .name{
-    flex:1; min-width:0;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    color:var(--text);
-  }
-  .topic-file-row .score{
-    font-weight:700; color:var(--teal);
-    font-variant-numeric:tabular-nums;
-    font-size:11px;
-  }
-
-  /* Filter chips */
-  .filter-row{
-    display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;
-  }
-  .chip{
-    padding:6px 14px; border-radius:999px;
-    font-size:12px; font-weight:500;
-    color:var(--text-2);
-    background:var(--bg-elev);
-    border:1px solid var(--border);
-    transition: all .15s;
-  }
-  .chip:hover{ border-color:var(--border-strong); color:var(--text); }
-  .chip.active{
-    background:var(--accent); color:#fff; border-color:var(--accent);
-  }
-
-  /* File table */
-  .file-table-wrap{
-    background:var(--bg-elev);
-    border:1px solid var(--border);
-    border-radius:var(--r-lg);
-    overflow:hidden;
-  }
-  .file-table{
-    width:100%; border-collapse:collapse;
-    font-size:13px;
-  }
-  .file-table thead{ background:var(--bg-elev-2); }
-  .file-table th{
-    text-align:right; padding:10px 14px;
-    font-size:11px; font-weight:600; text-transform:uppercase;
-    letter-spacing:.03em; color:var(--text-3);
-    border-bottom:1px solid var(--border);
-  }
-  .file-table td{
-    padding:12px 14px;
-    border-bottom:1px solid var(--border);
-    vertical-align:middle;
-  }
-  .file-table tbody tr:last-child td{ border-bottom:none; }
-  .file-table tbody tr:hover{ background:var(--bg-hover); }
-  .file-name-cell{
-    max-width:280px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    font-weight:500;
-  }
-  .file-name-cell .sub{
-    display:block; font-size:11px; color:var(--text-3); font-weight:400;
-    direction:ltr; text-align:right;
-  }
-  .pill{
-    display:inline-block;
-    padding:2px 9px; border-radius:999px;
-    font-size:11px; font-weight:600;
-    white-space:nowrap;
-    margin-inline-end:4px;
-  }
-  .pill.rel{ background:var(--green-soft); color:var(--green); }
-  .pill.unrel{ background:var(--red-soft); color:var(--red); }
-  .pill.t-low{ background:var(--green-soft); color:var(--green); }
-  .pill.t-medium{ background:var(--orange-soft); color:var(--orange); }
-  .pill.t-high, .pill.t-critical{ background:var(--red-soft); color:var(--red); }
-  .pill.t-unknown{ background:var(--bg-hover); color:var(--text-3); }
-
-  .score-cell{ min-width:100px; }
-  .score-val{
-    font-size:12px; font-weight:700; color:var(--teal);
-    font-variant-numeric:tabular-nums;
-  }
-  .score-bar{
-    height:4px; border-radius:4px;
-    background:var(--border);
-    margin-top:4px; overflow:hidden;
-  }
-  .score-bar i{
-    display:block; height:100%; border-radius:4px;
-    background:linear-gradient(90deg, var(--teal), var(--blue));
-    transition: width .8s var(--ease);
-    width:0;
-  }
-
-  /* Chat */
-  .chat-wrap{
-    background:var(--bg-elev);
-    border:1px solid var(--border);
-    border-radius:var(--r-lg);
-    overflow:hidden;
-    display:flex; flex-direction:column;
-  }
-  .chat-toolbar{
-    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
-    padding:12px 16px;
-    border-bottom:1px solid var(--border);
-    background:var(--bg-elev-2);
-  }
-  .btn{
-    display:inline-flex; align-items:center; gap:6px;
-    padding:7px 14px; border-radius:var(--r-md);
-    font-size:12px; font-weight:600;
-    border:1px solid var(--border);
-    background:var(--bg-elev);
-    color:var(--text);
-    transition: all .15s;
-  }
-  .btn:hover:not(:disabled){ background:var(--bg-hover); border-color:var(--border-strong); }
-  .btn:disabled{ opacity:.5; cursor:not-allowed; }
-  .btn-primary{
-    background:var(--accent); color:#fff; border-color:var(--accent);
-  }
-  .btn-primary:hover:not(:disabled){ background:var(--accent-hover); border-color:var(--accent-hover); }
-  .chat-toolbar input[type="text"]{
-    flex:1; min-width:140px;
-    padding:7px 12px; border-radius:var(--r-md);
-    background:var(--bg); border:1px solid var(--border);
-    color:var(--text); font-size:12px; outline:none;
-    transition: border-color .15s;
-  }
-  .chat-toolbar input[type="text"]:focus{ border-color:var(--accent); }
-
-  .chat-status{
-    font-size:11px; color:var(--text-3);
-    padding:0 4px;
-  }
-
-  .chat-messages{
-    flex:1; min-height:280px; max-height:480px;
-    overflow-y:auto;
-    padding:16px;
-    background:var(--bg);
-  }
-  .chat-empty{
-    display:grid; place-items:center; text-align:center;
-    height:100%; color:var(--text-3); font-size:13px;
-    gap:8px; padding:40px 20px;
-  }
-  .chat-empty .icon{ font-size:32px; }
-
-  .chat-msg{
-    display:flex; gap:10px; margin-bottom:14px;
-    animation: fadeIn .25s var(--ease);
-  }
-  .chat-msg.user{ flex-direction:row-reverse; }
-  .chat-avatar{
-    width:28px; height:28px; border-radius:50%;
-    flex-shrink:0;
-    display:grid; place-items:center;
-    font-size:13px;
-    background:var(--bg-elev-2);
-    border:1px solid var(--border);
-  }
-  .chat-bubble{
-    max-width:75%;
-    padding:10px 14px;
-    border-radius:var(--r-md);
-    font-size:13px; line-height:1.8;
-    white-space:pre-wrap; word-break:break-word;
-  }
-  .chat-msg.user .chat-bubble{
-    background:var(--accent); color:#fff;
-    border-top-left-radius:4px;
-  }
-  .chat-msg.assistant .chat-bubble{
-    background:var(--bg-elev-2); color:var(--text);
-    border:1px solid var(--border);
-    border-top-right-radius:4px;
-  }
-  .chat-typing{
-    display:inline-flex; gap:4px; padding:4px 0;
-  }
-  .chat-typing i{
-    width:6px; height:6px; border-radius:50%;
-    background:var(--text-3);
-    animation: blink 1.2s infinite;
-  }
-  .chat-typing i:nth-child(2){ animation-delay:.2s; }
-  .chat-typing i:nth-child(3){ animation-delay:.4s; }
-  @keyframes blink{ 0%,60%,100%{opacity:.3;} 30%{opacity:1;} }
-
-  .chat-image-result{
-    padding:12px 16px;
-    border-top:1px solid var(--border);
-    background:var(--bg-elev-2);
-  }
-  .chat-image-result img{
-    max-width:100%; max-height:420px;
-    border-radius:var(--r-md);
-    display:block; margin-bottom:8px;
-    border:1px solid var(--border);
-  }
-  .chat-image-result .caption{
-    font-size:11px; color:var(--text-3);
-    direction:ltr; text-align:right;
-  }
-
-  .chat-input-row{
-    display:flex; gap:8px;
-    padding:12px 16px;
-    border-top:1px solid var(--border);
-    background:var(--bg-elev-2);
-  }
-  .chat-input-row input{
-    flex:1; min-width:0;
-    padding:9px 14px; border-radius:var(--r-md);
-    background:var(--bg); border:1px solid var(--border);
-    color:var(--text); font-size:13px; outline:none;
-    transition: border-color .15s;
-  }
-  .chat-input-row input:focus{ border-color:var(--accent); }
-  .chat-input-row input:disabled{ opacity:.5; }
-
-  /* Psychology */
-  .psy-header{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px; flex-wrap:wrap; margin-bottom:16px;
-  }
-  .psy-header h3{ font-size:15px; font-weight:600; }
-  .psy-actions{ display:flex; gap:8px; flex-wrap:wrap; }
-
-  .psy-scores{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(140px,1fr));
-    gap:12px; margin-bottom:16px;
-  }
-  .psy-score{
-    background:var(--bg-elev);
-    border:1px solid var(--border);
-    border-radius:var(--r-lg);
-    padding:14px 16px;
-    text-align:center;
-  }
-  .psy-score .label{
-    font-size:11px; font-weight:600; text-transform:uppercase;
-    letter-spacing:.04em; color:var(--text-3);
-    margin-bottom:6px;
-  }
-  .psy-score .value{
-    font-size:22px; font-weight:700;
-    font-variant-numeric:tabular-nums;
-  }
-  .psy-narrative{
-    background:var(--bg-elev);
-    border:1px solid var(--border);
-    border-radius:var(--r-lg);
-    padding:16px 18px;
-    font-size:13px; line-height:1.9; color:var(--text);
-    white-space:pre-wrap;
-  }
-  .psy-signals{
-    margin-top:12px;
-    display:flex; gap:6px; flex-wrap:wrap;
-  }
-  .psy-signal{
-    font-size:11px;
-    padding:3px 10px; border-radius:999px;
-    background:var(--bg-elev-2); color:var(--text-2);
-    border:1px solid var(--border);
-  }
-
-  /* States */
-  .spinner{
-    width:28px; height:28px;
-    border:2.5px solid var(--border);
-    border-top-color:var(--accent);
-    border-radius:50%;
-    animation: spin .8s linear infinite;
-    margin:40px auto;
-  }
-  .empty-block{
-    display:grid; place-items:center; text-align:center;
-    padding:60px 24px; color:var(--text-2);
-    gap:8px;
-  }
-  .empty-block .icon{ font-size:40px; }
-  .empty-block h3{ font-size:16px; color:var(--text); font-weight:600; }
-  .empty-block p{ font-size:13px; color:var(--text-3); }
-
-  .error-box{
-    background:var(--red-soft);
-    border:1px solid rgba(239,68,68,.3);
-    color:var(--red);
-    padding:12px 16px; border-radius:var(--r-md);
-    font-size:13px;
-  }
-
-  /* Responsive */
-  @media (max-width:960px){
-    .app{
-      grid-template-columns:1fr;
-      grid-template-rows: 56px auto 1fr;
-      grid-template-areas:
-        "header"
-        "sidebar"
-        "main";
-      height:auto; min-height:100dvh;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0B0B0F" />
+  <title>Insight Console — کنسول تحلیل رفتار</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('insight_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+    })();
+  </script>
+  <script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'vendor/vazirmatn/vazirmatn.css' %}" />
+  <style>
+    :root {
+      --bg:#0B0B0F;--bg-elev:#131318;--bg-elev-2:#1A1A21;--bg-hover:#1F1F27;
+      --border:#26262F;--border-strong:#32323D;--text:#EDEDF0;--text-2:#A0A0AC;--text-3:#6B6B78;
+      --accent:#6366F1;--accent-hover:#7C7FF5;--accent-soft:rgba(99,102,241,.14);
+      --green:#22C55E;--green-soft:rgba(34,197,94,.14);
+      --red:#EF4444;--red-soft:rgba(239,68,68,.14);
+      --orange:#F59E0B;--orange-soft:rgba(245,158,11,.14);
+      --blue:#3B82F6;--purple:#A855F7;--teal:#14B8A6;
+      --tip:#131318;--separator:#26262F;--label:#EDEDF0;--label-2:#A0A0AC;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+      --shadow-md:0 4px 14px rgba(0,0,0,.45);
+      --shadow-lg:0 18px 48px rgba(0,0,0,.55);
+      --shadow-focus:0 0 0 3px rgba(99,102,241,.28);
+      --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;--r-pill:999px;
+      --ease:cubic-bezier(.4,0,.2,1);
+      --header-h:64px;--sidebar-w:280px;--sidebar-w-collapsed:72px;
     }
-    .sidebar{
-      border-inline-end:none;
-      border-bottom:1px solid var(--border);
-      max-height:340px;
+    [data-theme="light"] {
+      --bg:#F7F7F9;--bg-elev:#FFFFFF;--bg-elev-2:#F1F1F5;--bg-hover:#ECECF1;
+      --border:#E5E5EA;--border-strong:#D4D4DB;--text:#18181B;--text-2:#55555F;--text-3:#8B8B96;
+      --accent:#4F46E5;--accent-hover:#4338CA;--accent-soft:rgba(79,70,229,.10);
+      --green:#16A34A;--green-soft:rgba(22,163,74,.12);
+      --red:#DC2626;--red-soft:rgba(220,38,38,.10);
+      --orange:#D97706;--orange-soft:rgba(217,119,6,.12);
+      --blue:#2563EB;--purple:#9333EA;--teal:#0D9488;
+      --tip:#FFFFFF;--separator:#E5E5EA;--label:#18181B;--label-2:#55555F;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.06);
+      --shadow-md:0 4px 14px rgba(0,0,0,.08);
+      --shadow-lg:0 18px 48px rgba(0,0,0,.14);
+      --shadow-focus:0 0 0 3px rgba(79,70,229,.25);
     }
-    .user-list{ max-height:240px; }
-    .charts-grid{ grid-template-columns:1fr; }
-    .main-inner{ padding:16px; }
-    .file-table th:nth-child(3),
-    .file-table td:nth-child(3){ display:none; }
-    .stats-grid{ grid-template-columns:repeat(auto-fit, minmax(80px,1fr)); }
-    .stat-cell{ padding:8px 6px; }
-    .stat-cell .sv{ font-size:16px; }
-    .stat-cell .sl{ font-size:10px; }
-  }
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;font-size:14px;line-height:1.6;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+    button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+    button{cursor:pointer;background:none;border:none;padding:0}
+    button:disabled{cursor:not-allowed;opacity:.5}
+    a{color:inherit}
+    :focus-visible{outline:none;box-shadow:var(--shadow-focus);border-radius:var(--r-sm)}
+    ::selection{background:var(--accent-soft)}
+    ::-webkit-scrollbar{width:8px;height:8px}
+    ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:var(--r-pill)}
+    ::-webkit-scrollbar-track{background:transparent}
 
-  @media (prefers-reduced-motion:reduce){
-    *, *::before, *::after{
-      animation-duration:.01ms !important;
-      transition-duration:.01ms !important;
+    .app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;grid-template-rows:var(--header-h) 1fr;grid-template-areas:"header header" "sidebar main";height:100dvh;overflow:hidden;transition:grid-template-columns .22s var(--ease)}
+    .app.collapsed{grid-template-columns:var(--sidebar-w-collapsed) 1fr}
+
+    .header{grid-area:header;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--bg-elev);border-bottom:1px solid var(--border);position:relative;z-index:30}
+    .brand{display:flex;align-items:center;gap:10px;min-width:0}
+    .brand-mark{width:28px;height:28px;border-radius:8px;flex:0 0 auto;display:grid;place-items:center;font-weight:800;font-size:12px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--purple));box-shadow:var(--shadow-sm)}
+    .brand-title{font-weight:700;font-size:14px;white-space:nowrap}
+    .divider-v{width:1px;height:20px;background:var(--border)}
+    .breadcrumb{color:var(--text-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .header-spacer{flex:1 1 auto}
+    .live-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--r-pill);background:var(--green-soft);color:var(--green);font-size:11px;font-weight:600;white-space:nowrap;border:1px solid transparent}
+    .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s var(--ease) infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+
+    .user-chip{display:none;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:var(--r-pill);background:var(--bg-elev-2);border:1px solid var(--border);font-size:12px;font-weight:600;max-width:180px}
+    .user-chip.visible{display:inline-flex}
+    .user-chip .avatar{width:28px;height:28px;font-size:11px}
+    .user-chip .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    .icon-btn{width:36px;height:36px;border-radius:var(--r-sm);display:inline-grid;place-items:center;color:var(--text-2);transition:background .15s var(--ease),color .15s var(--ease)}
+    .icon-btn:hover{background:var(--bg-hover);color:var(--text)}
+    .icon-btn svg{width:18px;height:18px}
+    .icon-btn.spinning svg{animation:spin .7s var(--ease)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .sidebar{grid-area:sidebar;background:var(--bg-elev);border-inline-end:1px solid var(--border);display:flex;flex-direction:column;min-height:0;overflow:hidden;transition:width .22s var(--ease)}
+    .sidebar-head{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px}
+    .sidebar-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+    .count-badge{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:var(--r-pill);background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700}
+    .search-wrap{padding:0 12px 10px}
+    .search-box{display:flex;align-items:center;gap:8px;background:var(--bg-elev-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 10px;transition:box-shadow .15s var(--ease),border-color .15s var(--ease)}
+    .search-box:focus-within{border-color:var(--accent);box-shadow:var(--shadow-focus)}
+    .search-box svg{width:15px;height:15px;color:var(--text-3);flex:0 0 auto}
+    .search-box input{flex:1 1 auto;min-width:0;border:none;outline:none;background:transparent;font-size:13px}
+    .search-box input::placeholder{color:var(--text-3)}
+
+    .user-list{flex:1 1 auto;overflow-y:auto;padding:0 8px 12px;min-height:0}
+    .user-item{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;margin-bottom:2px;border-radius:var(--r-md);text-align:start;border-inline-start:3px solid transparent;transition:background .15s var(--ease)}
+    .user-item:hover{background:var(--bg-hover)}
+    .user-item.active{background:var(--accent-soft);border-inline-start-color:var(--accent)}
+    .user-item .avatar{flex:0 0 auto}
+    .user-meta{min-width:0;flex:1 1 auto}
+    .user-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .user-sub{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .app.collapsed .sidebar-head,.app.collapsed .search-wrap{display:none}
+    .app.collapsed .user-meta{display:none}
+    .app.collapsed .user-item{justify-content:center;padding:10px 0}
+    .app.collapsed .user-list{padding:12px 6px}
+
+    .avatar{width:40px;height:40px;border-radius:var(--r-pill);display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;flex:0 0 auto;user-select:none}
+
+    .skeleton-row{display:flex;align-items:center;gap:10px;padding:10px 10px}
+    .sk{background:linear-gradient(90deg,var(--bg-elev-2) 25%,var(--bg-hover) 50%,var(--bg-elev-2) 75%);background-size:200% 100%;animation:shimmer 1.3s linear infinite;border-radius:var(--r-sm)}
+    @keyframes shimmer{to{background-position:-200% 0}}
+    .sk-avatar{width:40px;height:40px;border-radius:50%;flex:0 0 auto}
+    .sk-lines{flex:1 1 auto;display:flex;flex-direction:column;gap:6px}
+    .sk-line-1{height:10px;width:60%}
+    .sk-line-2{height:9px;width:85%}
+    .empty-side{padding:32px 16px;text-align:center;color:var(--text-3);font-size:12px}
+    .empty-side .big{font-size:26px;margin-bottom:8px;display:block}
+
+    .main{grid-area:main;overflow-y:auto;overflow-x:hidden;background:var(--bg);min-height:0;position:relative}
+    .main-inner{max-width:1180px;margin:0 auto;padding:24px 24px 64px}
+    .empty-block{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:64px 24px;text-align:center;background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r-lg);min-height:320px}
+    .empty-block .big{font-size:40px;line-height:1;margin-bottom:4px}
+    .empty-block h3{margin:0;font-size:16px}
+    .empty-block p{margin:0;color:var(--text-3);font-size:13px;max-width:360px}
+
+    .card{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r-lg)}
+    .section-gap{margin-bottom:16px}
+
+    .uhead{display:flex;align-items:center;gap:14px;padding:16px}
+    .uhead .avatar{width:56px;height:56px;font-size:18px}
+    .uhead-main{flex:1 1 auto;min-width:0}
+    .uhead-name{font-size:16px;font-weight:700}
+    .uhead-sub{font-size:12px;color:var(--text-3)}
+
+    .kpi-strip{display:flex;align-items:stretch;flex-wrap:wrap;padding:0;overflow:hidden}
+    .kpi-cell{flex:1 1 120px;min-width:110px;padding:12px 16px;height:72px;display:flex;flex-direction:column;justify-content:center;gap:2px;border-inline-end:1px solid var(--border)}
+    .kpi-cell:last-child{border-inline-end:none}
+    .kpi-value{font-size:22px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
+    .kpi-label{font-size:11px;color:var(--text-3)}
+    .kpi-add{display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:22px;min-width:72px;border:1px dashed var(--border-strong);border-radius:var(--r-md);margin:10px;height:52px;flex:0 0 auto;transition:color .15s var(--ease),border-color .15s var(--ease),background .15s var(--ease)}
+    .kpi-add:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+    .kpi-custom{position:relative}
+    .kpi-custom .kpi-remove{position:absolute;top:4px;inset-inline-end:6px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:var(--text-3);opacity:0;transition:opacity .15s var(--ease),background .15s var(--ease)}
+    .kpi-custom:hover .kpi-remove{opacity:1}
+    .kpi-custom .kpi-remove:hover{background:var(--red-soft);color:var(--red)}
+
+    .tabbar{position:sticky;top:0;z-index:20;display:flex;gap:4px;background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 2px;margin-bottom:20px}
+    .tab{position:relative;padding:12px 14px;font-size:13px;font-weight:600;color:var(--text-2);display:inline-flex;align-items:center;gap:6px;transition:color .15s var(--ease);white-space:nowrap}
+    .tab::after{content:"";position:absolute;bottom:-1px;inset-inline:8px;height:2px;border-radius:2px;background:var(--accent);transform:scaleX(0);transition:transform .15s var(--ease)}
+    .tab:hover{color:var(--text)}
+    .tab.active{color:var(--text)}
+    .tab.active::after{transform:scaleX(1)}
+    .tab .badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:var(--r-pill);background:var(--bg-elev-2);color:var(--text-2)}
+    .tab.active .badge{background:var(--accent-soft);color:var(--accent)}
+
+    .panel{display:none;animation:fadeIn .2s var(--ease)}
+    .panel.active{display:block}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+    .chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .chart-card{padding:16px;min-height:300px;display:flex;flex-direction:column}
+    .chart-card h4{margin:0 0 12px;font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .chart-card h4 .hint{font-size:10px;font-weight:400;color:var(--text-3)}
+    .chart-box{position:relative;flex:1 1 auto;min-height:220px}
+    .no-data{flex:1 1 auto;min-height:220px;display:grid;place-items:center;color:var(--text-3);font-size:13px;border:1px dashed var(--border);border-radius:var(--r-md)}
+
+    .drilldown{margin-top:16px;padding:16px;background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r-lg);animation:fadeIn .2s var(--ease)}
+    .drill-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+    .drill-title{font-weight:700;font-size:14px}
+    .drill-stats{display:flex;gap:20px;flex-wrap:wrap}
+    .drill-stat{display:flex;flex-direction:column}
+    .drill-stat b{font-size:16px;font-variant-numeric:tabular-nums}
+    .drill-stat span{font-size:11px;color:var(--text-3)}
+    .drill-files{max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-elev-2)}
+    .drill-file{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border-bottom:1px solid var(--separator);font-size:12px}
+    .drill-file:last-child{border-bottom:none}
+    .drill-file .fname{dir:ltr;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto}
+    .drill-file .frelevance{font-variant-numeric:tabular-nums;color:var(--text-2);flex:0 0 auto}
+
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .chip{padding:6px 12px;border-radius:var(--r-pill);font-size:12px;font-weight:600;border:1px solid var(--border);color:var(--text-2);display:inline-flex;align-items:center;gap:6px;transition:all .15s var(--ease)}
+    .chip:hover{border-color:var(--border-strong);color:var(--text)}
+    .chip.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+    .chip .n{font-size:10px;opacity:.8}
+
+    .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--bg-elev)}
+    table.files{width:100%;border-collapse:collapse;font-size:12.5px}
+    table.files th{text-align:start;font-size:11px;font-weight:700;color:var(--text-3);padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+    table.files td{padding:10px 14px;border-bottom:1px solid var(--separator);vertical-align:middle}
+    table.files tr:last-child td{border-bottom:none}
+    table.files tbody tr{transition:background .12s var(--ease)}
+    table.files tbody tr:hover{background:var(--bg-hover)}
+    .fname-cell{max-width:280px}
+    .fname-cell .f{dir:ltr;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+    .pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:var(--r-pill);font-size:11px;font-weight:600;white-space:nowrap}
+    .pill.ok{background:var(--green-soft);color:var(--green)}
+    .pill.bad{background:var(--red-soft);color:var(--red)}
+    .pill.warn{background:var(--orange-soft);color:var(--orange)}
+    .scorebar{display:flex;align-items:center;gap:8px;min-width:120px}
+    .scorebar .track{flex:1 1 auto;height:6px;border-radius:var(--r-pill);background:var(--bg-elev-2);overflow:hidden}
+    .scorebar .fill{height:100%;border-radius:var(--r-pill);background:var(--accent);width:0;transition:width .6s var(--ease)}
+    .scorebar .val{font-size:11px;font-variant-numeric:tabular-nums;color:var(--text-2);min-width:32px;text-align:end}
+
+    .chat-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:var(--r-sm);font-size:12.5px;font-weight:600;border:1px solid var(--border);background:var(--bg-elev-2);color:var(--text);transition:all .15s var(--ease);white-space:nowrap}
+    .btn:hover:not(:disabled){border-color:var(--border-strong);background:var(--bg-hover)}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn.primary:hover:not(:disabled){background:var(--accent-hover);border-color:var(--accent-hover)}
+    .btn.danger{background:var(--red-soft);border-color:transparent;color:var(--red)}
+    .input-text{flex:1 1 160px;min-width:120px;padding:8px 12px;border-radius:var(--r-sm);background:var(--bg-elev-2);border:1px solid var(--border);font-size:12.5px;outline:none}
+    .input-text:focus{border-color:var(--accent);box-shadow:var(--shadow-focus)}
+    .chat-status{font-size:11px;color:var(--text-3)}
+
+    .chat-shell{display:flex;flex-direction:column;height:520px}
+    .chat-messages{flex:1 1 auto;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r-lg) var(--r-lg) 0 0}
+    .chat-empty{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--text-3);font-size:12.5px;text-align:center;padding:24px}
+    .chat-empty .big{font-size:32px}
+    .msg{display:flex;gap:8px;max-width:82%}
+    .msg.user{align-self:flex-end;flex-direction:row-reverse}
+    .msg.assistant{align-self:flex-start}
+    .msg .avatar{width:28px;height:28px;font-size:10px}
+    .bubble{padding:9px 13px;border-radius:var(--r-md);font-size:13px;background:var(--bg-elev-2);border:1px solid var(--border);white-space:pre-wrap;word-break:break-word;position:relative;line-height:1.65}
+    .msg.user .bubble{background:var(--accent-soft);border-color:transparent}
+    .msg-time{position:absolute;bottom:-16px;font-size:9.5px;color:var(--text-3);opacity:0;transition:opacity .15s var(--ease);white-space:nowrap}
+    .msg:hover .msg-time{opacity:1}
+    .msg.user .msg-time{inset-inline-end:0}
+    .msg.assistant .msg-time{inset-inline-start:0}
+    .typing{display:inline-flex;gap:4px;padding:4px 2px}
+    .typing span{width:6px;height:6px;border-radius:50%;background:var(--text-3);animation:blink 1.2s var(--ease) infinite}
+    .typing span:nth-child(2){animation-delay:.15s}
+    .typing span:nth-child(3){animation-delay:.3s}
+    @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+
+    .chat-input-row{display:flex;align-items:flex-end;gap:8px;padding:10px;background:var(--bg-elev);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-lg) var(--r-lg)}
+    .chat-input-row textarea{flex:1 1 auto;resize:none;min-height:40px;max-height:150px;padding:9px 12px;border-radius:var(--r-sm);background:var(--bg-elev-2);border:1px solid var(--border);outline:none;font-size:13px;line-height:1.5}
+    .chat-input-row textarea:focus{border-color:var(--accent);box-shadow:var(--shadow-focus)}
+
+    .img-result{margin-top:12px;border:1px solid var(--border);border-radius:var(--r-lg);padding:12px;background:var(--bg-elev);position:relative}
+    .img-result img{max-width:100%;border-radius:var(--r-md);display:block;cursor:zoom-in}
+    .img-result .caption{font-size:11px;color:var(--text-3);margin-top:8px}
+    .img-close{position:absolute;top:8px;inset-inline-end:8px;width:26px;height:26px;border-radius:50%;background:var(--bg-elev-2);color:var(--text-2);display:grid;place-items:center;font-size:14px;border:1px solid var(--border)}
+    .img-close:hover{background:var(--red-soft);color:var(--red)}
+
+    .lightbox{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:grid;place-items:center;padding:24px;animation:fadeIn .15s var(--ease)}
+    .lightbox img{max-width:92vw;max-height:88vh;border-radius:var(--r-md);box-shadow:var(--shadow-lg)}
+
+    .psy-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .psy-scores{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+    .score-card{padding:14px;background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r-md);display:flex;flex-direction:column;gap:4px}
+    .score-card .lbl{font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:6px}
+    .score-card .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+    .score-card .val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+    .psy-narrative{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;margin-bottom:14px;max-width:720px;line-height:1.9;font-size:13px;color:var(--text-2)}
+    .signals{display:flex;gap:6px;flex-wrap:wrap}
+    .signal-pill{padding:3px 10px;border-radius:var(--r-pill);background:var(--bg-elev-2);border:1px solid var(--border);font-size:11px;color:var(--text-2);direction:ltr}
+    .progress-card{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r-lg);margin-top:14px}
+    .spinner{width:18px;height:18px;border-radius:50%;border:2.5px solid var(--border-strong);border-top-color:var(--accent);animation:spin .8s linear infinite;flex:0 0 auto}
+
+    .toast-stack{position:fixed;bottom:20px;inset-inline-end:20px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:340px}
+    .toast{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--r-md);background:var(--bg-elev);border:1px solid var(--border);box-shadow:var(--shadow-lg);font-size:12.5px;animation:toastIn .22s var(--ease)}
+    .toast .t-icon{flex:0 0 auto;font-size:15px;line-height:1.4}
+    .toast.success{border-inline-start:3px solid var(--green)}.toast.success .t-icon{color:var(--green)}
+    .toast.error{border-inline-start:3px solid var(--red)}.toast.error .t-icon{color:var(--red)}
+    .toast.info{border-inline-start:3px solid var(--blue)}.toast.info .t-icon{color:var(--blue)}
+    .toast.warning{border-inline-start:3px solid var(--orange)}.toast.warning .t-icon{color:var(--orange)}
+    @keyframes toastIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+    .toast.out{animation:toastOut .2s var(--ease) forwards}
+    @keyframes toastOut{to{opacity:0;transform:translateY(6px) scale(.97)}}
+
+    .dialog-backdrop{position:fixed;inset:0;z-index:250;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px;animation:fadeIn .15s var(--ease)}
+    .dialog{width:100%;max-width:420px;background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:20px;animation:dialogIn .2s var(--ease)}
+    @keyframes dialogIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+    .dialog h3{margin:0 0 8px;font-size:15px}
+    .dialog p{margin:0 0 16px;font-size:12.5px;color:var(--text-2);line-height:1.7}
+    .dialog-actions{display:flex;justify-content:flex-end;gap:8px}
+    .check-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:12.5px;color:var(--text-2)}
+    .check-row input{accent-color:var(--accent);width:15px;height:15px}
+
+    .drawer-backdrop{position:fixed;inset:0;z-index:250;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:fadeIn .15s var(--ease)}
+    .drawer{position:fixed;top:0;bottom:0;inset-inline-end:0;z-index:260;width:100%;max-width:360px;background:var(--bg-elev);border-inline-start:1px solid var(--border);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;animation:drawerIn .22s var(--ease)}
+    @keyframes drawerIn{from{transform:translateX(-100%)}to{transform:none}}
+    .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border)}
+    .drawer-head h3{margin:0;font-size:14px}
+    .drawer-body{padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;flex:1 1 auto}
+    .drawer-foot{padding:16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field label{font-size:12px;font-weight:600;color:var(--text-2)}
+    .field input,.field select{padding:9px 12px;border-radius:var(--r-sm);background:var(--bg-elev-2);border:1px solid var(--border);font-size:13px;outline:none}
+    .field input:focus,.field select:focus{border-color:var(--accent);box-shadow:var(--shadow-focus)}
+    .field .hint{font-size:11px;color:var(--text-3)}
+
+    @media (max-width:960px){
+      .app{grid-template-columns:1fr;grid-template-rows:var(--header-h) auto 1fr;grid-template-areas:"header" "sidebar" "main";height:100dvh}
+      .app.collapsed{grid-template-columns:1fr}
+      .sidebar{border-inline-end:none;border-bottom:1px solid var(--border);max-height:200px}
+      .sidebar-head,.search-wrap{display:none !important}
+      .user-list{display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:10px;gap:8px}
+      .user-item{flex:0 0 auto;width:150px;margin-bottom:0;border-inline-start:none;border-bottom:3px solid transparent}
+      .user-item.active{border-inline-start-color:transparent;border-bottom-color:var(--accent)}
+      .app.collapsed .user-meta{display:block}
+      .app.collapsed .user-item{justify-content:flex-start;padding:8px 10px}
+      .chart-grid{grid-template-columns:1fr}
+      .psy-scores{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .uhead{flex-wrap:wrap}
+      .kpi-cell{flex:1 1 100px;min-width:90px;padding:10px 12px}
+      .brand-title{display:none}
+      .breadcrumb{display:none}
+      .divider-v{display:none}
+      table.files .col-topic{display:none}
+      .main-inner{padding:16px 12px 48px}
     }
-  }
-  canvas { font-family: Tahoma, sans-serif !important; }
-</style>
+    @media (prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+    }
+  </style>
 </head>
 <body>
-
-<div class="app">
-
-  <!-- ══════ HEADER ══════ -->
-  <header class="header">
-    <div class="brand">
-      <span class="brand-mark">AI</span>
-      <span>گزارشات هوش مصنوعی</span>
-    </div>
-    <div class="header-divider"></div>
-    <nav class="breadcrumb">
-      <a href="/ai-settings/">تنظیمات</a>
-      <span class="sep">/</span>
-      <span class="current">داشبورد تحلیل</span>
-    </nav>
-    <div class="header-user" id="headerUser">
-      <span class="avatar" id="headerUserAvatar"></span>
-      <span class="hu-name" id="headerUserName"></span>
-    </div>
-    <div class="header-actions">
-      <span class="live-badge" title="به‌روزرسانی خودکار هر ۳۰ ثانیه">
-        <span class="dot"></span><span>زنده</span>
-      </span>
-      <button class="icon-btn theme-btn" id="themeBtn" title="تغییر تم" aria-label="تغییر تم">
-        <svg class="moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-        <svg class="sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  <div class="app" id="app">
+    <header class="header" role="banner">
+      <button class="icon-btn" id="sidebarToggle" aria-label="باز و بسته کردن نوار کناری">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 6h18M3 12h18M3 18h18"/>
+        </svg>
       </button>
-      <button class="icon-btn" id="refreshBtn" title="بازخوانی" aria-label="بازخوانی">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">AI</div>
+        <span class="brand-title">گزارشات هوش مصنوعی</span>
+      </div>
+      <div class="divider-v" aria-hidden="true"></div>
+      <div class="breadcrumb">تنظیمات / داشبورد تحلیل</div>
+      <div class="header-spacer"></div>
+      <div class="live-pill" title="به‌روزرسانی خودکار هر ۳۰ ثانیه">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span>زنده · ۳۰s</span>
+      </div>
+      <div class="user-chip" id="headerUserChip">
+        <span class="avatar" id="headerUserAvatar"></span>
+        <span class="name" id="headerUserName"></span>
+      </div>
+      <button class="icon-btn" id="themeToggle" aria-label="تغییر تم روشن و تاریک">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
       </button>
-    </div>
-  </header>
+      <button class="icon-btn" id="refreshBtn" aria-label="به‌روزرسانی داده‌ها">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 4v6h-6M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+      </button>
+    </header>
 
-  <!-- ══════ SIDEBAR ══════ -->
-  <aside class="sidebar">
-    <div class="sidebar-head">
-      <span class="sidebar-title">کاربران</span>
-      <span class="count-badge" id="userCount">۰</span>
-    </div>
-    <div class="search-wrap">
-      <div class="search">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input type="search" id="searchInput" placeholder="جستجوی کاربر...">
+    <aside class="sidebar" role="complementary" aria-label="لیست کاربران">
+      <div class="sidebar-head">
+        <span class="sidebar-title">کاربران</span>
+        <span class="count-badge" id="userCountBadge">۰</span>
       </div>
-    </div>
-    <div class="user-list" id="usersList">
-      <div class="spinner"></div>
-    </div>
-  </aside>
-
-  <!-- ══════ MAIN ══════ -->
-  <main class="main" id="mainArea">
-    <div class="main-inner">
-      <div class="empty-block" style="background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r-xl)">
-        <span class="icon">📊</span>
-        <h3>داشبورد تحلیل رفتار</h3>
-        <p>برای مشاهده گزارش، یک کاربر را از لیست سمت راست انتخاب کنید</p>
-      </div>
-    </div>
-  </main>
-
-</div>
-
-<script>
-/* ═══════════ Helpers ═══════════ */
-function getCsrfToken(){
-  const m = document.cookie.match(/csrftoken=([^;]+)/);
-  return m ? m[1] : '';
-}
-const toFa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
-function escapeHtml(s){
-  if(s === null || s === undefined) return '';
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-const fmtTime = s => s ? escapeHtml(String(s).replace('T',' ').slice(0,16)) : '—';
-const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-
-const AVATAR_GRADS = [
-  'linear-gradient(135deg,#6366F1,#8B5CF6)',
-  'linear-gradient(135deg,#22C55E,#14B8A6)',
-  'linear-gradient(135deg,#F59E0B,#EF4444)',
-  'linear-gradient(135deg,#A855F7,#EC4899)',
-  'linear-gradient(135deg,#3B82F6,#06B6D4)',
-  'linear-gradient(135deg,#EF4444,#F59E0B)'
-];
-const avatarBg = id => AVATAR_GRADS[Math.abs(num(id)) % AVATAR_GRADS.length];
-const initial = n => escapeHtml((n||'?').trim().charAt(0).toUpperCase());
-
-const THREAT = {
-  low:{t:'تهدید: کم',c:'t-low'},
-  medium:{t:'تهدید: متوسط',c:'t-medium'},
-  high:{t:'تهدید: بالا',c:'t-high'},
-  critical:{t:'تهدید: بحرانی',c:'t-critical'}
-};
-const threatPill = lvl => {
-  const m = THREAT[String(lvl||'').toLowerCase()] || {t:escapeHtml(lvl||'—'),c:'t-unknown'};
-  return `<span class="pill ${m.c}">${m.t}</span>`;
-};
-
-async function getJSON(url){
-  const r = await fetch(url, {headers:{'Accept':'application/json'}, credentials:'same-origin'});
-  if(!r.ok) throw new Error('HTTP ' + r.status);
-  return r.json();
-}
-
-function countUp(el){
-  const end = parseFloat(el.dataset.count);
-  const dec = parseInt(el.dataset.dec || 0);
-  const t0 = performance.now();
-  const dur = 900;
-  const fmt = v => dec ? toFa(v.toFixed(dec)) : toFa(Math.round(v));
-  (function tick(t){
-    const p = Math.min(1, (t - t0) / dur);
-    const e = 1 - Math.pow(1 - p, 3);
-    el.textContent = fmt(end * e);
-    if(p < 1) requestAnimationFrame(tick);
-  })(t0);
-}
-
-/* ═══════════ Theme ═══════════ */
-function applyThemeMeta(){
-  document.getElementById('themeColor').content =
-    document.documentElement.dataset.theme === 'light' ? '#F7F7F9' : '#0B0B0F';
-}
-document.getElementById('themeBtn').addEventListener('click', () => {
-  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-  const swap = () => {
-    document.documentElement.dataset.theme = next;
-    try{ localStorage.setItem('theme', next); }catch(e){}
-    applyThemeMeta();
-    if(lastData && document.getElementById('chartTopics')) buildCharts(lastData);
-    if(activeTopicName) showTopicDetail(activeTopicName);
-  };
-  document.startViewTransition ? document.startViewTransition(swap) : swap();
-});
-applyThemeMeta();
-
-/* ═══════════ Chart.js ═══════════ */
-Chart.defaults.font.family = 'Segoe UI, Arial, sans-serif';
-Chart.defaults.color = css('--text-2');
-const PALETTE = () => [
-  css('--accent'), css('--green'), css('--orange'), css('--red'),
-  css('--purple'), css('--teal'), css('--blue'), css('--text-3')
-];
-
-const tooltipCfg = () => ({
-  backgroundColor: css('--bg-elev'),
-  borderColor: css('--border'),
-  borderWidth: 1,
-  titleColor: css('--text'),
-  bodyColor: css('--text-2'),
-  padding: 10,
-  cornerRadius: 8,
-  displayColors: false,
-  rtl: true,
-  textDirection: 'rtl',
-  titleFont: { weight:'700', size:12 },
-  bodyFont: { size:12 },
-  callbacks: { label: c => c.formattedValue }
-});
-
-const hexA = (hex, a) => {
-  const h = hex.replace('#','');
-  const n = parseInt(h.length===3 ? h.replace(/./g,'$&$&') : h, 16);
-  return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
-};
-const vGrad = (hex, a0=1, a1=.3) => ctx => {
-  const a = ctx.chart.chartArea; if(!a) return hex;
-  const g = ctx.chart.ctx.createLinearGradient(0, a.top, 0, a.bottom);
-  g.addColorStop(0, hexA(hex, a0));
-  g.addColorStop(1, hexA(hex, a1));
-  return g;
-};
-
-const centerText = {
-  id:'centerText',
-  afterDraw(c, _, o){
-      if (c.config.type !== 'doughnut' || !o.text) return;
-    if(c.config.type !== 'doughnut' || !o.text) return;
-    const {ctx, chartArea:a} = c;
-    const x = (a.left+a.right)/2, y = (a.top+a.bottom)/2;
-    ctx.save();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = css('--text');
-    ctx.font = '700 24px Vazirmatn, sans-serif';
-    ctx.fillText(o.text, x, y - 6);
-    ctx.fillStyle = css('--text-3');
-    ctx.font = '500 11px Vazirmatn, sans-serif';
-    ctx.fillText(o.sub, x, y + 16);
-    ctx.restore();
-  }
-};
-
-let charts = {};
-let activeTopicName = null;
-
-function destroyCharts(){
-  Object.values(charts).forEach(c => c && c.destroy());
-  charts = {};
-}
-
-function tooltip(){
-  return {
-    backgroundColor: css('--tip'),
-    borderColor: css('--separator'),
-    borderWidth: 1,
-    titleColor: css('--label'),
-    bodyColor: css('--label-2'),
-    padding: 12,
-    cornerRadius: 12,
-    displayColors: false,
-    rtl: true,
-    textDirection: 'rtl',
-    titleFont: {weight: '700', family: 'Vazirmatn'},
-    bodyFont: {size: 12, family: 'Vazirmatn'},
-    callbacks: { label: c => c.formattedValue }
-  };
-}
-
-function buildCharts(d){
-  destroyCharts();
-  const trend = d.trend || [];
-  const kindDist = d.kind_distribution || {};
-  const matrix = d.matrix_2x2 || {org_related:0, org_unrelated:0, nonorg_related:0, nonorg_unrelated:0};
-  const topicDist = d.topic_distribution || [];
-
-  const txt = css('--label-2'), grid = css('--separator'), P = PALETTE();
-  const base = {responsive:true, maintainAspectRatio:false};
-
-  /* 1) Doughnut: ????? ??? ???? */
-  const cK = document.getElementById('chartKinds');
-  if (cK) {
-    let labels = Object.keys(kindDist);
-    let values = Object.values(kindDist);
-    if (!labels.length) { labels = ['No data']; values = [1]; }
-    const total = values.reduce((s,v) => s + v, 0);
-    if (labels.length) {
-      charts.kinds = new Chart(cK, {
-        type: 'doughnut',
-        data: { labels,
-          datasets: [{ data: values, backgroundColor: labels.map((_,i) => P[i % P.length]),
-            borderWidth: 0, hoverOffset: 10, spacing: 3, borderRadius: 8 }] },
-        options: { ...base, cutout: '68%',
-          animation: { animateRotate: true, animateScale: true, duration: 1400 },
-          plugins: { centerText: {text: total, sub: 'Files'},
-            tooltip: tooltip(),
-            legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 12, color: txt, font: {size: 12, family: 'Tahoma, Vazirmatn'}} } } },
-        plugins: [centerText]
-      });
-    }
-  }
-
-  /* 2) Doughnut: ?????? ??? */
-  const cM = document.getElementById('chartMatrix');
-  if (cM) {
-    const labels = ['Org Related', 'Org Unrelated', 'Non-Org Related', 'Non-Org Unrelated'];
-    let values = [matrix.org_related, matrix.org_unrelated, matrix.nonorg_related, matrix.nonorg_unrelated];
-    if (values.every(v => v === 0)) { values = [0, 0, 0, 0]; }
-    const colors = [css('--green'), css('--orange'), css('--teal'), css('--red')];
-    const total = values.reduce((s,v) => s + v, 0);
-    charts.matrix = new Chart(cM, {
-      type: 'doughnut',
-      data: { labels,
-        datasets: [{ data: values, backgroundColor: colors,
-          borderWidth: 0, hoverOffset: 10, spacing: 3, borderRadius: 8 }] },
-      options: { ...base, cutout: '65%',
-        animation: { animateRotate: true, animateScale: true, duration: 1400 },
-        plugins: { centerText: {text: total, sub: 'Files'},
-          tooltip: tooltip(),
-          legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 10, color: txt, font: {size: 10, family: 'Segoe UI, Arial'}} } } },
-      plugins: [centerText]
-    });
-  }
-
-  /* 3) Dual-axis: ???? ?????? + ?????? ??? */
-  const cR = document.getElementById('chartTrend');
-  if (cR) {
-    const labels = trend.length ? trend.map(t => t.date) : ['No data'];
-    charts.trend = new Chart(cR, {
-      type: 'bar',
-      data: { labels,
-        datasets: [
-          { type:'bar', label: 'Total Uploads', data: trend.map(t => t.total),
-            backgroundColor: vGrad(css('--blue'), .8, .35), borderRadius: 8,
-            borderSkipped: false, categoryPercentage: .65, barPercentage: .8, yAxisID: 'y' },
-          { type:'bar', label: 'Org Files', data: trend.map(t => t.org || 0),
-            backgroundColor: vGrad(css('--green'), .8, .35), borderRadius: 8,
-            borderSkipped: false, categoryPercentage: .65, barPercentage: .8, yAxisID: 'y' },
-          { type:'line', label: 'Avg Role Relevance',
-            data: trend.map(t => t.avg_relevance || 0),
-            borderColor: css('--purple'), backgroundColor: 'transparent',
-            borderWidth: 3, tension: .35, pointRadius: 4, pointHoverRadius: 7,
-            pointBackgroundColor: css('--purple'), pointBorderColor: '#fff', pointBorderWidth: 2,
-            yAxisID: 'y1' },
-        ] },
-      options: { ...base, interaction: {mode:'index', intersect:false},
-        plugins: { legend: {display:true, position:'bottom',
-          labels:{usePointStyle:true, pointStyle:'circle', boxWidth:8, padding:12, color:txt, font: {size: 11, family: 'Segoe UI, Arial'}}},
-          tooltip: tooltip() },
-        scales: {
-          x: {grid:{display:false}, border:{display:false}, ticks:{color:txt, maxTicksLimit:8}},
-          y: {beginAtZero:true, position:'left', grid:{color:grid}, border:{display:false},
-              ticks:{precision:0, color:txt, callback:v => toFa(v)}},
-          y1: {beginAtZero:true, max:1, position:'right', grid:{display:false}, border:{display:false},
-               ticks:{color:css('--purple'), callback:v => toFa(v.toFixed(2))}}
-        } }
-    });
-  }
-
-  /* 4) Doughnut: ??????? ?? drilldown */
-  const cTo = document.getElementById('chartTopics');
-  if (cTo) {
-    if (topicDist.length) {
-      const topN = topicDist.slice(0, 10);
-      const total = topN.reduce((s,t) => s + (t.count || 0), 0);
-      charts.topics = new Chart(cTo, {
-        type: 'doughnut',
-        data: { labels: topN.map(t => t.name),
-          datasets: [{ data: topN.map(t => t.count),
-            backgroundColor: topN.map((_,i) => P[i % P.length]),
-            borderWidth: 0, hoverOffset: 12, spacing: 3, borderRadius: 8 }] },
-        options: { ...base, cutout: '65%',
-          onClick: (evt, els) => {
-            if (!els.length) return;
-            const idx = els[0].index;
-            const topic = topN[idx];
-            if (topic && topic.files) showTopicDrilldown(topic.name, topic.files);
-          },
-          animation: { animateRotate: true, animateScale: true, duration: 1400 },
-          plugins: { centerText: {text: total, sub: 'Topics'},
-            tooltip: tooltip(),
-            legend: { position: 'bottom', labels: {usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 10, color: txt, font: {size: 10, family: 'Segoe UI, Arial'}} } } },
-        plugins: [centerText]
-      });
-    }
-  }
-}
-
-function showTopicDrilldown(topicName, files) {
-  const existing = document.getElementById('topicDrillModal');
-  if (existing) existing.remove();
-
-  const total = files.length;
-  const orgCount = files.filter(f => f.is_org).length;
-  const nonorgCount = total - orgCount;
-  const relatedCount = files.filter(f => f.is_related).length;
-  const unrelatedCount = total - relatedCount;
-
-  const modal = document.createElement('div');
-  modal.id = 'topicDrillModal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Segoe UI, Arial, sans-serif';
-
-  modal.innerHTML =
-    '<div style="background:rgba(28,28,30,.96);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:24px;max-width:720px;width:100%;max-height:88vh;overflow-y:auto;color:#fff">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">' +
-        '<h3 style="margin:0;font-size:20px;color:#fff">Topic: <span style="color:#0a84ff">' + topicName + '</span></h3>' +
-        '<button id="topicDrillClose" style="background:transparent;border:none;color:#fff;font-size:26px;cursor:pointer">?</button>' +
-      '</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">' +
-        '<div style="background:rgba(255,255,255,.06);border-radius:16px;padding:12px;height:200px;position:relative"><canvas id="drillOrgChart"></canvas></div>' +
-        '<div style="background:rgba(255,255,255,.06);border-radius:16px;padding:12px;height:200px;position:relative"><canvas id="drillRelChart"></canvas></div>' +
-      '</div>' +
-      '<div style="background:rgba(255,255,255,.06);border-radius:16px;padding:16px">' +
-        '<div style="font-size:13px;color:rgba(255,255,255,.7);margin-bottom:10px">Files (' + total + ')</div>' +
-        files.map(function(f) {
-          const name = String(f.file_name || '?');
-          const kind = String(f.kind || '?');
-          const org = f.is_org ? 'ORG' : 'NON-ORG';
-          const rel = f.is_related ? 'RELATED' : 'UNRELATED';
-          return '<div style="padding:10px;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px">' +
-            '<div style="font-weight:600;direction:ltr;text-align:left">' + name + '</div>' +
-            '<div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">' + kind + ' ? ' + org + ' ? ' + rel + '</div>' +
-            '</div>';
-        }).join('') +
-      '</div>' +
-    '</div>';
-
-  document.body.appendChild(modal);
-  document.getElementById('topicDrillClose').onclick = function() { modal.remove(); };
-  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
-
-  // Org vs Non-Org doughnut
-  new Chart(document.getElementById('drillOrgChart'), {
-    type: 'doughnut',
-    data: { labels: ['Org', 'Non-Org'], datasets: [{ data: [orgCount, nonorgCount],
-      backgroundColor: ['#30D158', '#FF9F0A'], borderWidth: 0, hoverOffset: 8 }] },
-    options: { responsive:true, maintainAspectRatio:false, cutout: '65%',
-      plugins: { legend: { position: 'bottom', labels: { color: '#fff', font: {size:11, family:'Segoe UI, Arial'}, usePointStyle:true, pointStyle:'circle', boxWidth:8 } } } }
-  });
-
-  // Related vs Unrelated doughnut
-  new Chart(document.getElementById('drillRelChart'), {
-    type: 'doughnut',
-    data: { labels: ['Related', 'Unrelated'], datasets: [{ data: [relatedCount, unrelatedCount],
-      backgroundColor: ['#0A84FF', '#FF453A'], borderWidth: 0, hoverOffset: 8 }] },
-    options: { responsive:true, maintainAspectRatio:false, cutout: '65%',
-      plugins: { legend: { position: 'bottom', labels: { color: '#fff', font: {size:11, family:'Segoe UI, Arial'}, usePointStyle:true, pointStyle:'circle', boxWidth:8 } } } }
-  });
-}
-
-
-/* ═══════════ Topic Detail ═══════════ */
-function showTopicDetail(topicName){
-  const d = lastData;
-  if(!d) return;
-  activeTopicName = topicName;
-  const wrap = document.getElementById('topicDetailWrap');
-  if(!wrap) return;
-
-  const allFiles = d.files || [];
-  const topicFiles = allFiles.filter(f => (f.top_topic||'') === topicName);
-  const b = d.behavior || {};
-  const topicMeta = (b.top_topics||[]).find(t => t.name === topicName);
-  const count = topicMeta ? num(topicMeta.count) : topicFiles.length;
-  const related = topicFiles.filter(f => f.is_related).length;
-  const avgScore = topicFiles.length
-    ? (topicFiles.reduce((s,f) => s + num(f.relevance_score), 0) / topicFiles.length)
-    : 0;
-
-  const P = PALETTE();
-  const topicIdx = (b.top_topics||[]).findIndex(t => t.name === topicName);
-  const color = P[topicIdx >= 0 ? topicIdx % P.length : 0];
-
-  wrap.innerHTML = `
-    <div class="topic-detail">
-      <div class="topic-detail-head">
-        <div class="topic-detail-title">
-          <span class="dot" style="background:${color}"></span>
-          <span>${escapeHtml(topicName)}</span>
-        </div>
-        <button class="topic-detail-close" onclick="closeTopicDetail()" title="بستن" aria-label="بستن">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <div class="topic-detail-stats">
-        <div class="topic-detail-stat">
-          <div class="lbl">تعداد فایل</div>
-          <div class="val">${toFa(count)}</div>
-        </div>
-        <div class="topic-detail-stat">
-          <div class="lbl">مرتبط</div>
-          <div class="val" style="color:var(--green)">${toFa(related)}</div>
-        </div>
-        <div class="topic-detail-stat">
-          <div class="lbl">میانگین relevance</div>
-          <div class="val" style="color:var(--teal)">${toFa(avgScore.toFixed(2))}</div>
+      <div class="search-wrap">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input id="userSearch" type="text" placeholder="جستجوی کاربر…" aria-label="جستجوی کاربر" autocomplete="off" />
         </div>
       </div>
-      ${topicFiles.length ? `
-        <div class="topic-files-list">
-          ${topicFiles.map(f => `
-            <div class="topic-file-row">
-              <span class="name">${escapeHtml(f.file_name)}</span>
-              <span class="pill ${f.is_related?'rel':'unrel'}">${f.is_related?'مرتبط':'غیرمرتبط'}</span>
-              <span class="score">${toFa(num(f.relevance_score).toFixed(2))}</span>
-            </div>`).join('')}
-        </div>` : `<div style="color:var(--text-3);font-size:12px;padding:8px 0">فایلی برای این موضوع یافت نشد.</div>`}
-    </div>
-  `;
-}
+      <div class="user-list" id="userList" role="listbox" aria-label="کاربران"></div>
+    </aside>
 
-function closeTopicDetail(){
-  activeTopicName = null;
-  const wrap = document.getElementById('topicDetailWrap');
-  if(wrap) wrap.innerHTML = '';
-}
-window.closeTopicDetail = closeTopicDetail;
-
-/* ═══════════ State ═══════════ */
-let currentUserId = null;
-let currentTab = 'overview';
-let currentFilter = 'all';
-let usersCache = [];
-let lastSig = '';
-let lastData = null;
-let reqSeq = 0;
-let usersSig = '';
-
-/* ═══════════ Custom Stats (ذخیره در localStorage) ═══════════ */
-const CUSTOM_STATS_KEY = 'ai_report_custom_stats_v1';
-function loadCustomStats(userId){
-  try{
-    const all = JSON.parse(localStorage.getItem(CUSTOM_STATS_KEY) || '{}');
-    return all[String(userId)] || [];
-  }catch(e){ return []; }
-}
-function saveCustomStats(userId, list){
-  try{
-    const all = JSON.parse(localStorage.getItem(CUSTOM_STATS_KEY) || '{}');
-    all[String(userId)] = list;
-    localStorage.setItem(CUSTOM_STATS_KEY, JSON.stringify(all));
-  }catch(e){}
-}
-
-/* فرمول‌های موجود برای کارت سفارشی */
-const STAT_FORMULAS = {
-  total:       { label:'کل فایل‌ها',           fn: b => num(b.total_files) },
-  related:     { label:'فایل‌های مرتبط',       fn: b => num(b.related_files_count) },
-  unrelated:   { label:'فایل‌های غیرمرتبط',     fn: b => num(b.unrelated_files_count) },
-  suspicious:  { label:'فایل‌های مشکوک',       fn: b => num(b.suspicious_files_count) },
-  relevance:   { label:'میانگین relevance',    fn: b => num(b.relevance_avg), dec:2 },
-  related_pct: { label:'درصد مرتبط',           fn: b => {
-    const t = num(b.total_files); return t ? num(b.related_files_count) / t * 100 : 0;
-  }, dec:1, suffix:'٪' },
-  susp_pct:    { label:'درصد مشکوک',           fn: b => {
-    const t = num(b.total_files); return t ? num(b.suspicious_files_count) / t * 100 : 0;
-  }, dec:1, suffix:'٪' },
-  topics_count:{ label:'تعداد موضوعات',        fn: b => (b.top_topics||[]).length },
-};
-
-function evaluateCustomStat(stat, behavior){
-  const f = STAT_FORMULAS[stat.formula];
-  if(!f) return { value:'—', suffix:'' };
-  const v = f.fn(behavior);
-  const dec = f.dec || 0;
-  return {
-    value: dec ? toFa(v.toFixed(dec)) : toFa(Math.round(v)),
-    suffix: f.suffix || ''
-  };
-}
-
-/* ═══════════ Users sidebar ═══════════ */
-async function loadUsers(){
-  const list = document.getElementById('usersList');
-  if(!usersCache.length) list.innerHTML = '<div class="spinner"></div>';
-  try{
-    const d = await getJSON('/api/behavior-analysis/');
-    if(!d.success || !d.items || !d.items.length){
-      usersCache = [];
-      list.innerHTML = '<div class="empty-block"><span class="icon">🫥</span><h3>هیچ کاربری</h3><p>هنوز تحلیلی انجام نشده</p></div>';
-      document.getElementById('userCount').textContent = '۰';
-      return;
-    }
-    const sig = JSON.stringify(d.items);
-    if(sig === usersSig) return;
-    usersSig = sig;
-    usersCache = d.items;
-    document.getElementById('userCount').textContent = toFa(d.items.length);
-    filterUsers();
-  }catch(e){
-    if(!usersCache.length){
-      list.innerHTML = '<div class="empty-block"><span class="icon">⚠️</span><h3>خطا در بارگذاری</h3></div>';
-    }
-  }
-}
-
-function renderUserList(items){
-  const list = document.getElementById('usersList');
-  if(!items.length){
-    list.innerHTML = '<div class="empty-block"><span class="icon">🔍</span><h3>موردی پیدا نشد</h3></div>';
-    return;
-  }
-  list.innerHTML = items.map(u => `
-    <button class="user-item ${u.user_id===currentUserId?'active':''}" data-uid="${u.user_id}">
-      <span class="avatar" style="background:${avatarBg(u.user_id)}">${initial(u.username)}</span>
-      <span class="u-info">
-        <span class="u-name">${escapeHtml(u.username)}</span>
-        <span class="u-stats">${toFa(num(u.total_files))} فایل · ${toFa(num(u.related_percent))}٪ مرتبط</span>
-      </span>
-    </button>`).join('');
-}
-
-function filterUsers(){
-  const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  renderUserList(usersCache.filter(u => (u.username||'').toLowerCase().includes(q)));
-}
-
-document.getElementById('usersList').addEventListener('click', e => {
-  const el = e.target.closest('.user-item');
-  if(!el) return;
-  currentTab = 'overview';
-  currentFilter = 'all';
-  activeTopicName = null;
-  loadUser(parseInt(el.dataset.uid, 10));
-});
-document.getElementById('searchInput').addEventListener('input', filterUsers);
-
-document.getElementById('refreshBtn').addEventListener('click', function(){
-  this.classList.add('spinning');
-  setTimeout(() => this.classList.remove('spinning'), 800);
-  usersSig = '';
-  loadUsers();
-  if(currentUserId) loadUser(currentUserId, true, true);
-});
-
-/* ═══════════ User detail ═══════════ */
-async function loadUser(userId, silent, force){
-  const seq = ++reqSeq;
-  const changed = userId !== currentUserId;
-  currentUserId = userId;
-  document.querySelectorAll('.user-item').forEach(el =>
-    el.classList.toggle('active', parseInt(el.dataset.uid, 10) === userId));
-
-  const main = document.getElementById('mainArea');
-  if(!silent || changed){
-    main.innerHTML = '<div class="main-inner"><div class="spinner"></div></div>';
-    lastSig = '';
-  }
-
-  try{
-    const d = await getJSON(`/api/behavior-analysis/${userId}/`);
-    if(seq !== reqSeq) return;
-    if(!d.success){
-      main.innerHTML = `<div class="main-inner"><div class="error-box">${escapeHtml(d.msg||'خطا')}</div></div>`;
-      return;
-    }
-    const sig = JSON.stringify(d);
-    if(!force && sig === lastSig) return;
-    if(silent && !force && currentTab === 'chat') return;
-    lastSig = sig;
-    renderUser(d);
-  }catch(e){
-    if(seq !== reqSeq) return;
-    if(!silent){
-      main.innerHTML = '<div class="main-inner"><div class="error-box">خطا در ارتباط با سرور</div></div>';
-    }
-  }
-}
-
-function setTab(name){
-  currentTab = name;
-  document.querySelectorAll('.tab').forEach(t =>
-    t.classList.toggle('active', t.dataset.tab === name));
-  document.querySelectorAll('.tab-panel').forEach(p =>
-    p.classList.toggle('active', p.id === 'panel-' + name));
-  if(name === 'overview') Object.values(charts).forEach(c => c && c.resize());
-  if(name === 'files'){
-    requestAnimationFrame(() =>
-      document.querySelectorAll('.score-bar i').forEach(i => i.style.width = i.dataset.w + '%'));
-  }
-}
-
-function applyFilter(f){
-  currentFilter = f;
-  document.querySelectorAll('.filter-row .chip').forEach(c =>
-    c.classList.toggle('active', c.dataset.f === f));
-  document.querySelectorAll('#fileTableBody tr').forEach(row => {
-    const rel = row.dataset.rel === '1';
-    const susp = row.dataset.susp === '1';
-    row.style.display =
-      (f==='all' || (f==='related'&&rel) || (f==='unrelated'&&!rel) || (f==='suspicious'&&susp))
-      ? '' : 'none';
-  });
-}
-
-/* ═══════════ Custom Stats UI ═══════════ */
-function renderCustomStats(userId){
-  const list = loadCustomStats(userId);
-  const container = document.getElementById('customStatsGrid');
-  if(!container) return;
-  const b = (lastData && lastData.behavior) || {};
-  container.innerHTML = list.map((s, i) => {
-    const { value, suffix } = evaluateCustomStat(s, b);
-    return `
-      <div class="custom-stat">
-        <div class="cs-label">
-          <span>${escapeHtml(s.label)}</span>
-          <button class="rm" title="حذف" onclick="removeCustomStat(${i})">×</button>
-        </div>
-        <div class="cs-value">${value}${suffix ? `<span style="font-size:13px;color:var(--text-3);margin-inline-start:2px">${suffix}</span>` : ''}</div>
-        <div class="cs-formula">${escapeHtml(STAT_FORMULAS[s.formula]?.label || s.formula)}</div>
-      </div>`;
-  }).join('');
-}
-
-function removeCustomStat(index){
-  if(!currentUserId) return;
-  const list = loadCustomStats(currentUserId);
-  list.splice(index, 1);
-  saveCustomStats(currentUserId, list);
-  renderCustomStats(currentUserId);
-}
-window.removeCustomStat = removeCustomStat;
-
-function toggleCustomStatForm(){
-  const form = document.getElementById('customStatForm');
-  if(!form) return;
-  form.style.display = form.style.display === 'none' ? 'grid' : 'none';
-  if(form.style.display === 'grid'){
-    const labelInput = document.getElementById('csLabel');
-    if(labelInput) labelInput.focus();
-  }
-}
-window.toggleCustomStatForm = toggleCustomStatForm;
-
-function submitCustomStat(e){
-  e.preventDefault();
-  if(!currentUserId) return;
-  const label = (document.getElementById('csLabel')?.value || '').trim();
-  const formula = document.getElementById('csFormula')?.value || 'total';
-  if(!label){ return; }
-  const list = loadCustomStats(currentUserId);
-  list.push({ label, formula });
-  saveCustomStats(currentUserId, list);
-  document.getElementById('csLabel').value = '';
-  toggleCustomStatForm();
-  renderCustomStats(currentUserId);
-}
-window.submitCustomStat = submitCustomStat;
-
-/* ═══════════ Render ═══════════ */
-function renderUser(d){
-  lastData = d;
-  const b = d.behavior || {}, files = d.files || [], user = d.user || {};
-  const total = num(b.total_files), rel = num(b.related_files_count);
-
-  window.currentUserId = user.id;
-
-  /* ─── نام کاربر در هدر ─── */
-  const hu = document.getElementById('headerUser');
-  const huName = document.getElementById('headerUserName');
-  const huAvatar = document.getElementById('headerUserAvatar');
-  if(hu && huName && huAvatar){
-    huName.textContent = user.username || '';
-    huAvatar.textContent = initial(user.username);
-    huAvatar.style.background = avatarBg(user.id ?? currentUserId);
-    hu.classList.add('visible');
-  }
-
-  /* ─── کارت واحد آمار پایه ─── */
-  const baseStats = [
-    { cls:'blue',   v:total,                          l:'کل فایل‌ها', dec:0 },
-    { cls:'green',  v:rel,                            l:'مرتبط',       dec:0 },
-    { cls:'red',    v:num(b.unrelated_files_count),   l:'غیرمرتبط',    dec:0 },
-    { cls:'orange', v:num(b.suspicious_files_count),  l:'مشکوک',       dec:0 },
-    { cls:'purple', v:num(b.relevance_avg),           l:'میانگین relevance', dec:2 },
-  ];
-  const baseStatsHtml = baseStats.map(s => `
-    <div class="stat-cell ${s.cls}">
-      <div class="sv" data-count="${s.v}" data-dec="${s.dec}">${toFa(s.v)}</div>
-      <div class="sl">${s.l}</div>
-    </div>`).join('');
-
-  /* ─── فایل‌ها ─── */
-  const filesHtml = files.length === 0
-    ? '<div class="empty-block"><span class="icon">🗂️</span><h3>هیچ فایلی تحلیل نشده</h3></div>'
-    : `
-      <div class="filter-row" id="filterChips">
-        <button class="chip" data-f="all">همه (${toFa(files.length)})</button>
-        <button class="chip" data-f="related">مرتبط (${toFa(rel)})</button>
-        <button class="chip" data-f="unrelated">غیرمرتبط (${toFa(num(b.unrelated_files_count))})</button>
-        <button class="chip" data-f="suspicious">مشکوک (${toFa(num(b.suspicious_files_count))})</button>
-      </div>
-      <div class="file-table-wrap">
-        <table class="file-table">
-          <thead>
-            <tr>
-              <th>فایل</th>
-              <th>موضوع</th>
-              <th>وضعیت</th>
-              <th>relevance</th>
-            </tr>
-          </thead>
-          <tbody id="fileTableBody">
-            ${files.map(f => {
-              const susp = ['high','critical'].includes(String(f.threat_level||'').toLowerCase());
-              const sc = num(f.relevance_score);
-              return `
-                <tr data-rel="${f.is_related?1:0}" data-susp="${susp?1:0}">
-                  <td>
-                    <div class="file-name-cell">
-                      ${escapeHtml(f.file_name)}
-                      <span class="sub">${fmtTime(f.analyzed_at)}</span>
-                    </div>
-                  </td>
-                  <td style="color:var(--text-2);font-size:12px">
-                    ${escapeHtml(f.top_topic||'—')}
-                  </td>
-                  <td>
-                    <span class="pill ${f.is_related?'rel':'unrel'}">${f.is_related?'مرتبط':'غیرمرتبط'}</span>
-                    ${threatPill(f.threat_level)}
-                  </td>
-                  <td class="score-cell">
-                    <div class="score-val">${toFa(sc.toFixed(2))}</div>
-                    <div class="score-bar"><i data-w="${Math.max(0,Math.min(100,sc*100))}"></i></div>
-                  </td>
-                </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>`;
-
-  destroyCharts();
-  const hasTopics = (d.topic_distribution || []).length > 0;
-
-  document.getElementById('mainArea').innerHTML = `
-    <div class="main-inner">
-
-      <!-- ─── کارت واحد آمار + کارت‌های سفارشی ─── -->
-      <div class="stats-card">
-        <div class="stats-card-head">
-          <span class="stats-card-title">آمار کلی</span>
-          <div class="stats-actions">
-            <button class="stats-add-btn" onclick="toggleCustomStatForm()">＋ کارت آماری</button>
-          </div>
-        </div>
-
-        <div class="stats-grid">${baseStatsHtml}</div>
-
-        <div class="custom-stats-grid" id="customStatsGrid"></div>
-
-        <form class="custom-stat-form" id="customStatForm" style="display:none" onsubmit="submitCustomStat(event)">
-          <div>
-            <label for="csLabel">عنوان کارت</label>
-            <input type="text" id="csLabel" maxlength="40" placeholder="مثلاً: درصد مشکوک" required>
-          </div>
-          <div>
-            <label for="csFormula">فرمول</label>
-            <select id="csFormula">
-              ${Object.entries(STAT_FORMULAS).map(([k,v]) =>
-                `<option value="${k}">${v.label}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-actions" style="grid-column: span 2; justify-content: flex-end">
-            <button type="button" class="btn-sm secondary" onclick="toggleCustomStatForm()">انصراف</button>
-            <button type="submit" class="btn-sm">افزودن</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- ─── تب‌ها ─── -->
-      <div class="tabs" id="tabsBar">
-        <button class="tab" data-tab="overview">📊 نمای کلی</button>
-        <button class="tab" data-tab="files">📁 فایل‌ها</button>
-        <button class="tab" data-tab="chat">💬 چت با AI</button>
-        <button class="tab" data-tab="psychology">🧠 روانشناسی</button>
-      </div>
-
-      <!-- OVERVIEW -->
-      <div class="tab-panel" id="panel-overview">
-        <div class="charts-grid">
-          <div class="chart-card">
-            <h4>?? File Type Breakdown</h4>
-            <div class="chart-body"><canvas id="chartKinds"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h4>?? Org vs Non-Org Matrix</h4>
-            <div class="chart-body"><canvas id="chartMatrix"></canvas></div>
-          </div>
-          <div class="chart-card wide">
-            <h4>?? Daily Activity &amp; Role Alignment</h4>
-            <div class="chart-body"><canvas id="chartTrend"></canvas></div>
-          </div>
-          <div class="chart-card wide">
-            <h4>??? Dominant Topics (Click to drill down)</h4>
-            <div class="chart-body"><canvas id="chartTopics"></canvas></div>
-          </div>
+    <main class="main" id="main" tabindex="-1">
+      <div class="main-inner" id="mainInner">
+        <div class="empty-block" id="initialEmpty">
+          <div class="big" aria-hidden="true">📊</div>
+          <h3>داشبورد تحلیل رفتار</h3>
+          <p>یک کاربر را از لیست انتخاب کنید تا تحلیل رفتار او نمایش داده شود.</p>
         </div>
       </div>
-      <!-- FILES -->
-      <div class="tab-panel" id="panel-files">${filesHtml}</div>
+    </main>
+  </div>
 
-      <!-- CHAT -->
-      <div class="tab-panel" id="panel-chat">
-        <div class="chat-wrap">
-          <div class="chat-toolbar">
-            <button class="btn btn-primary" id="chatNewSession">➕ جلسه جدید</button>
-            <input type="text" id="chatImageTopic" maxlength="300" placeholder="موضوع تصویر...">
-            <button class="btn" id="chatGenerateImage" disabled>🎨 تولید تصویر</button>
-            <span class="chat-status" id="chatStatus">آماده</span>
-          </div>
-          <div class="chat-messages" id="chatMessages">
-            <div class="chat-empty">
-              <span class="icon">💬</span>
-              <h3 style="color:var(--text);font-size:14px">چت با هوش مصنوعی</h3>
-              <p>برای شروع، روی «جلسه جدید» بزنید تا روی فایل‌های این کاربر گفتگو کنید</p>
-            </div>
-          </div>
-          <div id="chatImageResult" class="chat-image-result" style="display:none"></div>
-          <div class="chat-input-row">
-            <input type="text" id="chatInput" placeholder="سوال خود را بنویسید..." disabled>
-            <button class="btn btn-primary" id="chatSend" disabled>ارسال</button>
-          </div>
-        </div>
-      </div>
+  <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
+  <div id="dialogMount"></div>
+  <div id="drawerMount"></div>
 
-      <!-- PSYCHOLOGY -->
-      <div class="tab-panel" id="panel-psychology">
-        <div class="psy-header">
-          <h3>🧠 تحلیل روانشناسی رفتار</h3>
-          <div class="psy-actions">
-            <button class="btn" onclick="psyRunFresh(window.currentUserId || 0)">🔄 تحلیل مجدد</button>
-            <button class="btn" onclick="analyzeAllFiles(window.currentUserId||0)">📁 تحلیل فایل‌ها</button>
-          </div>
-        </div>
-        <div id="psyBox"></div>
-      </div>
+  <script>
+    /* ═══════════════ HELPERS ═══════════════ */
+    const $ = (sel, root = document) => root.querySelector(sel);
+    const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+    const FA_DIGITS = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+    const toFa = (n) => (n === null || n === undefined) ? '—' : String(n).replace(/\d/g, d => FA_DIGITS[+d]);
 
-    </div>
-  `;
-
-  document.querySelectorAll('.stat-cell .sv').forEach(countUp);
-
-  document.querySelectorAll('#tabsBar .tab').forEach(btn =>
-    btn.addEventListener('click', () => setTab(btn.dataset.tab)));
-  document.querySelectorAll('#filterChips .chip').forEach(chip =>
-    chip.addEventListener('click', () => applyFilter(chip.dataset.f)));
-
-  applyFilter(currentFilter);
-  setTab(currentTab);
-  buildCharts(d);
-
-  /* رندر کارت‌های سفارشی */
-  renderCustomStats(user.id);
-
-  /* اگر قبلاً موضوعی انتخاب شده بود، دوباره نمایش بده */
-  if(activeTopicName) showTopicDetail(activeTopicName);
-
-  const chatFiles = files.map(f => f.file_id).filter(Boolean);
-  chatBind(chatFiles, d.user.id);
-
-  psyLoadForUser(user.id);
-}
-
-/* ═══════════ Live refresh ═══════════ */
-setInterval(() => {
-  if(document.hidden) return;
-  loadUsers();
-  if(currentUserId) loadUser(currentUserId, true);
-}, 30000);
-document.addEventListener('visibilitychange', () => {
-  if(!document.hidden && currentUserId) loadUser(currentUserId, true);
-});
-
-/* ═══════════ Chat ═══════════ */
-const chatState = { sessionId: null, sending: false, filesForChat: [], targetUserId: null };
-const chatEl = id => document.getElementById(id);
-
-function chatSetEnabled(enabled){
-  const input = chatEl('chatInput'), send = chatEl('chatSend');
-  if(input) input.disabled = !enabled;
-  if(send) send.disabled = !enabled || chatState.sending;
-  const imageBtn = chatEl('chatGenerateImage');
-  if(imageBtn) imageBtn.disabled = !enabled || chatState.sending;
-}
-
-function chatAppend(role, content){
-  const wrap = chatEl('chatMessages');
-  if(!wrap) return null;
-  const empty = wrap.querySelector('.chat-empty');
-  if(empty) empty.remove();
-  const div = document.createElement('div');
-  div.className = `chat-msg ${role}`;
-  div.innerHTML = `
-    <div class="chat-avatar">${role === 'user' ? '👤' : '🤖'}</div>
-    <div class="chat-bubble">${escapeHtml(content)}</div>`;
-  wrap.appendChild(div);
-  wrap.scrollTop = wrap.scrollHeight;
-  return div;
-}
-
-function chatShowTyping(){
-  const wrap = chatEl('chatMessages');
-  if(!wrap) return null;
-  const div = document.createElement('div');
-  div.className = 'chat-msg assistant';
-  div.id = 'chatTyping';
-  div.innerHTML = `
-    <div class="chat-avatar">🤖</div>
-    <div class="chat-bubble"><div class="chat-typing"><i></i><i></i><i></i></div></div>`;
-  wrap.appendChild(div);
-  wrap.scrollTop = wrap.scrollHeight;
-  return div;
-}
-
-async function chatStartSession(){
-  const btn = chatEl('chatNewSession'), status = chatEl('chatStatus');
-  if(!btn) return;
-  btn.disabled = true;
-  if(status) status.textContent = 'در حال ساخت جلسه...';
-
-  try{
-    const r = await fetch('/api/report-chat/start/', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken()},
-      body: JSON.stringify({
-        file_ids: chatState.filesForChat,
-        target_user_id: chatState.targetUserId,
-        title: `چت روی ${chatState.filesForChat.length} فایل`,
-      }),
-    });
-    const d = await r.json();
-    if(!d.success){
-      if(status) status.textContent = d.msg || 'خطا';
-      return;
+    // Percent: accepts 0..1 OR 0..100 OR "83%"
+    function fmtRel(v) {
+      if (v === null || v === undefined) return '—';
+      if (typeof v === 'string' && v.endsWith('%')) return toFa(v.replace('%','')) + '٪';
+      let x = Number(v);
+      if (isNaN(x)) return '—';
+      if (x <= 1.0001) x = x * 100;
+      x = Math.round(x * 10) / 10;
+      return toFa(Number.isInteger(x) ? x : x.toFixed(1)) + '٪';
     }
-    chatState.sessionId = d.session_id;
-    if(status) status.textContent = `جلسه #${d.session_id} — ${d.file_count} فایل`;
-    const wrap = chatEl('chatMessages');
-    if(wrap) wrap.innerHTML = '';
-    chatSetEnabled(true);
-    chatEl('chatInput')?.focus();
-  }catch(e){
-    if(status) status.textContent = 'خطای شبکه';
-  }finally{
-    btn.disabled = false;
-  }
-}
-
-async function chatSendMessage(){
-  if(chatState.sending) return;
-  const input = chatEl('chatInput'), status = chatEl('chatStatus');
-  const q = (input?.value || '').trim();
-  if(!q) return;
-
-  if(!chatState.sessionId){
-    await chatStartSession();
-    if(!chatState.sessionId) return;
-  }
-
-  chatState.sending = true;
-  if(input) input.value = '';
-  chatAppend('user', q);
-  chatSetEnabled(false);
-  const typing = chatShowTyping();
-  if(status) status.textContent = 'در حال پاسخ...';
-
-  try{
-    const r = await fetch(`/api/report-chat/${chatState.sessionId}/ask/`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken()},
-      body: JSON.stringify({question: q}),
-    });
-    const d = await r.json();
-    if(typing) typing.remove();
-    if(d.success){
-      chatAppend('assistant', d.answer);
-      if(status) status.textContent = 'آماده';
-    }else{
-      chatAppend('assistant', '⚠️ ' + (d.msg || 'خطا در دریافت پاسخ'));
-      if(status) status.textContent = 'خطا';
+    const clamp01 = (v) => Math.max(0, Math.min(1, Number(v) || 0));
+    const nowTimeFa = () => {
+      const d = new Date();
+      return toFa(String(d.getHours()).padStart(2,'0')) + ':' + toFa(String(d.getMinutes()).padStart(2,'0'));
+    };
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     }
-  }catch(e){
-    if(typing) typing.remove();
-    chatAppend('assistant', '⚠️ خطای شبکه');
-    if(status) status.textContent = 'خطای شبکه';
-  }finally{
-    chatState.sending = false;
-    chatSetEnabled(true);
-    chatEl('chatInput')?.focus();
-  }
-}
-
-async function chatGenerateImage(){
-  const status = chatEl('chatStatus');
-  const btn = chatEl('chatGenerateImage');
-  const resultBox = chatEl('chatImageResult');
-
-  if(!chatState.sessionId || !btn || btn.disabled) return;
-
-  const topic = (chatEl('chatImageTopic')?.value || '').trim();
-  if(!topic){
-    if(status) status.textContent = 'ابتدا موضوع تصویر را وارد کنید';
-    chatEl('chatImageTopic')?.focus();
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = '⏳ در حال تولید...';
-  if(resultBox){
-    resultBox.style.display = 'block';
-    resultBox.textContent = 'در حال تولید تصویر...';
-  }
-
-  try{
-    const response = await fetch(`/api/report-chat/${chatState.sessionId}/generate-image/`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken()},
-      body: JSON.stringify({ topic })
-    });
-    const data = await response.json();
-    if(!response.ok || !data.success){
-      throw new Error(data.msg || 'تولید تصویر ناموفق بود');
+    function debounce(fn, ms) { let t; return function(...a){clearTimeout(t);t=setTimeout(()=>fn.apply(this,a),ms);}; }
+    function getCookie(name) {
+      const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g,'\\$1') + '=([^;]*)'));
+      return m ? decodeURIComponent(m[1]) : '';
     }
-    let imageUrl = data.image_base64;
-    if(!imageUrl.startsWith('data:')){
-      const mime = ['image/png','image/jpeg','image/webp'].includes(data.mime_type)
-        ? data.mime_type : 'image/png';
-      imageUrl = `data:${mime};base64,${imageUrl}`;
+    const uid = () => 'id_' + Math.random().toString(36).slice(2,9);
+
+    async function apiFetch(url, options = {}) {
+      const opts = { headers: {}, ...options };
+      const method = (opts.method || 'GET').toUpperCase();
+      if (method !== 'GET' && method !== 'HEAD') {
+        opts.headers['X-CSRFToken'] = getCookie('csrftoken');
+        if (!opts.headers['Content-Type'] && !(opts.body instanceof FormData)) {
+          opts.headers['Content-Type'] = 'application/json';
+        }
+      }
+      const res = await fetch(url, opts);
+      const ct = res.headers.get('content-type') || '';
+      let data = ct.includes('application/json') ? await res.json() : await res.text();
+      if (!res.ok) {
+        const err = new Error((data && data.error) || ('خطا در ارتباط با سرور (' + res.status + ')'));
+        err.status = res.status; err.data = data; throw err;
+      }
+      return data;
     }
-    const img = document.createElement('img');
-    img.src = imageUrl;
-    img.alt = topic;
-    img.loading = 'lazy';
-    resultBox.replaceChildren(img);
-    if(data.image_prompt){
-      const caption = document.createElement('p');
-      caption.className = 'caption';
-      caption.textContent = `پرامپت: ${data.image_prompt}`;
-      resultBox.appendChild(caption);
+
+    /* ── FILE / TOPIC / TREND NORMALIZERS (fix bugs 1,2,3) ── */
+    function pickFile(f) {
+      if (!f || typeof f !== 'object') return { name:'—', topic:'—', rel:0, related:false, suspicious:false, org:false };
+      const a = (f.analysis && typeof f.analysis === 'object') ? f.analysis : {};
+      const name = f.name || f.filename || f.file_name || f.original_name || f.title || a.name || '—';
+      const topic = f.topic || f.topic_name || f.category || a.topic || a.topic_name || '—';
+      let rel = f.relevance_score ?? f.relevance ?? f.relevance_percent ?? f.score ?? a.relevance_score ?? a.relevance ?? a.score ?? 0;
+      if (typeof rel === 'string' && rel.endsWith('%')) rel = parseFloat(rel) / 100;
+      rel = Number(rel) || 0;
+      if (rel > 1) rel = rel / 100;
+      const related = !!(f.is_related ?? f.related ?? a.is_related ?? a.related);
+      const suspicious = !!(f.is_suspicious ?? f.suspicious ?? f.threat ?? a.is_suspicious ?? a.suspicious);
+      const org = !!(f.is_org ?? f.org ?? f.organizational ?? a.is_org ?? a.org);
+      return { name, topic, rel, related, suspicious, org, raw: f };
     }
-    if(status) status.textContent = 'تصویر با موفقیت تولید شد';
-  }catch(error){
-    if(resultBox) resultBox.textContent = error.message;
-    if(status) status.textContent = 'خطا در تولید تصویر';
-  }finally{
-    btn.textContent = '🎨 تولید تصویر';
-    btn.disabled = !chatState.sessionId;
-  }
-}
-
-function chatBind(files, targetUserId){
-  chatState.sessionId = null;
-  chatState.filesForChat = files || [];
-  chatState.targetUserId = targetUserId;
-  chatSetEnabled(false);
-
-  const newBtn = chatEl('chatNewSession');
-  if(!newBtn) return;
-  newBtn.onclick = chatStartSession;
-  chatEl('chatSend').onclick = chatSendMessage;
-  chatEl('chatGenerateImage').onclick = chatGenerateImage;
-  chatEl('chatInput').onkeydown = (e) => {
-    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); chatSendMessage(); }
-  };
-  const wrap = chatEl('chatMessages');
-  if(wrap){
-    wrap.innerHTML = `
-      <div class="chat-empty">
-        <span class="icon">💬</span>
-        <h3 style="color:var(--text);font-size:14px">چت با هوش مصنوعی</h3>
-        <p>برای شروع، روی «جلسه جدید» بزنید تا روی فایل‌های این کاربر گفتگو کنید</p>
-      </div>`;
-  }
-  const status = chatEl('chatStatus');
-  if(status) status.textContent = `آماده (${chatState.filesForChat.length} فایل)`;
-}
-
-/* ═══════════ Psychology ═══════════ */
-async function psyLoadForUser(userId){
-  const box = document.getElementById('psyBox');
-  if(!box) return;
-  box.innerHTML = '<div class="spinner"></div>';
-  try{
-    const r = await fetch(`/api/user/${userId}/psychology/`, {credentials:'same-origin'});
-    const j = await r.json();
-    if(!j.ok) throw new Error(j.error || 'خطا');
-    if(!j.data){
-      box.innerHTML = `
-        <div class="empty-block">
-          <span class="icon">🧠</span>
-          <h3>هنوز تحلیلی ذخیره نشده</h3>
-          <p>دکمه «تحلیل مجدد» را بزنید تا تحلیل انجام شود</p>
-        </div>`;
-      return;
+    function pickTopicFile(f) {
+      const p = pickFile(f);
+      return { name: p.name, rel: p.rel, related: p.related, raw: f };
     }
-    const d = j.data;
-    const color = d.risk_score >= 0.7 ? 'var(--red)'
-                : (d.risk_score >= 0.35 ? 'var(--orange)' : 'var(--green)');
-    box.innerHTML = `
-      <div class="psy-scores">
-        <div class="psy-score">
-          <div class="label">ریسک</div>
-          <div class="value" style="color:${color}">${(d.risk_score||0).toFixed(2)}</div>
-        </div>
-        <div class="psy-score">
-          <div class="label">ناهنجاری</div>
-          <div class="value">${(d.anomaly_score||0).toFixed(2)}</div>
-        </div>
-        <div class="psy-score">
-          <div class="label">فشار کاری</div>
-          <div class="value">${(d.stress_index||0).toFixed(2)}</div>
-        </div>
-        <div class="psy-score">
-          <div class="label">نقش‌پذیری</div>
-          <div class="value">${(d.role_fit_score||0).toFixed(2)}</div>
-        </div>
-      </div>
-      <div class="psy-narrative">${escapeHtml(d.narrative||'—')}</div>
-      ${(d.signals && d.signals.length) ? `
-        <div class="psy-signals">
-          ${d.signals.map(s => `<span class="psy-signal">${escapeHtml(s.code)}</span>`).join('')}
-        </div>` : ''}
-    `;
-  }catch(e){
-    box.innerHTML = `<div class="error-box">خطا: ${escapeHtml(e.message)}</div>`;
-  }
-}
+    function pickTrendPoint(t) {
+      if (!t || typeof t !== 'object') return { label:'', related:0, unrelated:0, alignment:null };
+      const label = t.date || t.day || t.label || t.period || t.name || '';
+      const related = Number(t.related ?? t.related_count ?? t.related_files ?? t.count_related ?? 0) || 0;
+      const unrelated = Number(t.unrelated ?? t.unrelated_count ?? t.unrelated_files ?? t.count_unrelated ?? 0) || 0;
+      let alignment = t.role_alignment ?? t.alignment ?? t.role_fit ?? t.fit ?? null;
+      if (alignment !== null) {
+        alignment = Number(alignment);
+        if (isNaN(alignment)) alignment = null;
+        else if (alignment <= 1.0001) alignment = alignment * 100;
+      }
+      return { label: String(label), related, unrelated, alignment };
+    }
 
-async function psyRunFresh(userId){
-  const box = document.getElementById('psyBox');
-  if(box) box.innerHTML = `
-    <div class="empty-block">
-      <span class="icon">⏳</span>
-      <h3>در حال تحلیل با هوش مصنوعی</h3>
-      <p>ممکن است ۱ تا ۳ دقیقه طول بکشد...</p>
-    </div>`;
-  try{
-    const r = await fetch(`/api/user/${userId}/psychology/`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {'X-CSRFToken': getCsrfToken()},
-    });
-    const j = await r.json();
-    if(!j.ok) throw new Error(j.error || 'خطا');
-    psyLoadForUser(userId);
-  }catch(e){
-    if(box) box.innerHTML = `<div class="error-box">خطا: ${escapeHtml(e.message)}</div>`;
-  }
-}
-window.psyRunFresh = psyRunFresh;
+    const AVATAR_PALETTE = [
+      ['#6366F1','#8B5CF6'],['#14B8A6','#0EA5E9'],['#F59E0B','#EF4444'],
+      ['#EC4899','#8B5CF6'],['#22C55E','#14B8A6'],['#3B82F6','#6366F1'],
+    ];
+    function avatarStyle(id) {
+      const key = String(id ?? '').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+      const p = AVATAR_PALETTE[key % AVATAR_PALETTE.length];
+      return 'background:linear-gradient(135deg,'+p[0]+','+p[1]+');';
+    }
+    function initialsOf(name) {
+      const s = String(name || '?').trim();
+      if (!s) return '؟';
+      const parts = s.split(/\s+/);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return s.slice(0,2).toUpperCase();
+    }
+    function svgIcon(name) {
+      const icons = {
+        close:'<path d="M18 6 6 18M6 6l12 12"/>',
+        back:'<path d="M19 12H5M12 19l-7-7 7-7"/>'
+      };
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(icons[name]||'')+'</svg>';
+    }
 
-/* ═══════════ Analyze All Files ═══════════ */
-async function analyzeAllFiles(userId){
-  if(!userId) return;
-  if(!confirm('تحلیل همه فایل‌های این کاربر در پس‌زمینه شروع شود؟')) return;
-  try{
-    const r = await fetch(`/api/user/${userId}/analyze-files/`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCsrfToken()
+    /* ═══════════════ THEME ═══════════════ */
+    const Theme = {
+      current() { return document.documentElement.getAttribute('data-theme') || 'dark'; },
+      apply(theme, withTransition) {
+        const root = document.documentElement;
+        const doApply = () => {
+          root.setAttribute('data-theme', theme);
+          try { localStorage.setItem('insight_theme', theme); } catch(e) {}
+          Theme.syncIcon();
+          if (window.State && State.selectedUserId) {
+            window.dispatchEvent(new CustomEvent('insight:theme-changed'));
+          }
+        };
+        if (withTransition && document.startViewTransition) document.startViewTransition(doApply);
+        else doApply();
       },
-      body: JSON.stringify({force: false})
-    });
-    const d = await r.json();
-    if(d.success){
-      alert(`✅ تحلیل ${d.file_count} فایل شروع شد (task: ${d.task_id.slice(0,8)})`);
-    }else{
-      alert('❌ ' + (d.msg || 'خطا'));
-    }
-  }catch(e){
-    alert('❌ خطای شبکه');
-  }
-}
-window.analyzeAllFiles = analyzeAllFiles;
+      toggle() { Theme.apply(Theme.current() === 'dark' ? 'light' : 'dark', true); },
+      syncIcon() {
+        const icon = $('#themeIcon');
+        if (!icon) return;
+        icon.innerHTML = Theme.current() === 'dark'
+          ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+          : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', Theme.current() === 'dark' ? '#0B0B0F' : '#F7F7F9');
+      }
+    };
 
-/* ═══════════ Init ═══════════ */
-loadUsers();
-</script>
+    /* ═══════════════ TOAST & DIALOG ═══════════════ */
+    const Toast = (function () {
+      const stack = () => $('#toastStack');
+      const ICONS = { success:'✓', error:'✕', info:'ℹ', warning:'⚠' };
+      function show(message, variant='info', duration=4000) {
+        const el = document.createElement('div');
+        el.className = 'toast ' + variant;
+        el.setAttribute('role','status');
+        el.innerHTML = '<span class="t-icon" aria-hidden="true">'+(ICONS[variant]||'ℹ')+'</span><span class="t-text">'+escapeHtml(message)+'</span>';
+        stack().appendChild(el);
+        const timer = setTimeout(()=>dismiss(el), duration);
+        el.addEventListener('click', ()=>{clearTimeout(timer);dismiss(el);});
+        return el;
+      }
+      function dismiss(el) {
+        if (!el || el.classList.contains('out')) return;
+        el.classList.add('out');
+        setTimeout(()=>el.remove(), 220);
+      }
+      return { show, success:(m,d)=>show(m,'success',d), error:(m,d)=>show(m,'error',d), info:(m,d)=>show(m,'info',d), warning:(m,d)=>show(m,'warning',d) };
+    })();
+
+    const Dialog = (function () {
+      let lastFocused = null, current = null;
+      function open(opts) {
+        close();
+        lastFocused = document.activeElement;
+        const id = uid();
+        const backdrop = document.createElement('div');
+        backdrop.className = 'dialog-backdrop';
+        backdrop.innerHTML =
+          '<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="'+id+'_title">'+
+            '<h3 id="'+id+'_title">'+escapeHtml(opts.title || 'تأیید عملیات')+'</h3>'+
+            '<p>'+(opts.bodyHtml || '')+'</p>'+
+            (opts.showCheckbox ? '<label class="check-row"><input type="checkbox" id="'+id+'_chk" /> '+escapeHtml(opts.checkboxLabel || '')+'</label>' : '')+
+            '<div class="dialog-actions">'+
+              '<button class="btn" data-action="cancel">'+escapeHtml(opts.cancelLabel || 'انصراف')+'</button>'+
+              '<button class="btn '+(opts.danger?'danger':'primary')+'" data-action="confirm">'+escapeHtml(opts.confirmLabel || 'تأیید')+'</button>'+
+            '</div>'+
+          '</div>';
+        $('#dialogMount').appendChild(backdrop);
+        current = backdrop;
+        const confirmBtn = $('[data-action="confirm"]', backdrop);
+        const cancelBtn = $('[data-action="cancel"]', backdrop);
+        const checkbox = opts.showCheckbox ? $('#'+id+'_chk', backdrop) : null;
+        function finish(ok) {
+          const checked = checkbox ? checkbox.checked : false;
+          close();
+          if (ok && typeof opts.onConfirm === 'function') opts.onConfirm(checked);
+        }
+        confirmBtn.addEventListener('click', ()=>finish(true));
+        cancelBtn.addEventListener('click', ()=>finish(false));
+        backdrop.addEventListener('click', (e)=>{ if (e.target === backdrop) finish(false); });
+        backdrop.addEventListener('keydown', (e)=>{
+          if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+          if (e.key === 'Enter' && document.activeElement !== cancelBtn) { e.preventDefault(); finish(true); }
+          if (e.key === 'Tab') {
+            const f = [cancelBtn, confirmBtn]; if (checkbox) f.unshift(checkbox);
+            const i = f.indexOf(document.activeElement); e.preventDefault();
+            (e.shiftKey ? f[(i-1+f.length)%f.length] : f[(i+1)%f.length]).focus();
+          }
+        });
+        setTimeout(()=>confirmBtn.focus(), 0);
+      }
+      function close() {
+        if (current) { current.remove(); current = null; }
+        if (lastFocused && typeof lastFocused.focus === 'function') { try { lastFocused.focus(); } catch(e){} }
+      }
+      return { open, close };
+    })();
+
+    /* ═══════════════ CHART SETUP ═══════════════ */
+    const ChartSetup = (function () {
+      const store = new Map();
+      function getChartCssVars() {
+        const cs = getComputedStyle(document.documentElement);
+        const g = (k, fb) => cs.getPropertyValue(k).trim() || fb;
+        return {
+          tip: g('--tip','#131318'), separator: g('--separator','#26262F'),
+          label: g('--label','#EDEDF0'), label2: g('--label-2','#A0A0AC'),
+          accent: g('--accent','#6366F1'),
+        };
+      }
+      const centerTextPlugin = {
+        id: 'centerText',
+        afterDraw(chart, args, options) {
+          if (!options || !options.text) return;
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return;
+          const x = (chartArea.left + chartArea.right) / 2;
+          const y = (chartArea.top + chartArea.bottom) / 2;
+          ctx.save();
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          const cv = getChartCssVars();
+          ctx.fillStyle = cv.label;
+          ctx.font = '700 20px Vazirmatn, Tahoma, sans-serif';
+          ctx.fillText(options.text, x, y - 6);
+          if (options.label) {
+            ctx.fillStyle = cv.label2;
+            ctx.font = '400 11px Vazirmatn, Tahoma, sans-serif';
+            ctx.fillText(options.label, x, y + 14);
+          }
+          ctx.restore();
+        }
+      };
+      function makeTooltip() {
+        const cv = getChartCssVars();
+        return {
+          backgroundColor: cv.tip, titleColor: cv.label, bodyColor: cv.label2,
+          borderColor: cv.separator, borderWidth: 1, padding: 10, cornerRadius: 8,
+          rtl: true, textDirection: 'rtl',
+          titleFont: { family:'Vazirmatn, Tahoma, sans-serif', size:12, weight:'700' },
+          bodyFont: { family:'Vazirmatn, Tahoma, sans-serif', size:12 },
+          displayColors: true,
+          callbacks: { label(ctx) {
+            const l = ctx.dataset && ctx.dataset.label ? ctx.dataset.label : '';
+            return (l ? l + ': ' : '') + toFa(ctx.formattedValue);
+          }}
+        };
+      }
+      const defaultOptions = (overrides = {}) => {
+        const cv = getChartCssVars();
+        return {
+          responsive: true, maintainAspectRatio: false,
+          animation: { duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 400 },
+          plugins: {
+            legend: { position:'bottom', rtl:true, labels:{ color:cv.label2, font:{family:'Vazirmatn, Tahoma, sans-serif', size:11}, usePointStyle:true, pointStyle:'circle', boxWidth:8, padding:12 } },
+            tooltip: makeTooltip(),
+          },
+          ...overrides,
+        };
+      };
+      const PALETTE = ['#6366F1','#22C55E','#F59E0B','#EF4444','#3B82F6','#A855F7','#14B8A6','#EC4899','#8B5CF6','#0EA5E9'];
+      function destroy(id) {
+        if (store.has(id)) { try { store.get(id).destroy(); } catch(e){} store.delete(id); }
+      }
+      function register(id, config) {
+        destroy(id);
+        const canvas = document.getElementById(id);
+        if (!canvas) return null;
+        const chart = new Chart(canvas, config);
+        store.set(id, chart);
+        return chart;
+      }
+      function destroyAll() { store.forEach(c=>{try{c.destroy();}catch(e){}}); store.clear(); }
+      return { getChartCssVars, centerTextPlugin, makeTooltip, defaultOptions, PALETTE, register, destroy, destroyAll };
+    })();
+
+    /* ═══════════════ STATE (declared BEFORE Users uses it) ═══════════════ */
+    const State = {
+      selectedUserId: null,
+      selectedUser: null,
+      userDetail: null,
+      activeTab: 'overview',
+      filesFilter: 'all',
+      chatSessionId: null,
+      chatMessages: [],
+      chatStatus: '',
+      psyData: null,
+      psyLoading: false,
+      customKpis: [],
+      drilldownTopic: null,
+      _autoRefreshTimer: null,
+
+      selectUser(userId) {
+        this.selectedUserId = userId;
+        this.activeTab = 'overview';
+        this.userDetail = null;
+        this.filesFilter = 'all';
+        this.chatSessionId = null;
+        this.chatMessages = [];
+        this.psyData = null;
+        this.drilldownTopic = null;
+        this.customKpis = CustomKPI.load(userId);
+        Router.sync();
+        Users.updateActive();
+        this.loadUserDetail();
+      },
+
+      async loadUserDetail() {
+        const id = this.selectedUserId;
+        if (!id) return;
+        const inner = $('#mainInner');
+        inner.innerHTML = '<div class="empty-block" style="min-height:200px"><div class="spinner" style="margin:0 auto"></div></div>';
+        try {
+          const data = await apiFetch('/api/behavior-analysis/' + encodeURIComponent(id) + '/');
+          if (!data || !data.success) throw new Error('پاسخ نامعتبر');
+          if (this.selectedUserId !== id) return;
+          this.userDetail = data;
+          this.selectedUser = data.user || { id, username: 'کاربر ' + toFa(id) };
+          this.renderDashboard();
+        } catch (err) {
+          if (this.selectedUserId !== id) return;
+          inner.innerHTML = '<div class="empty-block"><div class="big">⚠️</div><h3>خطا در بارگذاری</h3><p>'+escapeHtml(err.message || 'مشکلی پیش آمد')+'</p></div>';
+          Toast.error('خطا در دریافت تحلیل کاربر');
+        }
+      },
+
+      renderDashboard() {
+        const u = this.selectedUser || {};
+        const detail = this.userDetail || {};
+        const files = (detail.files || []).map(pickFile);
+        const behavior = detail.behavior || {};
+        const totalFiles = files.length || Number(behavior.total_files || 0) || 0;
+        const relatedCount = files.filter(f => f.related).length;
+        const unrelatedCount = totalFiles - relatedCount;
+        const suspiciousCount = files.filter(f => f.suspicious).length;
+        const relScores = files.map(f => f.rel).filter(n => !isNaN(n));
+        const avgRel = relScores.length ? relScores.reduce((a,b)=>a+b,0) / relScores.length : 0;
+
+        const inner = $('#mainInner');
+        inner.innerHTML = '';
+
+        const uhead = document.createElement('div');
+        uhead.className = 'card uhead section-gap';
+        uhead.innerHTML =
+          '<span class="avatar" style="'+avatarStyle(u.id)+'">'+escapeHtml(initialsOf(u.username))+'</span>'+
+          '<div class="uhead-main">'+
+            '<div class="uhead-name">'+escapeHtml(u.username || 'کاربر '+toFa(u.id))+'</div>'+
+            '<div class="uhead-sub">'+toFa(totalFiles)+' فایل تحلیل‌شده · میانگین relevance '+fmtRel(avgRel)+'</div>'+
+          '</div>'+
+          '<button class="icon-btn" aria-label="گزینه‌های بیشتر" id="userMoreBtn">⋯</button>';
+        inner.appendChild(uhead);
+
+        const kpiStrip = document.createElement('div');
+        kpiStrip.className = 'card kpi-strip section-gap';
+        kpiStrip.id = 'kpiStrip';
+        inner.appendChild(kpiStrip);
+        this.renderKpis(totalFiles, relatedCount, unrelatedCount, suspiciousCount, avgRel);
+
+        const tabs = [
+          { key:'overview', label:'نمای کلی', badge:null },
+          { key:'files', label:'فایل‌ها', badge:totalFiles },
+          { key:'chat', label:'چت با AI', badge:null },
+          { key:'psychology', label:'روانشناسی', badge:null },
+        ];
+        const tabbar = document.createElement('div');
+        tabbar.className = 'tabbar';
+        tabbar.setAttribute('role','tablist');
+        tabbar.setAttribute('aria-label','بخش‌های داشبورد');
+        tabbar.innerHTML = tabs.map(t =>
+          '<button class="tab'+(this.activeTab===t.key?' active':'')+'" role="tab" id="tab_'+t.key+'" data-tab="'+t.key+'" aria-selected="'+(this.activeTab===t.key)+'" aria-controls="panel_'+t.key+'">'+
+            escapeHtml(t.label)+(t.badge!==null?' <span class="badge">'+toFa(t.badge)+'</span>':'')+
+          '</button>'
+        ).join('');
+        inner.appendChild(tabbar);
+
+        const panelHost = document.createElement('div');
+        panelHost.id = 'panelHost';
+        inner.appendChild(panelHost);
+
+        const overviewPanel = document.createElement('div');
+        overviewPanel.className = 'panel'+(this.activeTab==='overview'?' active':'');
+        overviewPanel.id = 'panel_overview';
+        overviewPanel.setAttribute('role','tabpanel');
+        overviewPanel.setAttribute('aria-labelledby','tab_overview');
+        overviewPanel.innerHTML = '<div class="chart-grid" id="chartGrid">'+
+          '<div class="card chart-card"><h4>توزیع موضوعی <span class="hint">برای جزئیات کلیک کنید</span></h4><div class="chart-box" id="chartTopicBox"></div></div>'+
+          '<div class="card chart-card"><h4>نوع فایل</h4><div class="chart-box" id="chartKindBox"></div></div>'+
+          '<div class="card chart-card"><h4>ماتریس سازمانی / غیرسازمانی</h4><div class="chart-box" id="chartMatrixBox"></div></div>'+
+          '<div class="card chart-card"><h4>فعالیت روزانه و هم‌راستایی نقش</h4><div class="chart-box" id="chartTrendBox"></div></div>'+
+        '</div><div id="drilldownMount"></div>';
+        panelHost.appendChild(overviewPanel);
+
+        const filesPanel = document.createElement('div');
+        filesPanel.className = 'panel'+(this.activeTab==='files'?' active':'');
+        filesPanel.id = 'panel_files';
+        filesPanel.setAttribute('role','tabpanel');
+        filesPanel.setAttribute('aria-labelledby','tab_files');
+        filesPanel.innerHTML = '<div id="filesMount"></div>';
+        panelHost.appendChild(filesPanel);
+
+        const chatPanel = document.createElement('div');
+        chatPanel.className = 'panel'+(this.activeTab==='chat'?' active':'');
+        chatPanel.id = 'panel_chat';
+        chatPanel.setAttribute('role','tabpanel');
+        chatPanel.setAttribute('aria-labelledby','tab_chat');
+        chatPanel.innerHTML = '<div id="chatMount"></div>';
+        panelHost.appendChild(chatPanel);
+
+        const psyPanel = document.createElement('div');
+        psyPanel.className = 'panel'+(this.activeTab==='psychology'?' active':'');
+        psyPanel.id = 'panel_psychology';
+        psyPanel.setAttribute('role','tabpanel');
+        psyPanel.setAttribute('aria-labelledby','tab_psychology');
+        psyPanel.innerHTML = '<div id="psyMount"></div>';
+        panelHost.appendChild(psyPanel);
+
+        $$('.tab', tabbar).forEach(tabEl => {
+          tabEl.addEventListener('click', () => this.switchTab(tabEl.getAttribute('data-tab')));
+        });
+        tabbar.addEventListener('keydown', (e) => {
+          const els = $$('.tab', tabbar);
+          const i = els.indexOf(document.activeElement);
+          if (i < 0) return;
+          let n = null;
+          if (e.key === 'ArrowLeft') n = els[(i+1)%els.length];
+          if (e.key === 'ArrowRight') n = els[(i-1+els.length)%els.length];
+          if (e.key === 'Home') n = els[0];
+          if (e.key === 'End') n = els[els.length-1];
+          if (n) { e.preventDefault(); n.focus(); this.switchTab(n.getAttribute('data-tab')); }
+        });
+
+        $('#headerUserChip').classList.add('visible');
+        $('#headerUserAvatar').style.cssText = avatarStyle(u.id);
+        $('#headerUserAvatar').textContent = initialsOf(u.username);
+        $('#headerUserName').textContent = u.username || '';
+
+        if (this.activeTab === 'overview') setTimeout(()=>this.renderOverviewCharts(), 0);
+        else if (this.activeTab === 'files') this.renderFiles();
+        else if (this.activeTab === 'chat') this.renderChat();
+        else if (this.activeTab === 'psychology') this.renderPsychology();
+      },
+
+      switchTab(key) {
+        if (this.activeTab === key) return;
+        this.activeTab = key;
+        $$('.tab').forEach(el => {
+          const on = el.getAttribute('data-tab') === key;
+          el.classList.toggle('active', on);
+          el.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        $$('.panel').forEach(el => el.classList.toggle('active', el.id === 'panel_'+key));
+        Router.sync();
+
+        if (key === 'overview') this.renderOverviewCharts();
+        else if (key === 'files') this.renderFiles();
+        else if (key === 'chat') this.renderChat();
+        else if (key === 'psychology') this.renderPsychology();
+      },
+
+      renderKpis(total, related, unrelated, suspicious, avgRel) {
+        const strip = $('#kpiStrip');
+        if (!strip) return;
+        const base = [
+          { label:'کل فایل‌ها', value:toFa(total), color:'var(--text)' },
+          { label:'مرتبط', value:toFa(related), color:'var(--green)' },
+          { label:'غیرمرتبط', value:toFa(unrelated), color:'var(--red)' },
+          { label:'مشکوک', value:toFa(suspicious), color:'var(--orange)' },
+          { label:'میانگین relevance', value:fmtRel(avgRel), color:'var(--accent)' },
+        ];
+        const custom = this.customKpis || [];
+        strip.innerHTML =
+          base.map(c => '<div class="kpi-cell"><div class="kpi-value" style="color:'+c.color+'">'+c.value+'</div><div class="kpi-label">'+c.label+'</div></div>').join('')+
+          custom.map(c =>
+            '<div class="kpi-cell kpi-custom" data-kpi-id="'+escapeHtml(c.id)+'">'+
+              '<div class="kpi-value" style="color:var(--accent)">'+this.computeCustomKpi(c.formula)+'</div>'+
+              '<div class="kpi-label">'+escapeHtml(c.label)+'</div>'+
+              '<button class="kpi-remove" data-remove-kpi="'+escapeHtml(c.id)+'" aria-label="حذف شاخص">✕</button>'+
+            '</div>'
+          ).join('')+
+          '<button class="kpi-add" id="addKpiBtn" aria-label="افزودن شاخص سفارشی">+</button>';
+
+        const addBtn = $('#addKpiBtn', strip);
+        if (addBtn) addBtn.addEventListener('click', ()=>CustomKPI.openDrawer());
+        $$('[data-remove-kpi]', strip).forEach(btn => {
+          btn.addEventListener('click', (e)=>{
+            e.stopPropagation();
+            CustomKPI.remove(btn.getAttribute('data-remove-kpi'));
+          });
+        });
+      },
+
+      computeCustomKpi(formula) {
+        const detail = this.userDetail || {};
+        const files = (detail.files || []).map(pickFile);
+        const total = files.length;
+        const related = files.filter(f => f.related).length;
+        const unrelated = total - related;
+        const suspicious = files.filter(f => f.suspicious).length;
+        const relScores = files.map(f => f.rel).filter(n=>!isNaN(n));
+        const avgRel = relScores.length ? relScores.reduce((a,b)=>a+b,0)/relScores.length : 0;
+        const topics = (detail.topic_distribution || []).length;
+        const org = files.filter(f => f.org).length;
+        switch (formula) {
+          case 'total': return toFa(total);
+          case 'related': return toFa(related);
+          case 'unrelated': return toFa(unrelated);
+          case 'suspicious': return toFa(suspicious);
+          case 'relevance': return fmtRel(avgRel);
+          case 'related_pct': return fmtRel(total ? related/total : 0);
+          case 'susp_pct': return fmtRel(total ? suspicious/total : 0);
+          case 'topics_count': return toFa(topics);
+          case 'org_count': return toFa(org);
+          default: return '—';
+        }
+      },
+    };
+
+    /* ═══════════════ USERS ═══════════════ */
+    const Users = (function () {
+      let allUsers = [], filterText = '', loading = true;
+      function renderSkeleton() {
+        const list = $('#userList');
+        list.innerHTML = '';
+        for (let i=0;i<3;i++) {
+          const r = document.createElement('div');
+          r.className = 'skeleton-row';
+          r.innerHTML = '<div class="sk sk-avatar"></div><div class="sk-lines"><div class="sk sk-line-1"></div><div class="sk sk-line-2"></div></div>';
+          list.appendChild(r);
+        }
+      }
+      function renderEmpty() {
+        $('#userList').innerHTML = '<div class="empty-side"><span class="big">👥</span>هیچ کاربری یافت نشد</div>';
+      }
+      function render() {
+        const list = $('#userList');
+        const q = filterText.trim().toLowerCase();
+        const filtered = allUsers.filter(u => !q || String(u.username||'').toLowerCase().includes(q) || String(u.user_id).includes(q));
+        if (loading) { renderSkeleton(); return; }
+        if (!filtered.length) { renderEmpty(); return; }
+        list.innerHTML = '';
+        filtered.forEach(u => {
+          const item = document.createElement('button');
+          item.className = 'user-item';
+          item.setAttribute('role','option');
+          item.setAttribute('data-user-id', u.user_id);
+          item.setAttribute('aria-selected', State.selectedUserId === u.user_id ? 'true' : 'false');
+          if (State.selectedUserId === u.user_id) item.classList.add('active');
+          item.innerHTML =
+            '<span class="avatar" style="'+avatarStyle(u.user_id)+'">'+escapeHtml(initialsOf(u.username))+'</span>'+
+            '<div class="user-meta">'+
+              '<div class="user-name">'+escapeHtml(u.username || 'کاربر '+toFa(u.user_id))+'</div>'+
+              '<div class="user-sub">'+toFa(u.total_files ?? 0)+' فایل · '+fmtRel(u.related_percent ?? 0)+' مرتبط</div>'+
+            '</div>';
+          item.addEventListener('click', () => {
+            if (State.selectedUserId !== u.user_id) State.selectUser(u.user_id);
+          });
+          list.appendChild(item);
+        });
+      }
+      async function fetchUsers() {
+        loading = true; render();
+        try {
+          const data = await apiFetch('/api/behavior-analysis/');
+          allUsers = (data && data.success && Array.isArray(data.items)) ? data.items : [];
+        } catch (err) {
+          allUsers = []; Toast.error('خطا در دریافت لیست کاربران');
+        } finally {
+          loading = false;
+          $('#userCountBadge').textContent = toFa(allUsers.length);
+          render();
+        }
+      }
+      function setFilter(t) { filterText = t; render(); }
+      function updateActive() {
+        $$('.user-item', $('#userList')).forEach(el => {
+          const id = Number(el.getAttribute('data-user-id'));
+          const on = State.selectedUserId === id;
+          el.classList.toggle('active', on);
+          el.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+      }
+      return { fetchUsers, render, setFilter, updateActive };
+    })();
+
+    /* ═══════════════ OVERVIEW CHARTS ═══════════════ */
+    State.renderOverviewCharts = function () {
+      const topicBox = $('#chartTopicBox');
+      const kindBox = $('#chartKindBox');
+      const matrixBox = $('#chartMatrixBox');
+      const trendBox = $('#chartTrendBox');
+      if (!topicBox || !kindBox || !matrixBox || !trendBox) return;
+      ChartSetup.destroyAll();
+      this.renderTopicChart(topicBox);
+      this.renderKindChart(kindBox);
+      this.renderMatrixChart(matrixBox);
+      this.renderTrendChart(trendBox);
+      this.renderDrilldown();
+    };
+
+    State.renderTopicChart = function (host) {
+      const detail = this.userDetail || {};
+      const dist = Array.isArray(detail.topic_distribution) ? detail.topic_distribution : [];
+      // normalize topic objects
+      const topics = dist
+        .map(t => ({
+          name: t.name || t.topic || t.topic_name || t.label || 'بدون نام',
+          count: Number(t.count ?? t.total ?? (Array.isArray(t.files) ? t.files.length : 0)) || 0,
+          files: Array.isArray(t.files) ? t.files.map(pickTopicFile) : [],
+        }))
+        .filter(t => t.count > 0);
+      host.innerHTML = '';
+      if (!topics.length) { host.innerHTML = '<div class="no-data">داده‌ای موجود نیست</div>'; return; }
+      const box = document.createElement('div');
+      box.className = 'chart-box';
+      const canvasId = 'canvas_topic_'+uid();
+      box.innerHTML = '<canvas id="'+canvasId+'"></canvas>';
+      host.appendChild(box);
+      const total = topics.reduce((a,t)=>a+t.count,0);
+      const labels = topics.map(t=>t.name);
+      const values = topics.map(t=>t.count);
+      const colors = ChartSetup.PALETTE.slice(0, labels.length);
+      const config = {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor:'transparent', borderWidth: 2, hoverOffset: 6 }] },
+        options: ChartSetup.defaultOptions({
+          cutout: '68%',
+          plugins: {
+            ...ChartSetup.defaultOptions().plugins,
+            legend: { display: false },
+            centerText: { text: toFa(total), label: 'Topics' },
+            tooltip: ChartSetup.makeTooltip(),
+          },
+          onClick: (evt, elements) => {
+            if (!elements || !elements.length) return;
+            const topic = topics[elements[0].index];
+            if (!topic) return;
+            State.drilldownTopic = topic;
+            State.renderDrilldown();
+            // scroll drilldown into view
+            setTimeout(()=>{
+              const dd = $('#drilldownMount');
+              if (dd && dd.scrollIntoView) dd.scrollIntoView({ behavior:'smooth', block:'nearest' });
+            }, 30);
+          },
+        }),
+        plugins: [ChartSetup.centerTextPlugin],
+      };
+      ChartSetup.register(canvasId, config);
+      // validate stored drilldown against current topics
+      if (State.drilldownTopic) {
+        const found = topics.find(t => t.name === State.drilldownTopic.name);
+        if (found) State.drilldownTopic = found;
+        else State.drilldownTopic = null;
+      }
+    };
+
+    State.renderKindChart = function (host) {
+      const dist = this.userDetail?.kind_distribution || {};
+      const keys = Object.keys(dist).filter(k => Number(dist[k]) > 0);
+      host.innerHTML = '';
+      if (!keys.length) { host.innerHTML = '<div class="no-data">داده‌ای موجود نیست</div>'; return; }
+      const box = document.createElement('div');
+      box.className = 'chart-box';
+      const canvasId = 'canvas_kind_'+uid();
+      box.innerHTML = '<canvas id="'+canvasId+'"></canvas>';
+      host.appendChild(box);
+      const total = keys.reduce((a,k)=>a+Number(dist[k]||0),0);
+      const MAP = { pdf:'PDF', docx:'DOCX', xlsx:'XLSX', pptx:'PPTX', txt:'TXT', image:'تصویر', jpg:'تصویر', png:'تصویر', other:'سایر' };
+      const labels = keys.map(k => MAP[String(k).toLowerCase()] || k);
+      const values = keys.map(k => Number(dist[k]||0));
+      const colors = ChartSetup.PALETTE.slice(0, labels.length);
+      const config = {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor:'transparent', borderWidth: 2, hoverOffset: 6 }] },
+        options: ChartSetup.defaultOptions({
+          cutout: '68%',
+          plugins: {
+            ...ChartSetup.defaultOptions().plugins,
+            legend: { display: false },
+            centerText: { text: toFa(total), label: 'Files' },
+          },
+        }),
+        plugins: [ChartSetup.centerTextPlugin],
+      };
+      ChartSetup.register(canvasId, config);
+    };
+
+    State.renderMatrixChart = function (host) {
+      const m = this.userDetail?.matrix_2x2 || {};
+      let labels, values;
+      if (Array.isArray(m.categories) && Array.isArray(m.values)) {
+        labels = m.categories;
+        values = m.values;
+      } else {
+        labels = ['سازمانی · مرتبط', 'سازمانی · غیرمرتبط', 'غیرسازمانی · مرتبط', 'غیرسازمانی · غیرمرتبط'];
+        values = [
+          Number(m.org_related ?? m.orgRelated ?? 0),
+          Number(m.org_unrelated ?? m.orgUnrelated ?? 0),
+          Number(m.nonorg_related ?? m.nonOrgRelated ?? 0),
+          Number(m.nonorg_unrelated ?? m.nonOrgUnrelated ?? 0),
+        ];
+      }
+      host.innerHTML = '';
+      if (!values.some(v => Number(v) > 0)) { host.innerHTML = '<div class="no-data">داده‌ای موجود نیست</div>'; return; }
+      const box = document.createElement('div');
+      box.className = 'chart-box';
+      const canvasId = 'canvas_matrix_'+uid();
+      box.innerHTML = '<canvas id="'+canvasId+'"></canvas>';
+      host.appendChild(box);
+      const cv = ChartSetup.getChartCssVars();
+      const config = {
+        type: 'bar',
+        data: { labels, datasets: [{ data: values.map(v=>Number(v)||0), backgroundColor: ['#6366F1','#EF4444','#22C55E','#F59E0B'], borderRadius: 6, barThickness: 18 }] },
+        options: ChartSetup.defaultOptions({
+          indexAxis: 'y',
+          scales: {
+            x: { beginAtZero: true, grid:{ color: cv.separator, drawBorder:false }, ticks:{ color: cv.label2, font:{family:'Vazirmatn, Tahoma, sans-serif', size:10}, callback:v=>toFa(v) } },
+            y: { grid:{ display:false }, ticks:{ color: cv.label2, font:{family:'Vazirmatn, Tahoma, sans-serif', size:11} } },
+          },
+          plugins: { ...ChartSetup.defaultOptions().plugins, legend: { display: false } },
+        }),
+      };
+      ChartSetup.register(canvasId, config);
+    };
+
+    /* FIX bug 3: normalize trend + guard NaN */
+    State.renderTrendChart = function (host) {
+      const raw = Array.isArray(this.userDetail?.trend) ? this.userDetail.trend : [];
+      const trend = raw.map(pickTrendPoint).filter(p => p.label !== '' || p.related || p.unrelated);
+      host.innerHTML = '';
+      if (!trend.length) { host.innerHTML = '<div class="no-data">داده‌ای موجود نیست</div>'; return; }
+      const box = document.createElement('div');
+      box.className = 'chart-box';
+      const canvasId = 'canvas_trend_'+uid();
+      box.innerHTML = '<canvas id="'+canvasId+'"></canvas>';
+      host.appendChild(box);
+      const cv = ChartSetup.getChartCssVars();
+      const labels = trend.map(t => t.label || '');
+      const bars1 = trend.map(t => t.related);
+      const bars2 = trend.map(t => t.unrelated);
+      const line = trend.map(t => t.alignment === null ? null : t.alignment);
+      const config = {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { type:'bar', label:'مرتبط', data: bars1, backgroundColor:'#22C55E', borderRadius:4, order:2, yAxisID:'y' },
+            { type:'bar', label:'غیرمرتبط', data: bars2, backgroundColor:'#EF4444', borderRadius:4, order:2, yAxisID:'y' },
+            { type:'line', label:'هم‌راستایی نقش', data: line, borderColor:'#6366F1', backgroundColor:'rgba(99,102,241,.2)', tension:.35, borderWidth:2, pointRadius:2, order:1, yAxisID:'y2', spanGaps:true },
+          ]
+        },
+        options: ChartSetup.defaultOptions({
+          scales: {
+            x: { grid:{ display:false }, ticks:{ color: cv.label2, font:{family:'Vazirmatn, Tahoma, sans-serif', size:10} } },
+            y: { beginAtZero:true, position:'right', grid:{ color: cv.separator }, ticks:{ color: cv.label2, font:{family:'Vazirmatn, Tahoma, sans-serif', size:10}, callback:v=>toFa(v) } },
+            y2: { beginAtZero:true, max:100, position:'left', grid:{ display:false }, ticks:{ color: cv.label2, font:{family:'Vazirmatn, Tahoma, sans-serif', size:10}, callback:v=>toFa(v)+'٪' } },
+          },
+          plugins: {
+            ...ChartSetup.defaultOptions().plugins,
+            legend: { position:'bottom', rtl:true, labels:{ color: cv.label2, font:{family:'Vazirmatn, Tahoma, sans-serif', size:11}, usePointStyle:true, boxWidth:8 } },
+          },
+        }),
+      };
+      ChartSetup.register(canvasId, config);
+    };
+
+    /* FIX bug 2: drilldown tolerates empty files gracefully + always shows stats */
+    State.renderDrilldown = function () {
+      const mount = $('#drilldownMount');
+      if (!mount) return;
+      const topic = this.drilldownTopic;
+      if (!topic) { mount.innerHTML = ''; return; }
+      const files = Array.isArray(topic.files) ? topic.files : [];
+      const related = files.filter(f => f.related).length;
+      const relScores = files.map(f => f.rel).filter(n=>!isNaN(n));
+      const avgRel = relScores.length ? relScores.reduce((a,b)=>a+b,0)/relScores.length : 0;
+
+      const fileList = files.length
+        ? '<div class="drill-files" style="margin-top:12px">' +
+            files.map(f =>
+              '<div class="drill-file">'+
+                '<span class="fname" title="'+escapeHtml(f.name)+'">'+escapeHtml(f.name || '—')+'</span>'+
+                '<span class="frelevance">'+fmtRel(f.rel)+'</span>'+
+              '</div>'
+            ).join('') +
+          '</div>'
+        : '<div class="no-data" style="min-height:80px;margin-top:12px">فایلی برای این موضوع ثبت نشده است</div>';
+
+      mount.innerHTML =
+        '<div class="drilldown">'+
+          '<div class="drill-head">'+
+            '<button class="btn" id="drillBackBtn">'+svgIcon('back')+' بازگشت به نمودارها</button>'+
+            '<span class="drill-title">موضوع: '+escapeHtml(topic.name || '—')+'</span>'+
+          '</div>'+
+          '<div class="drill-stats">'+
+            '<div class="drill-stat"><b>'+toFa(topic.count ?? files.length)+'</b><span>تعداد فایل</span></div>'+
+            '<div class="drill-stat"><b style="color:var(--green)">'+toFa(related)+'</b><span>مرتبط</span></div>'+
+            '<div class="drill-stat"><b style="color:var(--accent)">'+fmtRel(avgRel)+'</b><span>میانگین relevance</span></div>'+
+          '</div>'+
+          fileList+
+        '</div>';
+
+      const back = $('#drillBackBtn', mount);
+      if (back) back.addEventListener('click', ()=>{ State.drilldownTopic = null; State.renderDrilldown(); });
+    };
+
+    /* FIX bug 1: files table uses normalized pickFile */
+    State.renderFiles = function () {
+      const mount = $('#filesMount');
+      if (!mount) return;
+      const files = (this.userDetail?.files || []).map(pickFile);
+      const total = files.length;
+      const related = files.filter(f=>f.related).length;
+      const unrelated = total - related;
+      const suspicious = files.filter(f=>f.suspicious).length;
+
+      let filtered = files;
+      if (this.filesFilter === 'related') filtered = files.filter(f=>f.related);
+      else if (this.filesFilter === 'unrelated') filtered = files.filter(f=>!f.related);
+      else if (this.filesFilter === 'suspicious') filtered = files.filter(f=>f.suspicious);
+
+      mount.innerHTML =
+        '<div class="chips" role="group" aria-label="فیلتر فایل‌ها">'+
+          '<button class="chip'+(this.filesFilter==='all'?' active':'')+'" data-filter="all">همه <span class="n">'+toFa(total)+'</span></button>'+
+          '<button class="chip'+(this.filesFilter==='related'?' active':'')+'" data-filter="related">مرتبط <span class="n">'+toFa(related)+'</span></button>'+
+          '<button class="chip'+(this.filesFilter==='unrelated'?' active':'')+'" data-filter="unrelated">غیرمرتبط <span class="n">'+toFa(unrelated)+'</span></button>'+
+          '<button class="chip'+(this.filesFilter==='suspicious'?' active':'')+'" data-filter="suspicious">مشکوک <span class="n">'+toFa(suspicious)+'</span></button>'+
+        '</div>'+
+        '<div class="table-wrap">'+
+          '<table class="files">'+
+            '<thead><tr><th>فایل</th><th class="col-topic">موضوع</th><th>وضعیت</th><th>relevance</th></tr></thead>'+
+            '<tbody>'+
+              (filtered.length
+                ? filtered.map(f => {
+                    return '<tr>'+
+                      '<td class="fname-cell"><span class="f" title="'+escapeHtml(f.name)+'">'+escapeHtml(f.name || '—')+'</span></td>'+
+                      '<td class="col-topic">'+escapeHtml(f.topic || '—')+'</td>'+
+                      '<td>'+
+                        (f.related ? '<span class="pill ok">مرتبط</span>' : '<span class="pill bad">غیرمرتبط</span>')+
+                        (f.suspicious ? ' <span class="pill warn">مشکوک</span>' : '')+
+                      '</td>'+
+                      '<td><div class="scorebar"><div class="track"><div class="fill" data-score="'+clamp01(f.rel)+'"></div></div><span class="val">'+fmtRel(f.rel)+'</span></div></td>'+
+                    '</tr>';
+                  }).join('')
+                : '<tr><td colspan="4"><div class="no-data" style="border:none;min-height:120px">داده‌ای موجود نیست</div></td></tr>')+
+            '</tbody>'+
+          '</table>'+
+        '</div>';
+
+      $$('.chip', mount).forEach(chip => {
+        chip.addEventListener('click', ()=>{
+          State.filesFilter = chip.getAttribute('data-filter');
+          State.renderFiles();
+        });
+      });
+      requestAnimationFrame(()=>{
+        $$('.scorebar .fill', mount).forEach(el=>{
+          const t = Number(el.getAttribute('data-score')) || 0;
+          el.style.width = (t*100)+'%';
+        });
+      });
+    };
+
+    /* ═══════════════ CHAT ═══════════════ */
+    State.renderChat = function () {
+      const mount = $('#chatMount');
+      if (!mount) return;
+      const session = this.chatSessionId;
+      mount.innerHTML =
+        '<div class="chat-toolbar">'+
+          '<button class="btn primary" id="newChatBtn">جلسه جدید</button>'+
+          '<input class="input-text" id="imageTopicInput" placeholder="موضوع تصویر (اختیاری)…" aria-label="موضوع تصویر" />'+
+          '<button class="btn" id="genImageBtn"'+(!session?' disabled':'')+'>تولید تصویر</button>'+
+          '<span class="chat-status" id="chatStatusText">'+escapeHtml(this.chatStatus || (session ? 'جلسه فعال' : 'بدون جلسه'))+'</span>'+
+        '</div>'+
+        '<div class="chat-shell">'+
+          '<div class="chat-messages" id="chatMessages" aria-live="polite">'+
+            (this.chatMessages.length
+              ? this.chatMessages.map(m=>this.renderMessage(m)).join('')
+              : '<div class="chat-empty"><span class="big">💬</span><div>هنوز پیامی ارسال نشده است.<br/>برای شروع، روی «جلسه جدید» بزنید و سپس سؤال خود را بنویسید.</div></div>')+
+            '<div id="imgResultMount"></div>'+
+          '</div>'+
+          '<div class="chat-input-row">'+
+            '<textarea id="chatInput" rows="1" placeholder="سؤال خود را بنویسید… (Enter برای ارسال، Shift+Enter برای خط جدید)" aria-label="ورودی چت"></textarea>'+
+            '<button class="btn primary" id="sendChatBtn">ارسال</button>'+
+          '</div>'+
+        '</div>';
+
+      $('#newChatBtn', mount).addEventListener('click', ()=>Chat.startSession());
+      $('#genImageBtn', mount).addEventListener('click', ()=>Chat.generateImage());
+      $('#sendChatBtn', mount).addEventListener('click', ()=>Chat.sendMessage());
+      const input = $('#chatInput', mount);
+      if (input) {
+        input.addEventListener('keydown', (e)=>{
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); Chat.sendMessage(); }
+        });
+        input.addEventListener('input', ()=>{
+          input.style.height = 'auto';
+          input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+        });
+      }
+      this.scrollChatToBottom();
+    };
+
+    State.renderMessage = function (m) {
+      const isUser = m.role === 'user';
+      const style = isUser ? 'style="'+avatarStyle(State.selectedUserId)+'"' : 'style="background:linear-gradient(135deg,#6366F1,#A855F7);"';
+      const text = isUser ? initialsOf(State.selectedUser?.username || 'شما') : 'AI';
+      return '<div class="msg '+(isUser?'user':'assistant')+'">'+
+        '<span class="avatar" '+style+'>'+escapeHtml(text)+'</span>'+
+        '<div class="bubble">'+escapeHtml(m.content)+'<span class="msg-time">'+(m.time || nowTimeFa())+'</span></div>'+
+      '</div>';
+    };
+
+    State.scrollChatToBottom = function () {
+      const el = $('#chatMessages');
+      if (el) el.scrollTop = el.scrollHeight;
+    };
+
+    const Chat = (function () {
+      function setStatus(text) {
+        State.chatStatus = text;
+        const el = $('#chatStatusText');
+        if (el) el.textContent = text;
+      }
+      async function startSession() {
+        const btn = $('#newChatBtn');
+        if (btn) btn.disabled = true;
+        setStatus('در حال ایجاد جلسه…');
+        try {
+          const data = await apiFetch('/api/report-chat/start/', { method:'POST', body: JSON.stringify({ user_id: State.selectedUserId }) });
+          if (!data || !data.success) throw new Error((data && data.error) || 'خطا در ایجاد جلسه');
+          State.chatSessionId = data.session_id;
+          State.chatMessages = [{ role:'assistant', content:'جلسه جدید ایجاد شد. تعداد فایل‌های موجود: '+toFa(data.file_count ?? 0)+'. سؤال خود را بپرسید.', time: nowTimeFa() }];
+          setStatus('جلسه فعال · '+toFa(data.file_count ?? 0)+' فایل');
+          Toast.success('جلسه جدید ایجاد شد');
+          State.renderChat();
+        } catch (err) {
+          Toast.error(err.message || 'خطا در ایجاد جلسه');
+          setStatus('خطا در ایجاد جلسه');
+        } finally { if (btn) btn.disabled = false; }
+      }
+      async function sendMessage() {
+        const input = $('#chatInput');
+        if (!input) return;
+        const text = input.value.trim();
+        if (!text) return;
+        if (!State.chatSessionId) { Toast.warning('ابتدا یک جلسه جدید ایجاد کنید'); return; }
+        input.value = ''; input.style.height = 'auto';
+        State.chatMessages.push({ role:'user', content:text, time: nowTimeFa() });
+        State.renderChat();
+
+        const messagesEl = $('#chatMessages');
+        const typing = document.createElement('div');
+        typing.className = 'msg assistant';
+        typing.innerHTML = '<span class="avatar" style="background:linear-gradient(135deg,#6366F1,#A855F7);">AI</span><div class="bubble"><span class="typing"><span></span><span></span><span></span></span></div>';
+        if (messagesEl) messagesEl.appendChild(typing);
+        State.scrollChatToBottom();
+
+        try {
+          const data = await apiFetch('/api/report-chat/'+encodeURIComponent(State.chatSessionId)+'/ask/', { method:'POST', body: JSON.stringify({ question: text }) });
+          if (!data || !data.success) throw new Error((data && data.error) || 'خطا در دریافت پاسخ');
+          State.chatMessages.push({ role:'assistant', content: data.answer || 'پاسخی دریافت نشد', time: nowTimeFa() });
+          State.renderChat();
+        } catch (err) {
+          State.chatMessages.push({ role:'assistant', content: 'خطا: ' + (err.message || 'پاسخ دریافت نشد'), time: nowTimeFa() });
+          State.renderChat();
+          Toast.error('خطا در ارسال پیام');
+        }
+      }
+      async function generateImage() {
+        const topicInput = $('#imageTopicInput');
+        const topic = topicInput ? topicInput.value.trim() : '';
+        if (!State.chatSessionId) { Toast.warning('ابتدا یک جلسه جدید ایجاد کنید'); return; }
+        const btn = $('#genImageBtn');
+        if (btn) btn.disabled = true;
+        Toast.info('در حال تولید تصویر…');
+        try {
+          const data = await apiFetch('/api/report-chat/'+encodeURIComponent(State.chatSessionId)+'/generate-image/', { method:'POST', body: JSON.stringify({ topic }) });
+          if (!data || !data.success) throw new Error((data && data.error) || 'خطا در تولید تصویر');
+          const mount = $('#imgResultMount');
+          if (mount) {
+            mount.innerHTML = '<div class="img-result">'+
+              '<button class="img-close" id="closeImgBtn" aria-label="بستن تصویر">✕</button>'+
+              '<img id="genImg" src="data:'+(data.mime_type || 'image/png')+';base64,'+data.image_base64+'" alt="تصویر تولیدشده" />'+
+              '<div class="caption">'+escapeHtml(data.image_prompt || 'تصویر تولیدشده')+'</div>'+
+            '</div>';
+            $('#closeImgBtn', mount).addEventListener('click', ()=>{ mount.innerHTML = ''; });
+            const img = $('#genImg', mount);
+            if (img) img.addEventListener('click', ()=>openLightbox(img.src));
+            State.scrollChatToBottom();
+          }
+          Toast.success('تصویر تولید شد');
+        } catch (err) { Toast.error(err.message || 'خطا در تولید تصویر'); }
+        finally { if (btn) btn.disabled = false; }
+      }
+      return { startSession, sendMessage, generateImage };
+    })();
+
+    function openLightbox(src) {
+      const lb = document.createElement('div');
+      lb.className = 'lightbox';
+      lb.innerHTML = '<img src="'+src+'" alt="تصویر بزرگ‌تر" />';
+      document.body.appendChild(lb);
+      const close = ()=>lb.remove();
+      lb.addEventListener('click', close);
+      document.addEventListener('keydown', function onKey(e){ if (e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey);} });
+    }
+
+    /* ═══════════════ PSYCHOLOGY ═══════════════ */
+    State.renderPsychology = function () {
+      const mount = $('#psyMount');
+      if (!mount) return;
+      const data = this.psyData;
+
+      mount.innerHTML =
+        '<div class="psy-head">'+
+          '<h3 style="margin:0;font-size:15px">تحلیل روانشناختی</h3>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+            '<button class="btn" id="psyReanalyzeBtn">تحلیل مجدد</button>'+
+            '<button class="btn" id="psyAnalyzeFilesBtn">تحلیل فایل‌ها</button>'+
+          '</div>'+
+        '</div>'+
+        '<div id="psyContent"></div>';
+
+      const content = $('#psyContent', mount);
+      if (!data) {
+        content.innerHTML = '<div class="empty-block" style="min-height:200px">'+
+          '<div class="big">🧠</div><h3>هنوز تحلیلی ذخیره نشده</h3>'+
+          '<p>برای دریافت تحلیل روانشناختی، روی «تحلیل مجدد» بزنید.</p></div>';
+      } else {
+        const risk = clamp01(data.risk_score ?? 0);
+        const anomaly = clamp01(data.anomaly_score ?? 0);
+        const stress = clamp01(data.stress_index ?? 0);
+        const roleFit = clamp01(data.role_fit_score ?? 0);
+        const dot = (v, invert=false) => {
+          const bad = invert ? (v < .35 ? 'var(--red)' : v < .7 ? 'var(--orange)' : 'var(--green)')
+                             : (v >= .7 ? 'var(--red)' : v >= .35 ? 'var(--orange)' : 'var(--green)');
+          return bad;
+        };
+        const cards = [
+          { label:'ریسک', value:risk, dot: dot(risk, false) },
+          { label:'ناهنجاری', value:anomaly, dot: dot(anomaly, false) },
+          { label:'فشار کاری', value:stress, dot: dot(stress, false) },
+          { label:'نقش‌پذیری', value:roleFit, dot: dot(roleFit, true) },
+        ];
+        const signals = Array.isArray(data.signals) ? data.signals : [];
+        content.innerHTML =
+          '<div class="psy-scores">'+cards.map(c =>
+            '<div class="score-card"><div class="lbl"><span class="dot" style="background:'+c.dot+'"></span>'+c.label+'</div><div class="val">'+toFa(Math.round(c.value*100))+'٪</div></div>'
+          ).join('')+'</div>'+
+          (data.narrative ? '<div class="psy-narrative">'+escapeHtml(data.narrative)+'</div>' : '')+
+          (signals.length ? '<div class="signals">'+signals.map(s=>'<span class="signal-pill">'+escapeHtml(s.code || s)+'</span>').join('')+'</div>' : '');
+      }
+
+      $('#psyReanalyzeBtn', mount)?.addEventListener('click', ()=>{
+        Dialog.open({
+          title:'تحلیل مجدد روانشناختی',
+          bodyHtml:'این عمل ۱–۳ دقیقه طول می‌کشد. آیا مایل به شروع تحلیل مجدد هستید؟',
+          confirmLabel:'شروع تحلیل', cancelLabel:'انصراف',
+          onConfirm: ()=>triggerPsychologyAnalysis(),
+        });
+      });
+      $('#psyAnalyzeFilesBtn', mount)?.addEventListener('click', ()=>{
+        Dialog.open({
+          title:'تحلیل فایل‌ها',
+          bodyHtml:'تحلیل فایل‌ها ممکن است چند دقیقه طول بکشد. آیا ادامه می‌دهید؟',
+          showCheckbox:true, checkboxLabel:'تحلیل اجباری (حتی اگر قبلاً تحلیل شده باشد)',
+          confirmLabel:'شروع تحلیل', cancelLabel:'انصراف',
+          onConfirm: (force)=>triggerFilesAnalysis(force),
+        });
+      });
+
+      if (this.psyLoading) {
+        const p = document.createElement('div');
+        p.className = 'progress-card';
+        p.innerHTML = '<div class="spinner"></div><span>در حال تحلیل… لطفاً صبر کنید.</span>';
+        content.appendChild(p);
+      }
+
+      // Auto-fetch psychology if not yet loaded
+      if (!this.psyData && !this.psyLoading && this.selectedUserId) {
+        this.psyLoading = true;
+        this.renderPsychology();
+        apiFetch('/api/user/'+encodeURIComponent(this.selectedUserId)+'/psychology/')
+          .then(res => { if (res && res.ok && res.data) State.psyData = res.data; })
+          .catch(()=>{})
+          .finally(()=>{
+            State.psyLoading = false;
+            if (State.selectedUserId && State.activeTab === 'psychology') State.renderPsychology();
+          });
+      }
+    };
+
+    async function triggerPsychologyAnalysis() {
+      const id = State.selectedUserId;
+      if (!id) return;
+      State.psyLoading = true;
+      State.renderPsychology();
+      try {
+        await apiFetch('/api/user/'+encodeURIComponent(id)+'/psychology/', { method:'POST', body: JSON.stringify({}) });
+        Toast.info('درخواست ثبت شد؛ نتیجه به‌زودی');
+        let attempts = 0;
+        const poll = async () => {
+          attempts++;
+          try {
+            const res = await apiFetch('/api/user/'+encodeURIComponent(id)+'/psychology/');
+            if (res && res.ok && res.data) {
+              State.psyData = res.data;
+              State.psyLoading = false;
+              if (State.selectedUserId === id && State.activeTab === 'psychology') State.renderPsychology();
+              Toast.success('تحلیل روانشناختی به‌روزرسانی شد');
+              return;
+            }
+          } catch(e){}
+          if (attempts < 60 && State.selectedUserId === id) setTimeout(poll, 5000);
+          else {
+            State.psyLoading = false;
+            if (State.selectedUserId === id && State.activeTab === 'psychology') State.renderPsychology();
+            Toast.warning('نتیجه تحلیل هنوز آماده نیست');
+          }
+        };
+        setTimeout(poll, 5000);
+      } catch (err) {
+        State.psyLoading = false;
+        Toast.error(err.message || 'خطا در شروع تحلیل');
+        if (State.selectedUserId === id && State.activeTab === 'psychology') State.renderPsychology();
+      }
+    }
+
+    async function triggerFilesAnalysis(force) {
+      const id = State.selectedUserId;
+      if (!id) return;
+      try {
+        const data = await apiFetch('/api/user/'+encodeURIComponent(id)+'/analyze-files/', { method:'POST', body: JSON.stringify({ force: !!force }) });
+        if (data && data.success) {
+          Toast.success('درخواست تحلیل فایل‌ها ثبت شد؛ نتیجه به‌زودی');
+          setTimeout(()=>State.loadUserDetail(), 3000);
+        } else Toast.error((data && data.error) || 'خطا در ثبت درخواست');
+      } catch (err) { Toast.error(err.message || 'خطا در تحلیل فایل‌ها'); }
+    }
+
+    /* ═══════════════ CUSTOM KPI DRAWER ═══════════════ */
+    const CustomKPI = (function () {
+      const FORMULAS = [
+        { value:'total', label:'تعداد کل فایل‌ها' },
+        { value:'related', label:'تعداد فایل‌های مرتبط' },
+        { value:'unrelated', label:'تعداد فایل‌های غیرمرتبط' },
+        { value:'suspicious', label:'تعداد فایل‌های مشکوک' },
+        { value:'relevance', label:'میانگین relevance' },
+        { value:'related_pct', label:'درصد مرتبط' },
+        { value:'susp_pct', label:'درصد مشکوک' },
+        { value:'topics_count', label:'تعداد موضوعات' },
+        { value:'org_count', label:'تعداد فایل‌های سازمانی' },
+      ];
+      const storageKey = (id) => 'insight_kpi_v1_'+id;
+      function load(userId) {
+        if (!userId) return [];
+        try { const raw = localStorage.getItem(storageKey(userId)); if (!raw) return []; const a = JSON.parse(raw); return Array.isArray(a) ? a : []; }
+        catch(e){ return []; }
+      }
+      function save(userId, kpis) { try { localStorage.setItem(storageKey(userId), JSON.stringify(kpis)); } catch(e){} }
+      function add(label, formula) {
+        const id = State.selectedUserId;
+        if (!id) return;
+        const kpis = load(id);
+        kpis.push({ id: uid(), label, formula });
+        save(id, kpis);
+        State.customKpis = kpis;
+        State.renderDashboard(); // simpler & safer than partial KPI refresh
+        Toast.success('شاخص سفارشی افزوده شد');
+      }
+      function remove(kpiId) {
+        const id = State.selectedUserId;
+        if (!id) return;
+        const kpis = load(id).filter(k => k.id !== kpiId);
+        save(id, kpis);
+        State.customKpis = kpis;
+        State.renderDashboard();
+        Toast.info('شاخص سفارشی حذف شد');
+      }
+      function openDrawer() {
+        const id = State.selectedUserId;
+        if (!id) return;
+        const mount = $('#drawerMount');
+        mount.innerHTML =
+          '<div class="drawer-backdrop" id="drawerBackdrop"></div>'+
+          '<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">'+
+            '<div class="drawer-head"><h3 id="drawerTitle">افزودن شاخص سفارشی</h3><button class="icon-btn" id="drawerCloseBtn" aria-label="بستن">✕</button></div>'+
+            '<div class="drawer-body">'+
+              '<div class="field"><label for="kpiLabelInput">عنوان شاخص</label><input id="kpiLabelInput" type="text" placeholder="مثلاً درصد فایل‌های مشکوک" /></div>'+
+              '<div class="field"><label for="kpiFormulaSelect">فرمول محاسبه</label><select id="kpiFormulaSelect">'+FORMULAS.map(f=>'<option value="'+f.value+'">'+f.label+'</option>').join('')+'</select><span class="hint">مقدار به‌صورت خودکار از داده‌های این کاربر محاسبه می‌شود.</span></div>'+
+            '</div>'+
+            '<div class="drawer-foot"><button class="btn" id="drawerCancelBtn">انصراف</button><button class="btn primary" id="drawerSaveBtn">ذخیره</button></div>'+
+          '</div>';
+        const close = ()=>{ mount.innerHTML = ''; };
+        $('#drawerBackdrop', mount).addEventListener('click', close);
+        $('#drawerCloseBtn', mount).addEventListener('click', close);
+        $('#drawerCancelBtn', mount).addEventListener('click', close);
+        $('#drawerSaveBtn', mount).addEventListener('click', ()=>{
+          const label = ($('#kpiLabelInput', mount).value || '').trim();
+          const formula = $('#kpiFormulaSelect', mount).value;
+          if (!label) { Toast.warning('عنوان شاخص را وارد کنید'); return; }
+          add(label, formula); close();
+        });
+      }
+      return { load, add, remove, openDrawer, FORMULAS };
+    })();
+
+    /* ═══════════════ ROUTER ═══════════════ */
+    const Router = {
+      parse() {
+        const hash = location.hash.replace(/^#/, '');
+        const params = {};
+        hash.split('&').forEach(part => {
+          const [k, v] = part.split('=');
+          if (k && v !== undefined) params[k] = decodeURIComponent(v);
+        });
+        return params;
+      },
+      sync() {
+        const params = {};
+        if (State.selectedUserId) params.user = State.selectedUserId;
+        if (State.activeTab) params.tab = State.activeTab;
+        const hash = Object.keys(params).map(k=>k+'='+encodeURIComponent(params[k])).join('&');
+        if (hash) history.replaceState(null, '', '#'+hash);
+        else history.replaceState(null, '', location.pathname);
+      },
+      handleHashChange() {
+        const p = Router.parse();
+        if (p.user) {
+          const id = Number(p.user);
+          if (!isNaN(id) && id !== State.selectedUserId) State.selectUser(id);
+          if (p.tab && ['overview','files','chat','psychology'].includes(p.tab)) {
+            const btn = document.getElementById('tab_'+p.tab);
+            if (btn && !btn.classList.contains('active')) btn.click();
+          }
+        }
+      },
+      init() {
+        window.addEventListener('hashchange', ()=>Router.handleHashChange());
+        const p = Router.parse();
+        if (p.user) { const id = Number(p.user); if (!isNaN(id)) State.selectUser(id); }
+      }
+    };
+
+    /* ═══════════════ INIT ═══════════════ */
+    (function init() {
+      $('#sidebarToggle').addEventListener('click', ()=>$('#app').classList.toggle('collapsed'));
+      Theme.syncIcon();
+      $('#themeToggle').addEventListener('click', ()=>Theme.toggle());
+
+      window.addEventListener('insight:theme-changed', ()=>{
+        if (State.selectedUserId && State.activeTab === 'overview') State.renderOverviewCharts();
+        if (State.selectedUserId && State.activeTab === 'files') State.renderFiles();
+      });
+
+      $('#refreshBtn').addEventListener('click', async ()=>{
+        const btn = $('#refreshBtn');
+        btn.classList.add('spinning');
+        setTimeout(()=>btn.classList.remove('spinning'), 700);
+        Toast.info('در حال به‌روزرسانی…');
+        try {
+          await Users.fetchUsers();
+          if (State.selectedUserId) await State.loadUserDetail();
+          Toast.success('به‌روزرسانی شد');
+        } catch (err) { Toast.error('خطا در به‌روزرسانی'); }
+      });
+
+      $('#userSearch').addEventListener('input', debounce((e)=>Users.setFilter(e.target.value), 200));
+
+      State._autoRefreshTimer = setInterval(()=>{
+        if (document.visibilityState !== 'visible') return;
+        if (!State.selectedUserId) return;
+        if (State.activeTab === 'chat') return;
+        Users.fetchUsers().catch(()=>{});
+        apiFetch('/api/behavior-analysis/'+encodeURIComponent(State.selectedUserId)+'/')
+          .then(data=>{
+            if (data && data.success && State.selectedUserId) {
+              State.userDetail = data;
+              State.selectedUser = data.user || State.selectedUser;
+              if (State.activeTab !== 'chat') State.renderDashboard();
+            }
+          }).catch(()=>{});
+      }, 30000);
+
+      document.addEventListener('visibilitychange', ()=>{
+        if (document.visibilityState === 'visible' && State.selectedUserId && State.activeTab !== 'chat') {
+          Users.fetchUsers().catch(()=>{});
+          apiFetch('/api/behavior-analysis/'+encodeURIComponent(State.selectedUserId)+'/')
+            .then(data=>{
+              if (data && data.success && State.selectedUserId) {
+                State.userDetail = data;
+                State.selectedUser = data.user || State.selectedUser;
+                if (State.activeTab !== 'chat') State.renderDashboard();
+              }
+            }).catch(()=>{});
+        }
+      });
+
+      Users.fetchUsers();
+      Router.init();
+    })();
+  </script>
 </body>
 </html>
