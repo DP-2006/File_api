@@ -1,10 +1,4 @@
 ﻿# core/services/file_content_analyzer.py
-"""
-استخراج سریع محتوای فایل — بدون LLM.
-برای متن/PDF/DOCX/XLSX: خواندن مستقیم.
-برای عکس: متادیتا (ابعاد، فرمت) + EXIF.
-هدف: < ۱ ثانیه هر فایل.
-"""
 import logging
 import hashlib
 import os
@@ -24,7 +18,7 @@ IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff'}
 @dataclass
 class ContentResult:
     kind: str = 'unknown'          # text / pdf / docx / sheet / image / unknown
-    text: str = ''                 # متن استخراج‌شده
+    text: str = ''                
     metadata: dict = field(default_factory=dict)
     error: str = ''
 
@@ -33,7 +27,6 @@ class ContentResult:
 
 
 def _compute_file_hash(uploaded_file) -> str:
-    """SHA-256 از name + size + mtime. برای idempotency."""
     try:
         f = uploaded_file.file
         name = f.name or ''
@@ -50,7 +43,6 @@ def _compute_file_hash(uploaded_file) -> str:
 
 
 def _open_file(uploaded_file):
-    """باز کردن فایل جنگو به‌صورت file-like."""
     uploaded_file.file.open('rb')
     return uploaded_file.file
 
@@ -161,7 +153,6 @@ def _extract_sheet(uploaded_file) -> ContentResult:
 
 
 def _extract_image(uploaded_file) -> ContentResult:
-    """استخراج محتوای عکس با vision (gemma3:27b multimodal)."""
     res = ContentResult(kind='image')
     try:
         from PIL import Image

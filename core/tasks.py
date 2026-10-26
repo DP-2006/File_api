@@ -13,9 +13,6 @@ logger = logging.getLogger(__name__)
     acks_late=True,
 )
 def analyze_file_role_async(self, uploaded_file_id: int, user_id: int):
-    """
-    تحلیل مرتبط بودن فایل با نقش کاربر در پس‌زمینه.
-    """
     from django.contrib.auth.models import User
     from core.models import UploadedFile, FileRoleAnalysis
     from core.services.file_role_analyzer import upsert_file_role_analysis
