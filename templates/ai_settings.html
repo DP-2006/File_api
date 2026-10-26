@@ -1445,6 +1445,518 @@
   };
 
   // ============================================
+  // COMPONENT: Access Management (in-page panel)
+  // ============================================
+  const AccessManagement = ({ roles, permissions: allPerms, users, loading, onRefresh }) => {
+    const [rolePerms, setRolePerms] = useState([]);
+    const [selectedRoleId, setSelectedRoleId] = useState(null);
+    const [roleProfiles, setRoleProfiles] = useState([]);
+    const [showNewRpForm, setShowNewRpForm] = useState(false);
+    const [newRp, setNewRp] = useState({ code: '', title_fa: '', description: '', responsibilities: '' });
+    const [showRpFilesModal, setShowRpFilesModal] = useState(false);
+    const [rpFilesData, setRpFilesData] = useState({ roleId: null, roleTitle: '', files: [], granted: new Set() });
+    const [rpFilesSearch, setRpFilesSearch] = useState('');
+    const [newRoleName, setNewRoleName] = useState('');
+    const [minLength, setMinLength] = useState(8);
+    const [accessSubTab, setAccessSubTab] = useState('perms'); // perms | profiles | policy
+    const toast = useToast();
+
+    // بارگذاری دسترسی‌های نقش انتخاب‌شده
+    useEffect(() => {
+      if (!selectedRoleId) { setRolePerms([]); return; }
+      fetchWithAuth(`/api/role-permissions/${selectedRoleId}/`)
+        .then(r => r.json())
+        .then(ids => { if (Array.isArray(ids)) setRolePerms(ids); })
+        .catch(() => {});
+    }, [selectedRoleId]);
+
+    // بارگذاری سمت‌های سازمانی
+    const loadRoleProfiles = useCallback(() => {
+      fetchWithAuth('/api/role-profiles/')
+        .then(r => r.json())
+        .then(d => { if (d && d.items) setRoleProfiles(d.items); })
+        .catch(() => {});
+    }, []);
+
+    useEffect(() => { loadRoleProfiles(); }, [loadRoleProfiles]);
+
+    const togglePerm = (permId) => {
+      setRolePerms(prev =>
+        prev.includes(permId) ? prev.filter(id => id !== permId) : [...prev, permId]
+      );
+    };
+
+    const saveRolePerms = async () => {
+      if (!selectedRoleId) { toast('نقشی انتخاب نشده', 'error'); return; }
+      try {
+        const r = await fetchWithAuth('/api/save-role-permissions/', {
+          method: 'POST',
+          body: JSON.stringify({ role_id: selectedRoleId, permissions: rolePerms })
+        });
+        const d = await r.json();
+        toast(d.success ? 'دسترسی‌ها ذخیره شد' : (d.msg || 'خطا'), d.success ? 'success' : 'error');
+      } catch (e) {
+        if (e.message !== 'Unauthorized') toast('خطای شبکه', 'error');
+      }
+    };
+
+    const createRole = async () => {
+      if (!newRoleName.trim()) { toast('نام نقش را وارد کنید', 'error'); return; }
+      try {
+        const r = await fetchWithAuth('/api/create-role/', {
+          method: 'POST',
+          body: JSON.stringify({ name: newRoleName.trim() })
+        });
+        const d = await r.json();
+        if (d.success) {
+          toast('نقش ایجاد شد', 'success');
+          setNewRoleName('');
+          onRefresh();
+        } else toast(d.msg || 'خطا', 'error');
+      } catch (e) {
+        if (e.message !== 'Unauthorized') toast('خطای شبکه', 'error');
+      }
+    };
+
+    const savePolicy = async () => {
+      try {
+        const r = await fetchWithAuth('/api/set-password-policy/', {
+          method: 'POST',
+          body: JSON.stringify({ min_length: minLength })
+        });
+        const d = await r.json();
+        toast(d.msg || (d.success ? 'ذخیره شد' : 'خطا'), d.success ? 'success' : 'error');
+      } catch (e) {
+        if (e.message !== 'Unauthorized') toast('خطای شبکه', 'error');
+      }
+    };
+
+    const createRoleProfile = async () => {
+      if (!newRp.title_fa.trim()) { toast('عنوان فارسی الزامی است', 'error'); return; }
+      try {
+        const r = await fetchWithAuth('/api/role-profiles/create/', {
+          method: 'POST',
+          body: JSON.stringify(newRp)
+        });
+        const d = await r.json();
+        if (d.success) {
+          toast('سمت جدید ساخته شد', 'success');
+          setShowNewRpForm(false);
+          setNewRp({ code: '', title_fa: '', description: '', responsibilities: '' });
+          loadRoleProfiles();
+        } else toast(d.msg || 'خطا', 'error');
+      } catch (e) {
+        if (e.message !== 'Unauthorized') toast('خطای شبکه', 'error');
+      }
+    };
+
+    const deleteRoleProfile = async (roleId, title) => {
+      if (!confirm(`حذف سمت «${title}»؟`)) return;
+      try {
+        const r = await fetchWithAuth(`/api/role-profiles/${roleId}/delete/`, { method: 'POST' });
+        const d = await r.json();
+        if (d.success) { toast('سمت حذف شد', 'success'); loadRoleProfiles(); }
+        else toast(d.msg || 'خطا', 'error');
+      } catch (e) {
+        if (e.message !== 'Unauthorized') toast('خطای شبکه', 'error');
+      }
+    };
+
+    const updateRpField = (id, field, value) => {
+      setRoleProfiles(prev => prev.map(rp => rp.id === id ? { ...rp, [field]: value } : rp));
+    };
+
+    const saveAllRoleProfiles = async () => {
+      const items = roleProfiles
+        .map(rp => ({
+          id: rp.id,
+          code: (rp.code || '').trim() || null,
+          title_fa: (rp.title_fa || '').trim(),
+          description: (rp.description || '').trim(),
+          responsibilities: (rp.responsibilities || '').trim(),
+          is_active: !!rp.is_active
+        }))
+        .filter(x => x.title_fa);
+      if (items.length === 0) { toast('هیچ سمت معتبری برای ذخیره نیست', 'error'); return; }
+      try {
+        const r = await fetchWithAuth('/api/role-profiles/save-bulk/', {
+          method: 'POST',
+          body: JSON.stringify({ items })
+        });
+        const d = await r.json();
+        toast(d.success ? `✅ ذخیره شد (${d.saved || 0})` : (d.msg || 'خطا'), d.success ? 'success' : 'error');
+        if (d.success) loadRoleProfiles();
+      } catch (e) {
+        if (e.message !== 'Unauthorized') toast('خطای شبکه', 'error');
+      }
+    };
+
+    const openRpFiles = async (roleId, roleTitle) => {
+      try {
+        const r = await fetchWithAuth(`/api/role-profiles/${roleId}/files/`);
+        const d = await r.json();
+        if (d.success) {
+          setRpFilesData({
+            roleId,
+            roleTitle,
+            files: d.all_files || [],
+            granted: new Set(d.granted_ids || [])
+          });
+          setRpFilesSearch('');
+          setShowRpFilesModal(true);
+        } else toast(d.msg || 'خطا', 'error');
+      } catch (e) {
+        if (e.message !== 'Unauthorized') toast('خطای شبکه', 'error');
+      }
+    };
+
+    const saveRpFiles = async () => {
+      const ids = Array.from(rpFilesData.granted);
+      try {
+        const r = await fetchWithAuth(`/api/role-profiles/${rpFilesData.roleId}/files/set/`, {
+          method: 'POST',
+          body: JSON.stringify({ file_ids: ids })
+        });
+        const d = await r.json();
+        toast(d.success ? (d.msg || 'ذخیره شد') : (d.msg || 'خطا'), d.success ? 'success' : 'error');
+        if (d.success) setShowRpFilesModal(false);
+      } catch (e) {
+        if (e.message !== 'Unauthorized') toast('خطای شبکه', 'error');
+      }
+    };
+
+    const toggleRpFile = (fid) => {
+      setRpFilesData(prev => {
+        const next = new Set(prev.granted);
+        if (next.has(fid)) next.delete(fid); else next.add(fid);
+        return { ...prev, granted: next };
+      });
+    };
+
+    const filteredRpFiles = rpFilesData.files.filter(f =>
+      !rpFilesSearch || (f.name || '').toLowerCase().includes(rpFilesSearch.toLowerCase())
+    );
+
+    if (loading) {
+      return React.createElement('div', { className: 'form-card' },
+        React.createElement('div', { style: { textAlign: 'center', padding: '40px' } },
+          React.createElement('span', { className: 'loading-spinner' })
+        )
+      );
+    }
+
+    // ============ Rp Files Modal ============
+    const RpFilesModal = React.createElement('div', {
+      className: 'modal-overlay' + (showRpFilesModal ? ' open' : '')
+    },
+      React.createElement('div', { className: 'modal-box', style: { maxWidth: '900px' } },
+        React.createElement('h3', null, '📁 فایل‌های مجاز سمت: ', rpFilesData.roleTitle),
+        React.createElement('p', { style: { color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '12px' } },
+          'فایل‌های انتخاب‌شده به کاربران این سمت در بخش «فایل‌های دریافتی» داشبورد نمایش داده می‌شوند.'
+        ),
+        React.createElement('div', { style: { display: 'flex', gap: '8px', marginBottom: '12px' } },
+          React.createElement('input', {
+            type: 'text',
+            placeholder: 'جستجوی فایل...',
+            value: rpFilesSearch,
+            onChange: e => setRpFilesSearch(e.target.value),
+            style: {
+              flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none'
+            }
+          }),
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-sm',
+            onClick: () => setRpFilesData(prev => ({ ...prev, granted: new Set(prev.files.map(f => f.id)) }))
+          }, 'انتخاب همه'),
+          React.createElement('button', {
+            className: 'btn btn-ghost btn-sm',
+            onClick: () => setRpFilesData(prev => ({ ...prev, granted: new Set() }))
+          }, 'حذف همه')
+        ),
+        React.createElement('div', {
+          style: { maxHeight: '55vh', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '14px', padding: '8px' }
+        },
+          filteredRpFiles.length === 0 ?
+            React.createElement('div', { style: { textAlign: 'center', padding: '20px', color: 'var(--text-tertiary)' } },
+              'هیچ فایلی یافت نشد'
+            ) :
+            filteredRpFiles.map(f =>
+              React.createElement('label', {
+                key: f.id,
+                style: { display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', cursor: 'pointer' }
+              },
+                React.createElement('input', {
+                  type: 'checkbox',
+                  checked: rpFilesData.granted.has(f.id),
+                  onChange: () => toggleRpFile(f.id),
+                  style: { width: '16px', height: '16px', accentColor: 'var(--accent)' }
+                }),
+                React.createElement('span', { style: { flex: 1, fontSize: '14px' } }, f.name),
+                React.createElement('span', { style: { fontSize: '12px', color: 'var(--text-tertiary)' } },
+                  (f.uploaded_by || '') + ' · ' + (f.uploaded_at || '')
+                )
+              )
+            )
+        ),
+        React.createElement('div', { className: 'modal-actions' },
+          React.createElement('button', { className: 'btn btn-secondary btn-sm', onClick: () => setShowRpFilesModal(false) }, 'لغو'),
+          React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: saveRpFiles }, '💾 ذخیره')
+        )
+      )
+    );
+
+    return React.createElement('div', null,
+      RpFilesModal,
+
+      // Sub-tab switch for access management
+      React.createElement('div', { className: 'tab-switch', style: { marginTop: '4px' } },
+        React.createElement('button', {
+          className: accessSubTab === 'perms' ? 'active' : '',
+          onClick: () => setAccessSubTab('perms')
+        }, '🛡️ دسترسی‌های نقش'),
+        React.createElement('button', {
+          className: accessSubTab === 'profiles' ? 'active' : '',
+          onClick: () => setAccessSubTab('profiles')
+        }, '💼 سمت‌های سازمانی'),
+        React.createElement('button', {
+          className: accessSubTab === 'policy' ? 'active' : '',
+          onClick: () => setAccessSubTab('policy')
+        }, '🔑 سیاست رمز عبور')
+      ),
+
+      // ============ Sub-tab: Permissions ============
+      accessSubTab === 'perms' && React.createElement('div', { className: 'form-card' },
+        React.createElement('h4', { style: { marginBottom: '16px' } }, '🛡️ مدیریت دسترسی‌های نقش'),
+        React.createElement('div', { className: 'form-grid' },
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'انتخاب نقش'),
+            React.createElement('select', {
+              value: selectedRoleId || '',
+              onChange: e => setSelectedRoleId(e.target.value ? parseInt(e.target.value) : null)
+            },
+              React.createElement('option', { value: '' }, '— انتخاب نقش —'),
+              (roles || []).map(r =>
+                React.createElement('option', { key: r.id, value: r.id }, r.name)
+              )
+            )
+          ),
+          React.createElement('div', { className: 'field', style: { display: 'flex', alignItems: 'flex-end' } },
+            React.createElement('button', {
+              className: 'btn btn-primary',
+              onClick: saveRolePerms,
+              disabled: !selectedRoleId
+            }, '💾 ذخیره دسترسی‌ها')
+          )
+        ),
+        React.createElement('div', { className: 'field', style: { marginTop: '12px' } },
+          React.createElement('label', null, 'دسترسی‌ها'),
+          React.createElement('div', { className: 'checkbox-grid', style: { maxHeight: '320px' } },
+            (allPerms || []).length === 0 ?
+              React.createElement('div', { style: { color: 'var(--text-tertiary)', padding: '8px' } }, 'دسترسی‌ای یافت نشد') :
+              allPerms.map(p =>
+                React.createElement('label', { key: p.id },
+                  React.createElement('input', {
+                    type: 'checkbox',
+                    checked: rolePerms.includes(p.id),
+                    onChange: () => togglePerm(p.id)
+                  }),
+                  p.name
+                )
+              )
+          )
+        )
+      ),
+
+      // ============ Sub-tab: Role Profiles ============
+      accessSubTab === 'profiles' && React.createElement('div', null,
+        React.createElement('div', { className: 'section-card', style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' } },
+          React.createElement('h4', null, '💼 سمت‌های سازمانی'),
+          React.createElement('div', { style: { display: 'flex', gap: '8px' } },
+            React.createElement('button', {
+              className: 'btn btn-success btn-sm',
+              onClick: () => setShowNewRpForm(v => !v)
+            }, showNewRpForm ? '✕ بستن' : '➕ سمت جدید')
+          )
+        ),
+
+        showNewRpForm && React.createElement('div', { className: 'form-card', style: { marginBottom: '16px', borderColor: 'rgba(52,199,89,0.3)' } },
+          React.createElement('h4', { style: { marginBottom: '12px' } }, '➕ ایجاد سمت جدید'),
+          React.createElement('div', { className: 'form-grid' },
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'کد سمت (اختیاری)'),
+              React.createElement('input', {
+                type: 'text',
+                value: newRp.code,
+                onChange: e => setNewRp({ ...newRp, code: e.target.value }),
+                placeholder: 'finance_manager'
+              })
+            ),
+            React.createElement('div', { className: 'field' },
+              React.createElement('label', null, 'عنوان فارسی *'),
+              React.createElement('input', {
+                type: 'text',
+                value: newRp.title_fa,
+                onChange: e => setNewRp({ ...newRp, title_fa: e.target.value }),
+                placeholder: 'مدیر مالی'
+              })
+            ),
+            React.createElement('div', { className: 'field full' },
+              React.createElement('label', null, 'شرح حال'),
+              React.createElement('input', {
+                type: 'text',
+                value: newRp.description,
+                onChange: e => setNewRp({ ...newRp, description: e.target.value })
+              })
+            ),
+            React.createElement('div', { className: 'field full' },
+              React.createElement('label', null, 'وظایف (هر خط یک وظیفه)'),
+              React.createElement('input', {
+                type: 'text',
+                value: newRp.responsibilities,
+                onChange: e => setNewRp({ ...newRp, responsibilities: e.target.value })
+              })
+            )
+          ),
+          React.createElement('div', { className: 'btn-row' },
+            React.createElement('button', { className: 'btn btn-primary', onClick: createRoleProfile }, '💾 ساخت'),
+            React.createElement('button', {
+              className: 'btn btn-ghost',
+              onClick: () => {
+                setShowNewRpForm(false);
+                setNewRp({ code: '', title_fa: '', description: '', responsibilities: '' });
+              }
+            }, 'لغو')
+          )
+        ),
+
+        React.createElement('div', { className: 'form-card' },
+          roleProfiles.length === 0 ?
+            React.createElement('div', { style: { textAlign: 'center', padding: '30px', color: 'var(--text-tertiary)' } },
+              'هیچ سمتی تعریف نشده. روی «سمت جدید» بزنید.'
+            ) :
+            roleProfiles.map(rp =>
+              React.createElement('div', {
+                key: rp.id,
+                className: 'user-row',
+                style: { flexDirection: 'column', alignItems: 'stretch', gap: '10px' }
+              },
+                React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' } },
+                  React.createElement('div', { style: { fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' } },
+                    '💼 ', rp.title_fa,
+                    React.createElement('span', { style: { fontSize: '12px', color: 'var(--text-tertiary)' } },
+                      `(${rp.users_count || 0} کاربر)`
+                    )
+                  ),
+                  React.createElement('div', { style: { display: 'flex', gap: '6px', alignItems: 'center' } },
+                    React.createElement('label', { style: { fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)' } },
+                      React.createElement('input', {
+                        type: 'checkbox',
+                        checked: !!rp.is_active,
+                        onChange: e => updateRpField(rp.id, 'is_active', e.target.checked),
+                        style: { accentColor: 'var(--accent)', width: '16px', height: '16px' }
+                      }),
+                      'فعال'
+                    ),
+                    React.createElement('button', {
+                      className: 'btn btn-secondary btn-sm',
+                      onClick: () => openRpFiles(rp.id, rp.title_fa)
+                    }, '📁 فایل‌ها'),
+                    React.createElement('button', {
+                      className: 'btn btn-danger btn-sm',
+                      onClick: () => deleteRoleProfile(rp.id, rp.title_fa)
+                    }, '🗑️')
+                  )
+                ),
+                React.createElement('div', { className: 'form-grid' },
+                  React.createElement('div', { className: 'field' },
+                    React.createElement('label', null, 'کد سمت'),
+                    React.createElement('input', {
+                      type: 'text',
+                      value: rp.code || '',
+                      disabled: true
+                    })
+                  ),
+                  React.createElement('div', { className: 'field' },
+                    React.createElement('label', null, 'عنوان فارسی'),
+                    React.createElement('input', {
+                      type: 'text',
+                      value: rp.title_fa || '',
+                      onChange: e => updateRpField(rp.id, 'title_fa', e.target.value)
+                    })
+                  ),
+                  React.createElement('div', { className: 'field full' },
+                    React.createElement('label', null, 'شرح حال'),
+                    React.createElement('input', {
+                      type: 'text',
+                      value: rp.description || '',
+                      onChange: e => updateRpField(rp.id, 'description', e.target.value)
+                    })
+                  ),
+                  React.createElement('div', { className: 'field full' },
+                    React.createElement('label', null, 'وظایف'),
+                    React.createElement('input', {
+                      type: 'text',
+                      value: rp.responsibilities || '',
+                      onChange: e => updateRpField(rp.id, 'responsibilities', e.target.value)
+                    })
+                  ),
+                  React.createElement('div', { className: 'field full' },
+                    React.createElement('label', null, 'متن ارسالی به AI (اختیاری)'),
+                    React.createElement('input', {
+                      type: 'text',
+                      value: rp.role_prompt || '',
+                      onChange: e => updateRpField(rp.id, 'role_prompt', e.target.value)
+                    })
+                  )
+                )
+              )
+            )
+        ),
+
+        roleProfiles.length > 0 && React.createElement('div', { className: 'btn-row', style: { marginTop: '12px' } },
+          React.createElement('button', { className: 'btn btn-primary', onClick: saveAllRoleProfiles },
+            '💾 ذخیره تغییرات سمت‌ها')
+        )
+      ),
+
+      // ============ Sub-tab: Password Policy ============
+      accessSubTab === 'policy' && React.createElement('div', { className: 'form-card' },
+        React.createElement('h4', { style: { marginBottom: '16px' } }, '🔑 سیاست رمز عبور'),
+        React.createElement('div', { className: 'form-grid' },
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'حداقل طول رمز'),
+            React.createElement('input', {
+              type: 'number',
+              min: '1',
+              value: minLength,
+              onChange: e => setMinLength(parseInt(e.target.value) || 8)
+            })
+          ),
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'ایجاد نقش جدید'),
+            React.createElement('div', { style: { display: 'flex', gap: '8px' } },
+              React.createElement('input', {
+                type: 'text',
+                value: newRoleName,
+                onChange: e => setNewRoleName(e.target.value),
+                placeholder: 'نام نقش'
+              }),
+              React.createElement('button', {
+                className: 'btn btn-success',
+                onClick: createRole
+              }, '➕')
+            )
+          )
+        ),
+        React.createElement('div', { className: 'btn-row' },
+          React.createElement('button', { className: 'btn btn-primary', onClick: savePolicy }, '💾 ذخیره سیاست')
+        )
+      )
+    );
+  };
+
+  // ============================================
   // COMPONENT: User Management (Full)
   // ============================================
   const UserManagement = ({ users, roles, loading, onRefresh, permissions: allPermissions }) => {
@@ -2109,7 +2621,11 @@
         React.createElement('button', {
           className: activeTab === 'bulk' ? 'active' : '',
           onClick: () => setActiveTab('bulk')
-        }, '📦 عملیات گروهی')
+        }, '📦 عملیات گروهی'),
+        React.createElement('button', {
+          className: activeTab === 'access' ? 'active' : '',
+          onClick: () => setActiveTab('access')
+        }, '🔐 مدیریت دسترسی')
       ),
 
       activeTab === 'users' && React.createElement('div', null,
@@ -2434,7 +2950,15 @@
             )
           )
         )
-      )
+      ),
+
+      activeTab === 'access' && React.createElement(AccessManagement, {
+        roles: rolesList,
+        permissions: permissionsList,
+        users: usersList,
+        loading: loading,
+        onRefresh: onRefresh
+      })
     );
   };
 
