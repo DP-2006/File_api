@@ -6,8 +6,8 @@ from dataclasses import dataclass, field, asdict
 
 logger = logging.getLogger(__name__)
 
-MAX_TEXT_CHARS = 4000        # حداکثر متن استخراجی
-MAX_PDF_PAGES = 5            # حداکثر صفحات PDF
+MAX_TEXT_CHARS = 4000        
+MAX_PDF_PAGES = 5            
 TEXT_EXTS = {'.txt', '.md', '.csv', '.log', '.json', '.xml', '.yaml', '.yml', '.ini', '.cfg', '.conf', '.py', '.js', '.ts', '.html', '.css', '.sql', '.ps1', '.psm1', '.psd1', '.bat', '.sh', '.rb', '.go', '.php', '.java', '.c', '.cpp', '.cs'}
 DOC_EXTS = {'.docx'}
 SHEET_EXTS = {'.xlsx', '.xlsm'}
@@ -17,7 +17,7 @@ IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff'}
 
 @dataclass
 class ContentResult:
-    kind: str = 'unknown'          # text / pdf / docx / sheet / image / unknown
+    kind: str = 'unknown'          
     text: str = ''                
     metadata: dict = field(default_factory=dict)
     error: str = ''

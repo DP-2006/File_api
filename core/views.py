@@ -3085,9 +3085,9 @@ def behavior_analysis_detail_api(request, user_id):
 
         # ---- ??????? ??????? (????? ?????) ----
         from core.models_role_profile import RoleProfile
-        org_roles = list(
-            RoleProfile.objects.filter(id__in=org_role_ids).values_list('title_fa', flat=True)
-        )
+        org_role_objs = RoleProfile.objects.filter(id__in=org_role_ids)
+        org_roles = [rp.get_effective_role_text() for rp in org_role_objs]
+        org_roles_short = [rp.title_fa for rp in org_role_objs]
 
         # ---- FileRoleAnalysis ???? relevance ----
         role_map = {}
@@ -3771,7 +3771,9 @@ def user_psychology_api(request, user_id):
         return JsonResponse({'ok': False, 'error': 'forbidden'}, status=403)
 
     if request.method == 'POST':
-        roles = list(UserRoleProfile.objects.filter(user=target).values_list('role_profile__title_fa', flat=True))
+        from core.models_role_profile import RoleProfile
+        role_ids = list(UserRoleProfile.objects.filter(user=target).values_list('role_profile_id', flat=True))
+        roles = [rp.get_effective_role_text() for rp in RoleProfile.objects.filter(id__in=role_ids)]
         files_payload = []
         for f in UploadedFile.objects.filter(uploaded_by=target, is_deleted=False)[:30]:
             fa = FileAIAnalysis.objects.filter(file=f).first()

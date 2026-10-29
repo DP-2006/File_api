@@ -6,6 +6,12 @@ import json
 import base64
 import requests
 
+
+import os
+from django.conf import settings
+
+
+
 FASTAPI_URL = "http://127.0.0.1:9000"
 WEBHOOK_SECRET = "change-this-to-a-long-random-string-min-32-chars"
 
@@ -46,17 +52,12 @@ def analyze_file_via_ai(uploaded_file) -> dict:
         raw = uploaded_file.file.read()
         uploaded_file.file.close()
     except FileNotFoundError as e:
-        # مسیر file.name شامل "uploads/" است ولی storage فایل را پیدا نمی‌کند
-        # fallback: مسیر مطلق را از MEDIA_ROOT + نام پایه بساز
-        import os
-        from django.conf import settings
         base = os.path.basename(uploaded_file.file.name)
         alt_path = os.path.join(settings.MEDIA_ROOT, base)
         if os.path.exists(alt_path):
             with open(alt_path, "rb") as fp:
                 raw = fp.read()
         else:
-            # مسیر دوم: MEDIA_ROOT/uploads/base
             alt_path2 = os.path.join(settings.MEDIA_ROOT, "uploads", base)
             if os.path.exists(alt_path2):
                 with open(alt_path2, "rb") as fp:
