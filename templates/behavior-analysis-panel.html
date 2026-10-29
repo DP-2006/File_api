@@ -1128,7 +1128,7 @@ function buildCharts(d){
   const cTo = document.getElementById('chartTopics');
   if (cTo) {
     if (topicDist.length) {
-      const topN = topicDist.slice(0, 10);
+      const topN = topicDist;
       const total = topN.reduce((s,t) => s + (t.count || 0), 0);
       charts.topics = new Chart(cTo, {
         type: 'doughnut',
