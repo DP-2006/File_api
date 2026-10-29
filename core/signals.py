@@ -34,9 +34,5 @@ def trigger_file_role_analysis(sender, instance: UploadedFile, created: bool, **
 
 @receiver(pre_save, sender=get_user_model(), dispatch_uid='core.user.enforce_staff_for_superuser')
 def enforce_superuser_is_staff(sender, instance, **kwargs):
-    """
-    سوپرادمین بدون is_staff در جنگو ناسازگار است.
-    هر جا is_superuser=True شود، is_staff هم خودکار True می‌شود.
-    """
     if instance.is_superuser and not instance.is_staff:
         instance.is_staff = True
