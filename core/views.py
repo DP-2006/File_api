@@ -3263,7 +3263,7 @@ def behavior_analysis_detail_api(request, user_id):
 
         topic_distribution = [
             {'name': k, 'count': len(v), 'files': v}
-            for k, v in sorted(topic_files.items(), key=lambda x: -len(x[1]))[:15]
+            for k, v in sorted(topic_files.items(), key=lambda x: -len(x[1]))
         ]
 
         # ---- ???? ??? ----
