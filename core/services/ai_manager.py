@@ -1,4 +1,4 @@
-# core/services/ai_manager.py
+﻿# core/services/ai_manager.py
 
 import requests
 import json
@@ -95,6 +95,8 @@ class AIManager:
             settings.ollama_host = data.get('host', settings.ollama_host)
             settings.ollama_port = int(data.get('port', settings.ollama_port))
             settings.ollama_model = data.get('model', settings.ollama_model)
+            settings.ai_service_host = data.get('ai_service_host', settings.ai_service_host)
+            settings.ai_service_port = int(data.get('ai_service_port', settings.ai_service_port))
             settings.is_active = data.get('is_active', True)
             settings.timeout_seconds = int(data.get('timeout', 120))
             settings.max_tokens = int(data.get('max_tokens', 2048))

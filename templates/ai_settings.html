@@ -969,7 +969,9 @@
       model: data?.model || 'llama3.1:8b',
       timeout: data?.timeout || 30,
       temperature: data?.temperature || 0.7,
-      is_active: data?.is_active !== undefined ? data.is_active : true
+      is_active: data?.is_active !== undefined ? data.is_active : true,
+      ai_service_host: data?.ai_service_host || '127.0.0.1',
+      ai_service_port: data?.ai_service_port || 9000
     });
     const [status, setStatus] = useState('checking');
     const [models, setModels] = useState([]);
@@ -979,7 +981,9 @@
         host: data.host || 'localhost', port: data.port || 11434,
         model: data.model || 'llama3.1:8b', timeout: data.timeout || 30,
         temperature: data.temperature || 0.7,
-        is_active: data.is_active !== undefined ? data.is_active : true
+        is_active: data.is_active !== undefined ? data.is_active : true,
+        ai_service_host: data.ai_service_host || '127.0.0.1',
+        ai_service_port: data.ai_service_port || 9000
       });
     }, [data]);
     const handleChange = (e) => {
@@ -1024,6 +1028,14 @@
           React.createElement('div', { className: 'field' },
             React.createElement('label', null, 'Port'),
             React.createElement('input', { type: 'number', name: 'port', value: form.port, onChange: handleChange, placeholder: '11434' })
+          ),
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'FastAPI Host'),
+            React.createElement('input', { name: 'ai_service_host', value: form.ai_service_host, onChange: handleChange, placeholder: '127.0.0.1' })
+          ),
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', null, 'FastAPI Port'),
+            React.createElement('input', { type: 'number', name: 'ai_service_port', value: form.ai_service_port, onChange: handleChange, placeholder: '9000' })
           ),
           React.createElement('div', { className: 'field full' },
             React.createElement('label', null, 'Model'),

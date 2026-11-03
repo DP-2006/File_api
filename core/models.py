@@ -342,7 +342,10 @@ class AISettings(models.Model):
     temperature = models.FloatField(default=0.3, verbose_name='دمای خلاقیت')
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    
+    #for connecting to ai-service .
+    #can change the IP address and  port.
+    ai_service_host = models.CharField(max_length=255, default='127.0.0.1', verbose_name='آدرس FastAPI')
+    ai_service_port = models.IntegerField(default=9000, verbose_name='پورت FastAPI')
     class Meta:
         verbose_name = "تنظیمات هوش مصنوعی"
         verbose_name_plural = "تنظیمات هوش مصنوعی"

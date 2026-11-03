@@ -1493,6 +1493,8 @@ def ai_settings_panel(request):
                 'ollama_host': ai_settings.ollama_host,
                 'ollama_port': ai_settings.ollama_port,
                 'ollama_model': ai_settings.ollama_model,
+                'ai_service_host': ai_settings.ai_service_host,
+                'ai_service_port': ai_settings.ai_service_port,
                 'is_active': ai_settings.is_active,
                 'timeout_seconds': ai_settings.timeout_seconds,
                 'max_tokens': ai_settings.max_tokens,
@@ -1521,19 +1523,22 @@ def ai_test_connection_api(request):
         return Response({'success': False, 'message': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)
 
     try:
-        data = request.data
-        host = data.get('host')
-        port = data.get('port')
-        model = data.get('model')
-
-        result = ai_manager.test_connection(host, port, model)
-        return Response(result)
+        from core.services.ai_client import AIServiceClient
+        data = request.data or {}
+        host = data.get('ai_service_host')
+        port = data.get('ai_service_port')
+        base_url = f"http://{host}:{port}" if host and port else None
+        client = AIServiceClient(base_url=base_url, timeout=10)
+        result = client.health()
+        return Response({
+            'success': bool(result.get('success')),
+            'message': 'اتصال به FastAPI برقرار است' if result.get('success') else result.get('message', 'اتصال برقرار نشد'),
+            'base_url': client.base_url,
+            'details': result.get('data') or {},
+        })
     except Exception as e:
         return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def ai_save_settings_api(request):
     if not request.user.is_staff:
         return Response({'success': False, 'message': 'دسترسی غیرمجاز'}, status=status.HTTP_403_FORBIDDEN)

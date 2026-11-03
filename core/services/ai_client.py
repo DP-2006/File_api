@@ -12,7 +12,17 @@ from django.conf import settings
 
 class AIServiceClient:
     def __init__(self, base_url: str = None, secret: str = None, timeout: int = 600):
-        self.base_url = (base_url or getattr(settings, 'AI_SERVICE_URL', 'http://127.0.0.1:9000')).rstrip('/')
+        if base_url:
+            self.base_url = base_url.rstrip('/')
+        else:
+            try:
+                from core.models import AISettings
+                s = AISettings.get_settings()
+                host = getattr(s, 'ai_service_host', None) or '127.0.0.1'
+                port = getattr(s, 'ai_service_port', None) or 9000
+                self.base_url = f"http://{host}:{port}"
+            except Exception:
+                self.base_url = getattr(settings, 'AI_SERVICE_URL', 'http://127.0.0.1:9000').rstrip('/')
         self.secret = (secret or getattr(settings, 'AI_SERVICE_SECRET', '')).encode('utf-8')
         self.timeout = timeout
         self.is_available = False
